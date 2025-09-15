@@ -886,18 +886,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         </div>
                         
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-sm text-gray-700 glass-dark px-3 py-2 rounded-full border border-white/20">
-                                    {organizedContent.folders.length} folder, {filteredAndSortedDocuments.length} dokumen
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 min-w-0">
+                                <span className="text-xs sm:text-sm text-gray-700 glass-dark px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-white/20 whitespace-nowrap">
+                                    <span className="hidden sm:inline">{organizedContent.folders.length} folder, {filteredAndSortedDocuments.length} dokumen</span>
+                                    <span className="sm:hidden">{organizedContent.folders.length}f, {filteredAndSortedDocuments.length}d</span>
                                 </span>
                                 {selectedDocs.size > 0 && (
-                                    <span className="text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-3 py-2 rounded-full border border-red-200/50">
+                                    <span className="text-xs sm:text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-red-200/50 whitespace-nowrap">
                                         {selectedDocs.size} dipilih
                                     </span>
                                 )}
                                 {isMultiSelectMode && (
-                                    <span className="text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-3 py-2 rounded-full border border-blue-200/50">
-                                        Multi-select mode (Tab untuk pilih, Esc untuk keluar)
+                                    <span className="text-xs sm:text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-blue-200/50 whitespace-nowrap">
+                                        <span className="hidden sm:inline">Multi-select mode (Tab untuk pilih, Esc untuk keluar)</span>
+                                        <span className="sm:hidden">Multi-select (Tab/Esc)</span>
                                     </span>
                                 )}
                             </div>
