@@ -636,15 +636,21 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className={`${greeting.bgColor} rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/30 backdrop-blur-xl`}>
+        <div className={`${greeting.bgColor} rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/30 backdrop-blur-xl relative overflow-hidden`}>
+          {/* Emoji Background */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+            <span className="text-[20rem] sm:text-[25rem] md:text-[30rem] lg:text-[35rem] xl:text-[40rem] 2xl:text-[45rem] select-none">
+              {greeting.emoji}
+            </span>
+          </div>
+          
+          {/* Content */}
+          <div className="relative z-10">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="grid grid-cols-1 gap-6">
               {/* Greeting Row */}
               <div className="flex items-center space-x-4">
-                <div className={`w-16 h-16 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-lg ${greeting.glowColor}`}>
-                  <span className="text-white text-3xl">{greeting.emoji}</span>
-                </div>
                 <div className="flex-1">
                   <h1 className={`text-2xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                     {greeting.text}!
@@ -687,9 +693,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Top Row: Greeting + Logout */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-6">
-                  <div className={`w-20 h-20 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-lg ${greeting.glowColor}`}>
-                    <span className="text-white text-4xl">{greeting.emoji}</span>
-                  </div>
                   <div>
                     <h1 className={`text-3xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
@@ -730,9 +733,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Left: Greeting */}
               <div className="col-span-7">
                 <div className="flex items-center space-x-6">
-                  <div className={`w-24 h-24 bg-gradient-to-r ${greeting.color} rounded-3xl flex items-center justify-center animate-float shadow-xl ${greeting.glowColor}`}>
-                    <span className="text-white text-5xl">{greeting.emoji}</span>
-                  </div>
                   <div>
                     <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
@@ -769,6 +769,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 )}
               </div>
             </div>
+          </div>
           </div>
         </div>
 
