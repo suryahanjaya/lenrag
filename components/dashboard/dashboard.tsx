@@ -81,8 +81,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Pagi', 
         emoji: '🌅', 
-        color: 'from-pink-500 via-pink-600 to-pink-700', 
-        bgColor: 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100',
+        color: 'text-white', 
+        bgColor: 'from-pink-500 via-pink-600 to-pink-700', 
         glowColor: 'shadow-pink-200/50',
         backgroundGradient: 'from-pink-200 via-yellow-200 to-yellow-300',
         accentColors: ['pink-200', 'yellow-200', 'yellow-300']
@@ -91,8 +91,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Siang', 
         emoji: '☀️', 
-        color: 'from-yellow-500 via-yellow-600 to-yellow-700', 
-        bgColor: 'bg-gradient-to-br from-red-50 via-red-100 to-red-200',
+        color: 'text-white', 
+        bgColor: 'from-yellow-500 via-yellow-600 to-yellow-700', 
         glowColor: 'shadow-red-200/50',
         backgroundGradient: 'from-yellow-200 via-orange-200 to-orange-300',
         accentColors: ['yellow-200', 'orange-200', 'orange-300']
@@ -101,8 +101,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Sore', 
         emoji: '🌇', 
-        color: 'from-orange-500 via-orange-600 to-blue-600', 
-        bgColor: 'bg-gradient-to-br from-orange-50 via-red-50 to-pink-50',
+        color: 'text-white', 
+        bgColor: 'from-orange-500 via-orange-600 to-blue-600', 
         glowColor: 'shadow-orange-200/50',
         backgroundGradient: 'from-orange-200 via-blue-200 to-blue-300',
         accentColors: ['orange-200', 'blue-200', 'blue-300']
@@ -111,8 +111,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Malam', 
         emoji: '🌙', 
-        color: 'from-blue-500 via-blue-600 to-blue-700', 
-        bgColor: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100',
+        color: 'text-white', 
+        bgColor: 'from-blue-500 via-blue-600 to-blue-700', 
         glowColor: 'shadow-blue-200/50',
         backgroundGradient: 'from-blue-200 via-indigo-300 to-purple-400',
         accentColors: ['blue-200', 'indigo-300', 'purple-400']
@@ -636,7 +636,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-xl rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/50 relative overflow-hidden`}>
+        <div className={`bg-gradient-to-r ${greeting.bgColor} bg-opacity-30 backdrop-blur-xl rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/50 relative overflow-hidden`}>
           {/* Emoji Background */}
           <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
             <span className="text-[6rem] sm:text-[8rem] md:text-[10rem] lg:text-[12rem] xl:text-[14rem] 2xl:text-[16rem] select-none block leading-none">
@@ -652,7 +652,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Greeting Row */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h1 className={`text-2xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                  <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-sm`}>
                     {greeting.text}!
                   </h1>
                   <p className="text-lg text-gray-800 font-semibold mt-1 drop-shadow-sm">{user.name || 'Pengguna'}</p>
@@ -694,7 +694,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-6">
                   <div>
-                    <h1 className={`text-3xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                    <h1 className={`text-3xl font-bold ${greeting.color} animate-fade-in drop-shadow-sm`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                     <p className="text-gray-800 text-lg font-medium mt-2 drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
@@ -734,7 +734,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               <div className="col-span-7">
                 <div className="flex items-center space-x-6">
                   <div>
-                    <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                    <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold ${greeting.color} animate-fade-in drop-shadow-sm`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                     <p className="text-gray-800 text-xl font-medium mt-3 drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
