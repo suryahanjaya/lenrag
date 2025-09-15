@@ -638,10 +638,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         {/* Header Section */}
         <div className={`${greeting.bgColor} rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/30 backdrop-blur-xl relative overflow-hidden`}>
           {/* Emoji Background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-            <span className="text-[20rem] sm:text-[25rem] md:text-[30rem] lg:text-[35rem] xl:text-[40rem] 2xl:text-[45rem] select-none">
-              {greeting.emoji}
-            </span>
+          <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none overflow-hidden">
+            <div className="relative">
+              <span className="text-[15rem] sm:text-[20rem] md:text-[25rem] lg:text-[30rem] xl:text-[35rem] 2xl:text-[40rem] select-none block leading-none">
+                {greeting.emoji}
+              </span>
+            </div>
           </div>
           
           {/* Content */}
@@ -660,9 +662,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 {onLogout && (
                   <Button
                     onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-12 h-12 rounded-xl text-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
                   >
-                    🚪 Logout
+                    🚪
                   </Button>
                 )}
               </div>
@@ -703,9 +705,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 {onLogout && (
                   <Button
                     onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-2xl text-base font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-14 h-14 rounded-2xl text-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
                   >
-                    🚪 Logout
+                    🚪
                   </Button>
                 )}
               </div>
@@ -762,9 +764,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 {onLogout && (
                   <Button
                     onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-4 rounded-2xl text-base font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 w-full"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-16 h-16 rounded-2xl text-3xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
                   >
-                    🚪 Logout
+                    🚪
                   </Button>
                 )}
               </div>
