@@ -147,6 +147,60 @@ async def get_user_documents(
         logger.error(f"Unexpected error fetching documents: {e}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
+@app.get("/documents/hierarchy")
+async def get_documents_hierarchy(
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """Fetch Google Drive documents and folders with hierarchy structure"""
+    try:
+        # Try to get access token from Supabase first
+        access_token = await supabase_client.get_user_google_token(current_user['id'])
+        
+        # If no token in Supabase (development mode), use token from header
+        if not access_token:
+            access_token = x_google_token
+            
+        if not access_token:
+            raise HTTPException(
+                status_code=400, 
+                detail="Google access token not found. Please ensure you're properly authenticated with Google."
+            )
+        
+        logger.info(f"Attempting to fetch folder hierarchy with token: {access_token[:20]}...")
+        
+        # Fetch folder hierarchy from Google Drive
+        try:
+            hierarchy = await google_docs_service.get_folder_hierarchy(access_token)
+            logger.info(f"Successfully fetched hierarchy: {len(hierarchy['folders'])} folders, {len(hierarchy['documents'])} documents")
+            return hierarchy
+        except Exception as api_error:
+            logger.error(f"Google API error: {api_error}")
+            
+            # If it's an auth error, provide clear instructions
+            if "401" in str(api_error) or "invalid" in str(api_error).lower():
+                raise HTTPException(
+                    status_code=401,
+                    detail="Google access token is invalid or expired. Please sign out and sign in again with Google."
+                )
+            elif "403" in str(api_error) or "permission" in str(api_error).lower():
+                raise HTTPException(
+                    status_code=403,
+                    detail="Insufficient permissions. Please re-authenticate and grant access to Google Drive."
+                )
+            else:
+                # For other errors, return the actual error to help debug
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to fetch Google Drive hierarchy: {str(api_error)}"
+                )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error fetching folder hierarchy: {e}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
 @app.post("/documents/add")
 async def add_documents_to_knowledge_base(
     request: AddDocumentsRequest,

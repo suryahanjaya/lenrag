@@ -32,23 +32,24 @@ class GoogleDocsService:
         self.docs_api_base = "https://www.googleapis.com/docs/v1"
     
     async def list_documents(self, access_token: str) -> List[Dict[str, Any]]:
-        """List all document files (.docx, .pdf, .txt, .pptx, Google Docs) for the user"""
+        """List all document files (.docx, .pdf, .txt, .pptx, Google Docs) and folders for the user"""
         try:
-            # Query for various document types using Drive API
-            # Include: Word docs, PDFs, text files, PowerPoint, and Google Docs
+            # Query for various document types AND folders using Drive API
+            # Include: Word docs, PDFs, text files, PowerPoint, Google Docs, and folders
             query = ("(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
                     "mimeType='application/pdf' or "
                     "mimeType='text/plain' or "
                     "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or "
                     "mimeType='application/vnd.google-apps.document' or "
-                    "mimeType='application/vnd.google-apps.presentation') and "
+                    "mimeType='application/vnd.google-apps.presentation' or "
+                    "mimeType='application/vnd.google-apps.folder') and "
                     "trashed=false")
             url = f"{self.drive_api_base}/files"
             
             params = {
                 'q': query,
-                'pageSize': 100,
-                'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size)'
+                'pageSize': 1000,  # Increased to get more files and folders
+                'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
             }
             
             headers = {
@@ -76,6 +77,10 @@ class GoogleDocsService:
                 # Get the actual MIME type from the file
                 mime_type = file.get('mimeType', 'unknown')
                 
+                # Get parent folder information
+                parents = file.get('parents', [])
+                parent_id = parents[0] if parents else None
+                
                 # Determine file type for display
                 file_extension = self._get_file_extension(file.get('name', ''))
                 if not file_extension:
@@ -89,7 +94,9 @@ class GoogleDocsService:
                     'web_view_link': file.get('webViewLink', ''),
                     'size': file.get('size'),
                     'mime_type': mime_type,
-                    'file_extension': file_extension
+                    'file_extension': file_extension,
+                    'parent_id': parent_id,
+                    'is_folder': mime_type == 'application/vnd.google-apps.folder'
                 }
                 documents.append(doc)
             
@@ -98,6 +105,57 @@ class GoogleDocsService:
             
         except Exception as e:
             logger.error(f"Error listing documents: {e}")
+            raise
+    
+    async def get_folder_hierarchy(self, access_token: str) -> Dict[str, Any]:
+        """Get folder hierarchy and organize documents by folders"""
+        try:
+            # Get all documents and folders
+            all_items = await self.list_documents(access_token)
+            
+            # Separate folders and documents
+            folders = [item for item in all_items if item.get('is_folder', False)]
+            documents = [item for item in all_items if not item.get('is_folder', False)]
+            
+            # Build folder hierarchy
+            folder_map = {folder['id']: folder for folder in folders}
+            
+            # Build folder tree structure
+            def build_folder_tree(parent_id=None, level=0):
+                children = []
+                for folder in folders:
+                    if folder.get('parent_id') == parent_id:
+                        folder_info = {
+                            'id': folder['id'],
+                            'name': folder['name'],
+                            'parent_id': folder.get('parent_id'),
+                            'level': level,
+                            'children': build_folder_tree(folder['id'], level + 1)
+                        }
+                        children.append(folder_info)
+                return children
+            
+            # Get root folders (folders with no parent or parent not in our list)
+            root_folders = build_folder_tree()
+            
+            # Organize documents by folder
+            documents_by_folder = {}
+            for doc in documents:
+                parent_id = doc.get('parent_id')
+                if parent_id not in documents_by_folder:
+                    documents_by_folder[parent_id] = []
+                documents_by_folder[parent_id].append(doc)
+            
+            return {
+                'folders': folders,
+                'documents': documents,
+                'folder_tree': root_folders,
+                'documents_by_folder': documents_by_folder,
+                'folder_map': folder_map
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting folder hierarchy: {e}")
             raise
     
     def _get_file_extension(self, filename: str) -> str:

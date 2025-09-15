@@ -16,6 +16,9 @@ interface Document {
   modified_time?: string;
   web_view_link?: string;
   size?: string;
+  parent_id?: string;
+  is_folder?: boolean;
+  file_extension?: string;
 }
 
 interface KnowledgeBaseDocument {
@@ -23,6 +26,22 @@ interface KnowledgeBaseDocument {
   name: string;
   mime_type: string;
   chunk_count: number;
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  parent_id?: string;
+  level?: number;
+  children?: Folder[];
+}
+
+interface FolderHierarchy {
+  folders: Folder[];
+  documents: Document[];
+  folder_tree: Folder[];
+  documents_by_folder: { [key: string]: Document[] };
+  folder_map: { [key: string]: Folder };
 }
 
 interface User {
@@ -64,6 +83,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [folders, setFolders] = useState<Array<{id: string, name: string, parentId?: string}>>([]);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const [folderHierarchy, setFolderHierarchy] = useState<FolderHierarchy | null>(null);
+  const [folderPath, setFolderPath] = useState<string[]>([]);
 
   // Real-time clock
   useEffect(() => {
@@ -184,40 +205,24 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     });
   };
 
-  // Organize documents by folders
+  // Organize documents by folders using real hierarchy
   const organizedContent = useMemo(() => {
-    const currentFolderDocs = documents.filter((doc: Document) => {
-      // For now, we'll simulate folder structure based on file extensions or names
-      // In a real implementation, this would come from Google Drive API
-      if (currentFolder === null) {
-        // Root folder - show folders and top-level files
-        return !doc.name.includes('/') && !doc.name.includes('\\');
-      } else {
-        // Specific folder - show files in that folder
-        return doc.name.includes(currentFolder);
-      }
-    });
+    if (!folderHierarchy) {
+      return { folders: [], documents: [] };
+    }
 
-    // Extract folders from document names (simulate folder structure)
-    const extractedFolders = new Set<string>();
-    documents.forEach((doc: Document) => {
-      const pathParts = doc.name.split('/');
-      if (pathParts.length > 1) {
-        extractedFolders.add(pathParts[0]);
-      }
-    });
+    // Get current folder's children and documents
+    const currentFolderFolders = folderHierarchy.folders.filter((folder: Folder) => 
+      folder.parent_id === currentFolder
+    );
 
-    const folderList = Array.from(extractedFolders).map(folderName => ({
-      id: folderName,
-      name: folderName,
-      parentId: currentFolder || undefined
-    }));
+    const currentFolderDocs = folderHierarchy.documents_by_folder[currentFolder || 'null'] || [];
 
     return {
-      folders: folderList,
+      folders: currentFolderFolders,
       documents: currentFolderDocs
     };
-  }, [documents, currentFolder]);
+  }, [folderHierarchy, currentFolder]);
 
   // Filter and sort documents
   const filteredAndSortedDocuments = organizedContent.documents
@@ -237,7 +242,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
     });
 
-  // Fungsi untuk mengambil dokumen dari Google Drive
+  // Fungsi untuk mengambil dokumen dari Google Drive dengan hierarki folder
   const fetchDocuments = async () => {
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
@@ -249,7 +254,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     setMessage('');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/hierarchy`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'X-Google-Token': token,
@@ -271,21 +276,24 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      console.log('Documents API response:', data);
+      console.log('Documents hierarchy API response:', data);
       
-      // Handle different response formats
-      const documents = Array.isArray(data) ? data : (data.documents || []);
-      setDocuments(documents);
+      // Set folder hierarchy
+      setFolderHierarchy(data);
       
-      // Only show success message if there are documents
-      if (documents.length > 0) {
-        setMessage(`Dokumen berhasil dimuat. ${documents.length} dokumen ditemukan.`);
+      // Set documents (all documents from hierarchy)
+      setDocuments(data.documents || []);
+      
+      // Only show success message if there are documents or folders
+      const totalItems = (data.documents?.length || 0) + (data.folders?.length || 0);
+      if (totalItems > 0) {
+        setMessage(`Berhasil dimuat. ${data.folders?.length || 0} folder dan ${data.documents?.length || 0} dokumen ditemukan.`);
       } else {
-        setMessage('Tidak ada dokumen ditemukan di Google Drive Anda.');
+        setMessage('Tidak ada dokumen atau folder ditemukan di Google Drive Anda.');
       }
 
     } catch (error) {
-      console.error('Error fetching documents:', error);
+      console.error('Error fetching documents hierarchy:', error);
       setMessage('Gagal memuat dokumen. Periksa koneksi internet dan coba lagi.');
     } finally {
       setIsLoading(false);
@@ -367,13 +375,53 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Handle folder navigation
   const handleFolderClick = (folderId: string) => {
-    setCurrentFolder(folderId);
-    setSelectedDocs(new Set()); // Clear selection when navigating
+    if (!folderHierarchy) return;
+    
+    const folder = folderHierarchy.folder_map[folderId];
+    if (folder) {
+      setCurrentFolder(folderId);
+      setSelectedDocs(new Set()); // Clear selection when navigating
+      
+      // Update folder path - build path from root to current folder
+      const buildPath = (folderId: string): string[] => {
+        const folder = folderHierarchy.folder_map[folderId];
+        if (!folder || !folder.parent_id) {
+          return folder ? [folder.name] : [];
+        }
+        return [...buildPath(folder.parent_id), folder.name];
+      };
+      
+      setFolderPath(buildPath(folderId));
+    }
   };
 
   // Handle back navigation
   const handleBackToParent = () => {
-    setCurrentFolder(null);
+    if (!folderHierarchy) return;
+    
+    if (currentFolder) {
+      const currentFolderData = folderHierarchy.folder_map[currentFolder];
+      if (currentFolderData && currentFolderData.parent_id) {
+        setCurrentFolder(currentFolderData.parent_id);
+        
+        // Update folder path - build path from root to parent folder
+        const buildPath = (folderId: string): string[] => {
+          const folder = folderHierarchy.folder_map[folderId];
+          if (!folder || !folder.parent_id) {
+            return folder ? [folder.name] : [];
+          }
+          return [...buildPath(folder.parent_id), folder.name];
+        };
+        
+        setFolderPath(buildPath(currentFolderData.parent_id));
+      } else {
+        setCurrentFolder(null);
+        setFolderPath([]);
+      }
+    } else {
+      setCurrentFolder(null);
+      setFolderPath([]);
+    }
     setSelectedDocs(new Set()); // Clear selection when navigating
   };
 
@@ -1055,19 +1103,32 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             </div>
                             <div>
                                 <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Google Drive Documents</h2>
-                                <p className="text-red-100 text-sm font-medium">Kelola dokumen dari Google Drive Anda</p>
+                                <p className="text-red-100 text-sm font-medium">
+                                    {currentFolder ? `📁 ${folderPath.length > 0 ? folderPath.join(' / ') : 'Folder'}` : 'Kelola dokumen dari Google Drive Anda'}
+                                </p>
                             </div>
                         </div>
-                        <Button
-                            onClick={() => {
-                                fetchDocuments();
-                                fetchKnowledgeBase();
-                            }}
-                            disabled={isLoading}
-                            className="bg-white/90 hover:bg-white border border-white/40 disabled:bg-opacity-50 text-gray-800 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-xl"
-                        >
-                            {isLoading ? '⏳ Loading...' : '🔄 Refresh'}
-                        </Button>
+                        <div className="flex items-center space-x-3">
+                            {(currentFolder || folderPath.length > 0) && (
+                                <Button
+                                    onClick={handleBackToParent}
+                                    className="bg-white/90 hover:bg-white border border-white/40 text-gray-800 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
+                                >
+                                    <span>←</span>
+                                    <span>Back</span>
+                                </Button>
+                            )}
+                            <Button
+                                onClick={() => {
+                                    fetchDocuments();
+                                    fetchKnowledgeBase();
+                                }}
+                                disabled={isLoading}
+                                className="bg-white/90 hover:bg-white border border-white/40 disabled:bg-opacity-50 text-gray-800 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-xl"
+                            >
+                                {isLoading ? '⏳ Loading...' : '🔄 Refresh'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
                 <div className="p-4 sm:p-6 lg:p-8">
@@ -1108,6 +1169,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                     <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
                                         📄 {filteredAndSortedDocuments.length} dokumen
                                     </span>
+                                    {folderHierarchy && (
+                                        <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
+                                            📊 Total: {folderHierarchy.folders.length} folder, {folderHierarchy.documents.length} dokumen
+                                        </span>
+                                    )}
                                 </div>
                                 
                                 {selectedDocs.size > 0 && (
@@ -1158,20 +1224,45 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             ) : (organizedContent.folders.length > 0 || filteredAndSortedDocuments.length > 0) ? (
                                 <div className="space-y-3">
                                     {/* Breadcrumb Navigation */}
-                                    {currentFolder && (
-                                        <div className="flex items-center space-x-2 mb-4">
-                                            <Button
-                                                onClick={handleBackToParent}
-                                                className="bg-white/90 hover:bg-white text-gray-800 px-3 py-2 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg border border-white/30"
-                                            >
-                                                ← Kembali
-                                            </Button>
-                                            <span className="text-gray-600">/ {currentFolder}</span>
+                                    {(currentFolder || folderPath.length > 0) && (
+                                        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <Button
+                                                        onClick={handleBackToParent}
+                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/30 flex items-center space-x-2"
+                                                    >
+                                                        <span>←</span>
+                                                        <span>Kembali</span>
+                                                    </Button>
+                                                    <div className="flex items-center space-x-2 text-gray-700">
+                                                        <span className="text-lg">📁</span>
+                                                        <div className="flex items-center space-x-1">
+                                                            {folderPath.length > 0 ? (
+                                                                <>
+                                                                    <span className="text-sm font-medium">Root</span>
+                                                                    {folderPath.map((folder, index) => (
+                                                                        <div key={index} className="flex items-center space-x-1">
+                                                                            <span className="text-gray-400">/</span>
+                                                                            <span className="text-sm font-medium text-gray-800">{folder}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-sm font-medium">Root</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-gray-500 bg-white/30 px-3 py-1 rounded-lg">
+                                                    {organizedContent.folders.length} folder, {filteredAndSortedDocuments.length} dokumen
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                     
                                     {/* Folders */}
-                                    {organizedContent.folders.map((folder: {id: string; name: string; parentId?: string | null}, index: number) => (
+                                    {organizedContent.folders.map((folder: Folder, index: number) => (
                                         <div 
                                             key={folder.id} 
                                             className="flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer glass-dark border-white/20 hover:border-white/40 hover:shadow-md"
