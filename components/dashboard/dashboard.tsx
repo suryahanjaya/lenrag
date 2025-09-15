@@ -636,28 +636,26 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className={`${greeting.bgColor} rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/30 backdrop-blur-xl relative overflow-hidden`}>
+        <div className={`${greeting.bgColor} rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/50 relative overflow-hidden`}>
           {/* Emoji Background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none overflow-hidden">
-            <div className="relative">
-              <span className="text-[15rem] sm:text-[20rem] md:text-[25rem] lg:text-[30rem] xl:text-[35rem] 2xl:text-[40rem] select-none block leading-none">
-                {greeting.emoji}
-              </span>
-            </div>
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+            <span className="text-[6rem] sm:text-[8rem] md:text-[10rem] lg:text-[12rem] xl:text-[14rem] 2xl:text-[16rem] select-none block leading-none">
+              {greeting.emoji}
+            </span>
           </div>
           
           {/* Content */}
-          <div className="relative z-10">
+          <div className={`relative z-10 bg-gradient-to-r ${greeting.color} bg-opacity-20 backdrop-blur-sm rounded-2xl p-6 border border-white/30`}>
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="grid grid-cols-1 gap-6">
               {/* Greeting Row */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h1 className={`text-2xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                     {greeting.text}!
                   </h1>
-                  <p className="text-lg text-gray-700 font-semibold mt-1">{user.name || 'Pengguna'}</p>
+                  <p className="text-lg text-gray-800 font-semibold mt-1 drop-shadow-sm">{user.name || 'Pengguna'}</p>
                 </div>
                 {onLogout && (
                   <Button
@@ -671,11 +669,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Description */}
               <div className="text-center">
-                <p className="text-gray-700 text-base font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                <p className="text-gray-800 text-base font-medium drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
               </div>
               
               {/* Time & Date */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg">
+              <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg`}>
                 <div className="text-center space-y-3">
                   <div className="flex items-center justify-center space-x-4">
                     <span className="text-3xl">🕐</span>
@@ -699,7 +697,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     <h1 className={`text-3xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <p className="text-gray-700 text-lg font-medium mt-2">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    <p className="text-gray-800 text-lg font-medium mt-2 drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                   </div>
                 </div>
                 {onLogout && (
@@ -714,7 +712,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Time & Date Row */}
               <div className="flex justify-center">
-                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg">
+                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg`}>
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <span className="text-3xl">🕐</span>
@@ -739,14 +737,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <p className="text-gray-700 text-xl font-medium mt-3">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    <p className="text-gray-800 text-xl font-medium mt-3 drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                   </div>
                 </div>
               </div>
               
               {/* Center: Time & Date */}
               <div className="col-span-4">
-                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg">
+                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg`}>
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <span className="text-4xl">🕐</span>
