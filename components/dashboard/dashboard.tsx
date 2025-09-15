@@ -645,7 +645,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           </div>
           
           {/* Content */}
-          <div className={`relative z-10 bg-gradient-to-r ${greeting.color} bg-opacity-40 backdrop-blur-sm rounded-2xl p-6 border border-white/40`}>
+          <div className="relative z-10 bg-white/20 backdrop-blur-xl rounded-2xl p-6 border border-white/30 shadow-lg">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="grid grid-cols-1 gap-6">
@@ -673,13 +673,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               </div>
               
               {/* Time & Date */}
-              <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg`}>
-                <div className="text-center space-y-3">
-                  <div className="flex items-center justify-center space-x-4">
-                    <span className="text-3xl">🕐</span>
-                    <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+              <div className="bg-white/30 backdrop-blur-lg rounded-xl p-4 border border-white/40 shadow-md">
+                <div className="text-center space-y-2">
+                  <div className="flex items-center justify-center space-x-3">
+                    <span className="text-2xl">🕐</span>
+                    <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                   </div>
-                  <div className="text-base text-gray-600 font-medium">
+                  <div className="text-sm text-gray-600 font-medium">
                     {formatCurrentDate(currentTime)}
                   </div>
                 </div>
@@ -712,13 +712,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Time & Date Row */}
               <div className="flex justify-center">
-                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg`}>
-                  <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center space-x-4">
-                      <span className="text-3xl">🕐</span>
-                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-4 border border-white/40 shadow-md">
+                  <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center space-x-3">
+                      <span className="text-2xl">🕐</span>
+                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-base text-gray-600 font-medium">
+                    <div className="text-sm text-gray-600 font-medium">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
@@ -744,13 +744,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Center: Time & Date */}
               <div className="col-span-4">
-                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg`}>
-                  <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center space-x-4">
-                      <span className="text-4xl">🕐</span>
-                      <span className="text-4xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-4 border border-white/40 shadow-md">
+                  <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center space-x-3">
+                      <span className="text-3xl">🕐</span>
+                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-lg text-gray-600 font-medium">
+                    <div className="text-sm text-gray-600 font-medium">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
