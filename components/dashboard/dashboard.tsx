@@ -636,31 +636,45 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className={`bg-gradient-to-r ${greeting.bgColor} bg-opacity-30 backdrop-blur-xl rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/50 relative overflow-hidden`}>
-          {/* Emoji Background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-            <span className="text-[6rem] sm:text-[8rem] md:text-[10rem] lg:text-[12rem] xl:text-[14rem] 2xl:text-[16rem] select-none block leading-none">
-              {greeting.emoji}
-            </span>
+        <div className={`bg-gradient-to-br ${greeting.bgColor} bg-opacity-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 md:p-12 animate-fade-in border border-white/30 relative overflow-hidden`}>
+          {/* Animated Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
+          </div>
+          
+          {/* Floating Emoji Background */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-8 pointer-events-none">
+            <div className="relative">
+              <span className="text-[8rem] sm:text-[10rem] md:text-[12rem] lg:text-[14rem] xl:text-[16rem] 2xl:text-[18rem] select-none block leading-none animate-float">
+                {greeting.emoji}
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+            </div>
           </div>
           
           {/* Content */}
-          <div className="relative z-10 bg-white/20 backdrop-blur-xl rounded-2xl p-6 border border-white/30 shadow-lg">
+          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-8">
               {/* Greeting Row */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-sm`}>
-                    {greeting.text}!
-                  </h1>
-                  <p className="text-lg text-gray-800 font-semibold mt-1 drop-shadow-sm">{user.name || 'Pengguna'}</p>
+                  <div className="space-y-2">
+                    <h1 className={`text-3xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                      {greeting.text}!
+                    </h1>
+                    <p className="text-xl text-gray-800 font-semibold drop-shadow-sm bg-white/30 px-4 py-2 rounded-2xl backdrop-blur-sm border border-white/40">
+                      {user.name || 'Pengguna'}
+                    </p>
+                  </div>
                 </div>
                 {onLogout && (
                   <Button
                     onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-12 h-12 rounded-xl text-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-14 h-14 rounded-2xl text-2xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 flex items-center justify-center border border-white/30"
                   >
                     🚪
                   </Button>
@@ -669,17 +683,21 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Description */}
               <div className="text-center">
-                <p className="text-gray-800 text-base font-medium drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
+                  <p className="text-gray-800 text-lg font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                </div>
               </div>
               
               {/* Time & Date */}
-              <div className="bg-white/30 backdrop-blur-lg rounded-xl p-3 border border-white/40 shadow-md max-w-48 mx-auto">
-                <div className="text-center space-y-1">
-                  <div className="flex items-center justify-center space-x-2">
-                    <span className="text-xl">🕐</span>
-                    <span className="text-xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+              <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl max-w-56 mx-auto">
+                <div className="text-center space-y-2">
+                  <div className="flex items-center justify-center space-x-3">
+                    <div className="w-8 h-8 bg-white/50 rounded-full flex items-center justify-center">
+                      <span className="text-lg">🕐</span>
+                    </div>
+                    <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                   </div>
-                  <div className="text-xs text-gray-600 font-medium">
+                  <div className="text-sm text-gray-700 font-medium bg-white/30 px-3 py-1 rounded-xl">
                     {formatCurrentDate(currentTime)}
                   </div>
                 </div>
@@ -689,21 +707,23 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
           {/* Tablet Layout */}
           <div className="hidden sm:block lg:hidden">
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 gap-10">
               {/* Top Row: Greeting + Logout */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <div>
-                    <h1 className={`text-3xl font-bold ${greeting.color} animate-fade-in drop-shadow-sm`}>
+                <div className="flex items-center space-x-8">
+                  <div className="space-y-3">
+                    <h1 className={`text-4xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <p className="text-gray-800 text-lg font-medium mt-2 drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
+                      <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    </div>
                   </div>
                 </div>
                 {onLogout && (
                   <Button
                     onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-14 h-14 rounded-2xl text-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-16 h-16 rounded-2xl text-3xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 flex items-center justify-center border border-white/30"
                   >
                     🚪
                   </Button>
@@ -712,13 +732,15 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Time & Date Row */}
               <div className="flex justify-center">
-                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-3 border border-white/40 shadow-md max-w-56">
-                  <div className="text-center space-y-1">
-                    <div className="flex items-center justify-center space-x-2">
-                      <span className="text-xl">🕐</span>
-                      <span className="text-xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl max-w-64">
+                  <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
+                        <span className="text-xl">🕐</span>
+                      </div>
+                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-xs text-gray-600 font-medium">
+                    <div className="text-sm text-gray-700 font-medium bg-white/30 px-4 py-2 rounded-xl">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
@@ -729,28 +751,32 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
           {/* Desktop Layout */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-12 gap-8 items-center">
+            <div className="grid grid-cols-12 gap-10 items-center">
               {/* Left: Greeting */}
               <div className="col-span-7">
-                <div className="flex items-center space-x-6">
-                  <div>
-                    <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold ${greeting.color} animate-fade-in drop-shadow-sm`}>
+                <div className="flex items-center space-x-8">
+                  <div className="space-y-4">
+                    <h1 className={`text-5xl xl:text-6xl 2xl:text-7xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <p className="text-gray-800 text-xl font-medium mt-3 drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-2xl">
+                      <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    </div>
                   </div>
                 </div>
               </div>
               
               {/* Center: Time & Date */}
               <div className="col-span-4">
-                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-3 border border-white/40 shadow-md max-w-64 mx-auto">
-                  <div className="text-center space-y-1">
-                    <div className="flex items-center justify-center space-x-2">
-                      <span className="text-2xl">🕐</span>
-                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-5 border border-white/50 shadow-xl max-w-72 mx-auto">
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
+                        <span className="text-2xl">🕐</span>
+                      </div>
+                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-xs text-gray-600 font-medium">
+                    <div className="text-sm text-gray-700 font-medium bg-white/30 px-4 py-2 rounded-xl">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
@@ -762,7 +788,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 {onLogout && (
                   <Button
                     onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-16 h-16 rounded-2xl text-3xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-20 h-20 rounded-2xl text-4xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 flex items-center justify-center border border-white/30"
                   >
                     🚪
                   </Button>
@@ -779,36 +805,49 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           {/* Chat Section - Full Width */}
           <div className="w-full">
             {/* Chat Section */}
-            <div className="glass-premium rounded-3xl shadow-lg overflow-hidden animate-fade-in border border-white/30">
-              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 px-4 sm:px-6 py-4 sm:py-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center animate-glow">
-                      <span className="text-white text-xl sm:text-2xl">💬</span>
+            <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-6 sm:px-8 py-6 sm:py-8 relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+                </div>
+                
+                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/25 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-glow border border-white/30">
+                      <span className="text-white text-2xl sm:text-3xl">💬</span>
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-white">Chat dengan AI</h2>
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Chat dengan AI</h2>
+                      <p className="text-blue-100 text-sm font-medium">Tanyakan apapun tentang dokumen Anda</p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="text-sm text-white glass-dark px-3 py-2 rounded-full font-medium">
-                      {chatHistory.length} pesan
-                    </span>
-                    {knowledgeBase.length === 0 && (
-                      <span className="text-xs text-yellow-200 bg-yellow-500 bg-opacity-30 px-3 py-1 rounded-full">
-                        ⚠️ Kosong
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">
+                      <span className="text-sm text-white font-semibold">
+                        {chatHistory.length} pesan
                       </span>
+                    </div>
+                    {knowledgeBase.length === 0 && (
+                      <div className="bg-yellow-500/30 backdrop-blur-sm px-4 py-2 rounded-2xl border border-yellow-400/50">
+                        <span className="text-xs text-yellow-100 font-medium">
+                          ⚠️ Knowledge Base Kosong
+                        </span>
+                      </div>
                     )}
                     <Button
                       onClick={() => setIsChatExpanded(!isChatExpanded)}
-                      className="bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 border border-white/30"
+                      className="bg-white/90 hover:bg-white text-gray-800 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/40"
                     >
-                      {isChatExpanded ? '📤 Tutup' : '💬 Buka Chat'}
+                      {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
                     </Button>
                   </div>
                 </div>
               </div>
               {isChatExpanded && (
-                <div className="p-4 sm:p-6">
-                  <div className="h-[400px] sm:h-[500px] glass-dark rounded-2xl overflow-y-auto mb-4 border border-white/20">
+                <div className="p-6 sm:p-8">
+                  <div className="h-[450px] sm:h-[550px] bg-white/30 backdrop-blur-xl rounded-3xl overflow-y-auto mb-6 border border-white/40 shadow-xl">
                   <div className="p-4 space-y-4">
                     {chatHistory.length === 0 ? (
                       <div className="text-center py-12">
@@ -903,20 +942,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     )}
                   </div>
                 </div>
-                <div className="flex space-x-3">
+                <div className="flex space-x-4">
                   <input
                     type="text"
                     value={chatMessage}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder={knowledgeBase.length === 0 ? "Tambahkan dokumen terlebih dahulu..." : "Tanyakan sesuatu tentang dokumen Anda..."}
-                    className="flex-1 px-4 py-3 glass-dark border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-500 transition-all duration-200"
+                    className="flex-1 px-6 py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg hover:shadow-xl text-lg font-medium"
                     disabled={isChatLoading || knowledgeBase.length === 0}
                   />
                   <Button
                     onClick={handleSendMessage}
                     disabled={!chatMessage.trim() || isChatLoading || knowledgeBase.length === 0}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-8 py-4 rounded-3xl text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none border border-white/30"
                   >
                     {isChatLoading ? '⏳' : '📤'} Kirim
                   </Button>
@@ -927,17 +966,17 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
           {/* Message Display - Below Chat */}
           {message && (
-            <div className="glass-premium rounded-2xl shadow-lg border border-white/30 animate-fade-in">
-              <div className="p-4 sm:p-6">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full animate-pulse shadow-sm ${
+            <div className="bg-white/25 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 animate-fade-in">
+              <div className="p-6 sm:p-8">
+                <div className="flex items-center space-x-4">
+                  <div className={`w-4 h-4 rounded-full animate-pulse shadow-lg ${
                     message.includes('berhasil') || message.includes('dimuat') 
-                      ? 'bg-green-400 shadow-green-400/50' 
+                      ? 'bg-green-400 shadow-green-400/60' 
                       : message.includes('gagal') || message.includes('error')
-                      ? 'bg-red-400 shadow-red-400/50'
-                      : 'bg-blue-400 shadow-blue-400/50'
+                      ? 'bg-red-400 shadow-red-400/60'
+                      : 'bg-blue-400 shadow-blue-400/60'
                   }`}></div>
-                  <p className={`font-medium text-lg ${
+                  <p className={`font-semibold text-xl ${
                     message.includes('berhasil') || message.includes('dimuat') 
                       ? 'text-green-800' 
                       : message.includes('gagal') || message.includes('error')
@@ -954,14 +993,23 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           {/* Google Drive and Knowledge Base - Side by Side */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
             {/* Google Drive Section */}
-            <div className="glass-premium rounded-3xl shadow-lg overflow-hidden animate-fade-in border border-white/30">
-                <div className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 px-4 sm:px-6 py-4 sm:py-6 backdrop-blur-sm">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center animate-glow">
-                                <span className="text-white text-xl sm:text-2xl">📁</span>
+            <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
+                <div className="bg-gradient-to-br from-red-500 via-red-600 to-red-700 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-10">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                        <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/25 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-glow border border-white/30">
+                                <span className="text-white text-2xl sm:text-3xl">📁</span>
                             </div>
-                            <h2 className="text-xl sm:text-2xl font-bold text-white">Google Drive Documents</h2>
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Google Drive Documents</h2>
+                                <p className="text-red-100 text-sm font-medium">Kelola dokumen dari Google Drive Anda</p>
+                            </div>
                         </div>
                         <Button
                             onClick={() => {
@@ -969,7 +1017,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 fetchKnowledgeBase();
                             }}
                             disabled={isLoading}
-                            className="bg-white/90 hover:bg-white border border-white/30 disabled:bg-opacity-50 text-gray-800 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-md"
+                            className="bg-white/90 hover:bg-white border border-white/40 disabled:bg-opacity-50 text-gray-800 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-xl"
                         >
                             {isLoading ? '⏳ Loading...' : '🔄 Refresh'}
                         </Button>
@@ -1176,16 +1224,25 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </div>
 
             {/* Knowledge Base Section */}
-            <div className="glass-premium rounded-3xl shadow-lg overflow-hidden animate-fade-in border border-white/30">
-                <div className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 px-4 sm:px-6 py-4 sm:py-6 backdrop-blur-sm">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center animate-glow">
-                                <span className="text-white text-xl sm:text-2xl">🧠</span>
+            <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
+                <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-10">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                        <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/25 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-glow border border-white/30">
+                                <span className="text-white text-2xl sm:text-3xl">🧠</span>
                             </div>
-                            <h2 className="text-xl sm:text-2xl font-bold text-white">Knowledge Base</h2>
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Knowledge Base</h2>
+                                <p className="text-purple-100 text-sm font-medium">Dokumen yang siap untuk AI</p>
+                            </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                             <Button
                                 onClick={async () => {
                                     if (!token) return;
@@ -1200,13 +1257,15 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         console.error('Debug error:', error);
                                     }
                                 }}
-                                className="bg-white/90 hover:bg-white border border-white/30 text-gray-800 px-3 py-2 rounded-2xl text-xs font-medium transition-all duration-300 transform hover:scale-105 shadow-md"
+                                className="bg-white/90 hover:bg-white border border-white/40 text-gray-800 px-4 py-2 rounded-2xl text-xs font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
                             >
                                 🔍 Debug
                             </Button>
-                            <span className="text-sm text-gray-700 glass-dark px-3 py-2 rounded-full font-medium border border-white/20">
-                                {knowledgeBase.length} dokumen
-                            </span>
+                            <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">
+                                <span className="text-sm text-white font-semibold">
+                                    {knowledgeBase.length} dokumen
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
