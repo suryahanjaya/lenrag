@@ -81,7 +81,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Pagi', 
         emoji: '🌅', 
-        color: 'from-pink-300 via-rose-300 to-pink-400', 
+        color: 'from-pink-600 via-pink-700 to-pink-800', 
         bgColor: 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100',
         glowColor: 'shadow-pink-200/50',
         backgroundGradient: 'from-pink-200 via-rose-100 to-pink-300',
@@ -91,27 +91,27 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Siang', 
         emoji: '☀️', 
-        color: 'from-yellow-300 via-orange-300 to-red-400', 
+        color: 'from-yellow-600 via-orange-600 to-red-600', 
         bgColor: 'bg-gradient-to-br from-red-50 via-red-100 to-red-200',
         glowColor: 'shadow-red-200/50',
-        backgroundGradient: 'from-red-200 via-orange-100 to-red-300',
-        accentColors: ['red-200', 'red-300', 'red-400']
+        backgroundGradient: 'from-yellow-200 via-orange-200 to-red-300',
+        accentColors: ['yellow-200', 'orange-200', 'red-300']
       };
     } else if (hour >= 15 && hour < 18) {
       return { 
         text: 'Selamat Sore', 
         emoji: '🌇', 
-        color: 'from-orange-300 via-yellow-400 to-pink-400', 
+        color: 'from-orange-600 via-orange-700 to-red-600', 
         bgColor: 'bg-gradient-to-br from-orange-50 via-red-50 to-pink-50',
         glowColor: 'shadow-orange-200/50',
-        backgroundGradient: 'from-orange-200 via-red-100 to-pink-200',
-        accentColors: ['orange-200', 'orange-300', 'red-200']
+        backgroundGradient: 'from-orange-200 via-orange-300 to-orange-400',
+        accentColors: ['orange-200', 'orange-300', 'orange-400']
       };
     } else {
       return { 
         text: 'Selamat Malam', 
         emoji: '🌙', 
-        color: 'from-blue-300 via-indigo-300 to-purple-400', 
+        color: 'from-blue-600 via-indigo-600 to-purple-600', 
         bgColor: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100',
         glowColor: 'shadow-blue-200/50',
         backgroundGradient: 'from-blue-200 via-indigo-100 to-purple-200',
