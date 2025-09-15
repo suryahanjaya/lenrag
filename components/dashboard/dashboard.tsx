@@ -634,9 +634,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         }
       `}} />
       
-      <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
+      <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header Section */}
-        <div className={`bg-gradient-to-br ${greeting.bgColor} bg-opacity-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 md:p-12 animate-fade-in border border-white/30 relative overflow-hidden`}>
+        <div className={`bg-gradient-to-br ${greeting.bgColor} bg-opacity-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in border border-white/30 relative overflow-hidden`}>
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -655,10 +655,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           </div>
           
           {/* Content */}
-          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl">
+          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-3xl p-4 sm:p-6 lg:p-8 border border-white/40 shadow-2xl">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
               {/* Greeting Row */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -707,7 +707,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
           {/* Tablet Layout */}
           <div className="hidden sm:block lg:hidden">
-            <div className="grid grid-cols-1 gap-10">
+            <div className="grid grid-cols-1 gap-6 sm:gap-8">
               {/* Top Row: Greeting + Logout */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-8">
@@ -751,7 +751,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
           {/* Desktop Layout */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-12 gap-10 items-center">
+            <div className="grid grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-center">
               {/* Left: Greeting */}
               <div className="col-span-7">
                 <div className="flex items-center space-x-8">
@@ -801,12 +801,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
 
         {/* Main Content Grid */}
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Chat Section - Full Width */}
           <div className="w-full">
             {/* Chat Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-6 sm:px-8 py-6 sm:py-8 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -846,7 +846,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 </div>
               </div>
               {isChatExpanded && (
-                <div className="p-6 sm:p-8">
+                <div className="p-4 sm:p-6 lg:p-8">
                   <div className="h-[450px] sm:h-[550px] bg-white/30 backdrop-blur-xl rounded-3xl overflow-y-auto mb-6 border border-white/40 shadow-xl">
                   <div className="p-4 space-y-4">
                     {chatHistory.length === 0 ? (
@@ -942,20 +942,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     )}
                   </div>
                 </div>
-                <div className="flex space-x-4">
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                   <input
                     type="text"
                     value={chatMessage}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder={knowledgeBase.length === 0 ? "Tambahkan dokumen terlebih dahulu..." : "Tanyakan sesuatu tentang dokumen Anda..."}
-                    className="flex-1 px-6 py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg hover:shadow-xl text-lg font-medium"
+                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg hover:shadow-xl text-base sm:text-lg font-medium"
                     disabled={isChatLoading || knowledgeBase.length === 0}
                   />
                   <Button
                     onClick={handleSendMessage}
                     disabled={!chatMessage.trim() || isChatLoading || knowledgeBase.length === 0}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-8 py-4 rounded-3xl text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none border border-white/30"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none border border-white/30"
                   >
                     {isChatLoading ? '⏳' : '📤'} Kirim
                   </Button>
@@ -967,7 +967,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           {/* Message Display - Below Chat */}
           {message && (
             <div className="bg-white/25 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 animate-fade-in">
-              <div className="p-6 sm:p-8">
+              <div className="p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center space-x-4">
                   <div className={`w-4 h-4 rounded-full animate-pulse shadow-lg ${
                     message.includes('berhasil') || message.includes('dimuat') 
@@ -991,7 +991,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           )}
 
           {/* Google Drive and Knowledge Base - Side by Side */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* Google Drive Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
                 <div className="bg-gradient-to-br from-red-500 via-red-600 to-red-700 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
@@ -1023,7 +1023,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         </Button>
                     </div>
                 </div>
-                <div className="p-4 sm:p-6">
+                <div className="p-4 sm:p-6 lg:p-8">
                     {/* Search and Sort Controls */}
                     <div className="mb-6 space-y-4">
                         <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
@@ -1033,7 +1033,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                     placeholder="Cari dokumen..."
                                     value={searchTerm}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                    className="w-full px-4 py-3 pl-10 glass-dark border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm text-gray-800 placeholder-gray-500 transition-all duration-200"
+                                    className="w-full px-4 py-3 pl-10 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm sm:text-base text-gray-800 placeholder-gray-600 transition-all duration-200"
                                 />
                                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                                     🔍
@@ -1042,7 +1042,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             <select
                                 value={sortBy}
                                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as 'name' | 'modified' | 'size')}
-                                className="px-4 py-3 glass-dark border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm text-gray-800 transition-all duration-200"
+                                className="px-4 py-3 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm sm:text-base text-gray-800 transition-all duration-200"
                             >
                                 <option value="modified" className="bg-white text-gray-800">📅 Terbaru</option>
                                 <option value="name" className="bg-white text-gray-800">🔤 Nama</option>
@@ -1053,31 +1053,31 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         {/* Status Bar */}
                         <div className="flex flex-col space-y-3">
                             {/* File Count and Selection Status */}
-                            <div className="flex flex-wrap items-center gap-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-700 glass-dark px-3 py-2 rounded-lg border border-white/20">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
                                         📁 {organizedContent.folders.length} folder
                                     </span>
-                                    <span className="text-sm text-gray-700 glass-dark px-3 py-2 rounded-lg border border-white/20">
+                                    <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
                                         📄 {filteredAndSortedDocuments.length} dokumen
                                     </span>
                                 </div>
                                 
                                 {selectedDocs.size > 0 && (
-                                    <span className="text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-red-200/50">
+                                    <span className="text-xs sm:text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-red-200/50">
                                         ✅ {selectedDocs.size} dipilih
                                     </span>
                                 )}
                                 
                                 {isMultiSelectMode && (
-                                    <span className="text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-200/50">
-                                        🔄 Multi-select mode (Tab untuk pilih, Esc untuk keluar)
+                                    <span className="text-xs sm:text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-200/50">
+                                        🔄 Multi-select mode
                                     </span>
                                 )}
                             </div>
                             
                             {/* Action Buttons */}
-                            <div className="flex flex-wrap gap-3">
+                            <div className="flex flex-col sm:flex-row gap-3">
                                 <Button 
                                   onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
                                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 ${
@@ -1092,16 +1092,16 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 <Button 
                                   onClick={handleAddToKnowledgeBase} 
                                   disabled={selectedDocs.size === 0}
-                                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
                                 >
-                                  ➕ Tambahkan ke Knowledge Base ({selectedDocs.size})
+                                  ➕ Tambahkan ke KB ({selectedDocs.size})
                                 </Button>
                             </div>
                         </div>
                     </div>
 
                     {/* Documents List */}
-                    <div className="h-[400px] sm:h-[500px] glass-dark rounded-2xl overflow-y-auto border border-white/20">
+                    <div className="h-[350px] sm:h-[450px] lg:h-[500px] bg-white/30 backdrop-blur-xl rounded-2xl overflow-y-auto border border-white/40 shadow-lg">
                         <div className="p-4">
                             {isLoading ? (
                                 <div className="flex items-center justify-center h-32">
@@ -1225,7 +1225,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
             {/* Knowledge Base Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -1239,7 +1239,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             </div>
                             <div>
                                 <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Knowledge Base</h2>
-                                <p className="text-purple-100 text-sm font-medium">Dokumen yang siap untuk AI</p>
+                                <p className="text-red-100 text-sm font-medium">Dokumen yang siap untuk AI</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -1269,13 +1269,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         </div>
                     </div>
                 </div>
-                <div className="p-4 sm:p-6">
-                    <div className="h-[400px] sm:h-[500px] glass-dark rounded-2xl overflow-y-auto border border-white/20">
+                <div className="p-4 sm:p-6 lg:p-8">
+                    <div className="h-[350px] sm:h-[450px] lg:h-[500px] bg-white/30 backdrop-blur-xl rounded-2xl overflow-y-auto border border-white/40 shadow-lg">
                         <div className="p-4">
                         {knowledgeBase.length > 0 ? (
                                 <div className="space-y-3">
                                     {knowledgeBase.map(doc => (
-                                        <div key={doc.id} className="glass-dark rounded-2xl border border-white/20 shadow-md hover:shadow-lg transition-all duration-300 p-4 hover:border-white/40">
+                                        <div key={doc.id} className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/50 shadow-md hover:shadow-lg transition-all duration-300 p-4 hover:border-white/60">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-4 flex-1 min-w-0">
                                                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
