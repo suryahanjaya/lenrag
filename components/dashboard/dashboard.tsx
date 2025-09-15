@@ -636,42 +636,44 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className={`${greeting.bgColor} rounded-2xl md:rounded-3xl shadow-lg p-4 sm:p-6 md:p-8 animate-fade-in border border-white/20 backdrop-blur-xl`}>
-          {/* Mobile Layout (up to 640px) */}
+        <div className={`${greeting.bgColor} rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/30 backdrop-blur-xl`}>
+          {/* Mobile Layout */}
           <div className="block sm:hidden">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className={`w-12 h-12 bg-gradient-to-r ${greeting.color} rounded-xl flex items-center justify-center animate-float shadow-md ${greeting.glowColor}`}>
-                  <span className="text-white text-xl">{greeting.emoji}</span>
+            <div className="grid grid-cols-1 gap-6">
+              {/* Greeting Row */}
+              <div className="flex items-center space-x-4">
+                <div className={`w-16 h-16 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-lg ${greeting.glowColor}`}>
+                  <span className="text-white text-3xl">{greeting.emoji}</span>
                 </div>
-                <div>
-                  <h1 className={`text-xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                <div className="flex-1">
+                  <h1 className={`text-2xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                     {greeting.text}!
                   </h1>
-                  <p className="text-sm text-gray-600 font-medium">{user.name || 'Pengguna'}</p>
+                  <p className="text-lg text-gray-700 font-semibold mt-1">{user.name || 'Pengguna'}</p>
                 </div>
+                {onLogout && (
+                  <Button
+                    onClick={onLogout}
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    🚪 Logout
+                  </Button>
+                )}
               </div>
-              {onLogout && (
-                <Button
-                  onClick={onLogout}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-2 rounded-xl text-xs font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
-                >
-                  🚪
-                </Button>
-              )}
-            </div>
-            
-            <div className="space-y-4">
-              <p className="text-gray-700 text-sm font-medium text-center">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
               
-              {/* Enhanced Time & Date Display */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/40 shadow-lg">
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center space-x-3">
-                    <span className="text-2xl">🕐</span>
-                    <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+              {/* Description */}
+              <div className="text-center">
+                <p className="text-gray-700 text-base font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+              </div>
+              
+              {/* Time & Date */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg">
+                <div className="text-center space-y-3">
+                  <div className="flex items-center justify-center space-x-4">
+                    <span className="text-3xl">🕐</span>
+                    <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                   </div>
-                  <div className="text-sm text-gray-600 font-medium">
+                  <div className="text-base text-gray-600 font-medium">
                     {formatCurrentDate(currentTime)}
                   </div>
                 </div>
@@ -679,39 +681,41 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </div>
           </div>
 
-          {/* Tablet Layout (640px - 1024px) - iPad */}
+          {/* Tablet Layout */}
           <div className="hidden sm:block lg:hidden">
-            <div className="flex flex-col space-y-4">
+            <div className="grid grid-cols-1 gap-8">
+              {/* Top Row: Greeting + Logout */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-md ${greeting.glowColor}`}>
-                    <span className="text-white text-2xl">{greeting.emoji}</span>
+                <div className="flex items-center space-x-6">
+                  <div className={`w-20 h-20 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-lg ${greeting.glowColor}`}>
+                    <span className="text-white text-4xl">{greeting.emoji}</span>
                   </div>
                   <div>
-                    <h1 className={`text-2xl md:text-3xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                    <h1 className={`text-3xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <p className="text-gray-700 text-base font-medium mt-1">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    <p className="text-gray-700 text-lg font-medium mt-2">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                   </div>
                 </div>
                 {onLogout && (
                   <Button
                     onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-2xl text-base font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     🚪 Logout
                   </Button>
                 )}
               </div>
               
-              <div className="flex items-center justify-center">
-                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/40 shadow-lg">
-                  <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center space-x-3">
-                      <span className="text-2xl">🕐</span>
-                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+              {/* Time & Date Row */}
+              <div className="flex justify-center">
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg">
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center space-x-4">
+                      <span className="text-3xl">🕐</span>
+                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-sm text-gray-600 font-medium">
+                    <div className="text-base text-gray-600 font-medium">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
@@ -720,41 +724,50 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </div>
           </div>
 
-          {/* Desktop Layout (1024px+) */}
+          {/* Desktop Layout */}
           <div className="hidden lg:block">
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center space-y-4 xl:space-y-0">
-              <div className="flex items-center space-x-4">
-                <div className={`w-16 h-16 xl:w-20 xl:h-20 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-md ${greeting.glowColor}`}>
-                  <span className="text-white text-2xl xl:text-3xl">{greeting.emoji}</span>
+            <div className="grid grid-cols-12 gap-8 items-center">
+              {/* Left: Greeting */}
+              <div className="col-span-7">
+                <div className="flex items-center space-x-6">
+                  <div className={`w-24 h-24 bg-gradient-to-r ${greeting.color} rounded-3xl flex items-center justify-center animate-float shadow-xl ${greeting.glowColor}`}>
+                    <span className="text-white text-5xl">{greeting.emoji}</span>
+                  </div>
+                  <div>
+                    <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                      {greeting.text}, {user.name || 'Pengguna'}!
+                    </h1>
+                    <p className="text-gray-700 text-xl font-medium mt-3">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
-                    {greeting.text}, {user.name || 'Pengguna'}!
-                  </h1>
-                  <div className="flex flex-col xl:flex-row items-start xl:items-center space-y-3 xl:space-y-0 xl:space-x-6 mt-2">
-                    <p className="text-gray-700 text-base xl:text-lg font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
-                    <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/40 shadow-lg">
-                      <div className="text-center space-y-2">
-                        <div className="flex items-center justify-center space-x-3">
-                          <span className="text-2xl">🕐</span>
-                          <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
-                        </div>
-                        <div className="text-sm text-gray-600 font-medium">
-                          {formatCurrentDate(currentTime)}
-                        </div>
-                      </div>
+              </div>
+              
+              {/* Center: Time & Date */}
+              <div className="col-span-4">
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg">
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center space-x-4">
+                      <span className="text-4xl">🕐</span>
+                      <span className="text-4xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                    </div>
+                    <div className="text-lg text-gray-600 font-medium">
+                      {formatCurrentDate(currentTime)}
                     </div>
                   </div>
                 </div>
               </div>
-              {onLogout && (
-                <Button
-                  onClick={onLogout}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
-                >
-                  🚪 Logout
-                </Button>
-              )}
+              
+              {/* Right: Logout */}
+              <div className="col-span-1">
+                {onLogout && (
+                  <Button
+                    onClick={onLogout}
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-4 rounded-2xl text-base font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 w-full"
+                  >
+                    🚪 Logout
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
