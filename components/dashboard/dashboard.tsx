@@ -81,40 +81,40 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Pagi', 
         emoji: '🌅', 
-        color: 'from-pink-400 via-rose-400 to-pink-500', 
+        color: 'from-pink-300 via-rose-300 to-pink-400', 
         bgColor: 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100',
         glowColor: 'shadow-pink-200/50',
-        backgroundGradient: 'from-pink-100 via-rose-50 to-pink-200',
+        backgroundGradient: 'from-pink-200 via-rose-100 to-pink-300',
         accentColors: ['pink-200', 'rose-200', 'pink-300']
       };
     } else if (hour >= 12 && hour < 15) {
       return { 
         text: 'Selamat Siang', 
         emoji: '☀️', 
-        color: 'from-red-500 via-red-600 to-red-700', 
+        color: 'from-yellow-300 via-orange-300 to-red-400', 
         bgColor: 'bg-gradient-to-br from-red-50 via-red-100 to-red-200',
         glowColor: 'shadow-red-200/50',
-        backgroundGradient: 'from-red-100 via-red-50 to-red-200',
+        backgroundGradient: 'from-red-200 via-orange-100 to-red-300',
         accentColors: ['red-200', 'red-300', 'red-400']
       };
     } else if (hour >= 15 && hour < 18) {
       return { 
         text: 'Selamat Sore', 
         emoji: '🌇', 
-        color: 'from-orange-400 via-red-500 to-pink-500', 
+        color: 'from-orange-300 via-yellow-400 to-pink-400', 
         bgColor: 'bg-gradient-to-br from-orange-50 via-red-50 to-pink-50',
         glowColor: 'shadow-orange-200/50',
-        backgroundGradient: 'from-orange-100 via-orange-50 to-red-100',
+        backgroundGradient: 'from-orange-200 via-red-100 to-pink-200',
         accentColors: ['orange-200', 'orange-300', 'red-200']
       };
     } else {
       return { 
         text: 'Selamat Malam', 
         emoji: '🌙', 
-        color: 'from-blue-600 via-indigo-600 to-purple-600', 
+        color: 'from-blue-300 via-indigo-300 to-purple-400', 
         bgColor: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100',
         glowColor: 'shadow-blue-200/50',
-        backgroundGradient: 'from-blue-100 via-indigo-50 to-blue-200',
+        backgroundGradient: 'from-blue-200 via-indigo-100 to-purple-200',
         accentColors: ['blue-200', 'indigo-200', 'blue-300']
       };
     }
@@ -673,13 +673,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               </div>
               
               {/* Time & Date */}
-              <div className="bg-white/30 backdrop-blur-lg rounded-xl p-4 border border-white/40 shadow-md">
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center space-x-3">
-                    <span className="text-2xl">🕐</span>
-                    <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+              <div className="bg-white/30 backdrop-blur-lg rounded-xl p-3 border border-white/40 shadow-md max-w-48 mx-auto">
+                <div className="text-center space-y-1">
+                  <div className="flex items-center justify-center space-x-2">
+                    <span className="text-xl">🕐</span>
+                    <span className="text-xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                   </div>
-                  <div className="text-sm text-gray-600 font-medium">
+                  <div className="text-xs text-gray-600 font-medium">
                     {formatCurrentDate(currentTime)}
                   </div>
                 </div>
@@ -712,13 +712,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Time & Date Row */}
               <div className="flex justify-center">
-                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-4 border border-white/40 shadow-md">
-                  <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center space-x-3">
-                      <span className="text-2xl">🕐</span>
-                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-3 border border-white/40 shadow-md max-w-56">
+                  <div className="text-center space-y-1">
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-xl">🕐</span>
+                      <span className="text-xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-sm text-gray-600 font-medium">
+                    <div className="text-xs text-gray-600 font-medium">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
@@ -744,13 +744,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Center: Time & Date */}
               <div className="col-span-4">
-                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-4 border border-white/40 shadow-md">
-                  <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center space-x-3">
-                      <span className="text-3xl">🕐</span>
-                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className="bg-white/30 backdrop-blur-lg rounded-xl p-3 border border-white/40 shadow-md max-w-64 mx-auto">
+                  <div className="text-center space-y-1">
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-2xl">🕐</span>
+                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-sm text-gray-600 font-medium">
+                    <div className="text-xs text-gray-600 font-medium">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
