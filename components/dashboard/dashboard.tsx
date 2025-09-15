@@ -81,41 +81,41 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Pagi', 
         emoji: '🌅', 
-        color: 'from-pink-600 via-pink-700 to-pink-800', 
+        color: 'from-white via-pink-200 to-pink-400', 
         bgColor: 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100',
         glowColor: 'shadow-pink-200/50',
-        backgroundGradient: 'from-pink-200 via-rose-100 to-pink-300',
-        accentColors: ['pink-200', 'rose-200', 'pink-300']
+        backgroundGradient: 'from-pink-200 via-yellow-200 to-yellow-300',
+        accentColors: ['pink-200', 'yellow-200', 'yellow-300']
       };
     } else if (hour >= 12 && hour < 15) {
       return { 
         text: 'Selamat Siang', 
         emoji: '☀️', 
-        color: 'from-yellow-600 via-orange-600 to-red-600', 
+        color: 'from-white via-yellow-200 to-yellow-400', 
         bgColor: 'bg-gradient-to-br from-red-50 via-red-100 to-red-200',
         glowColor: 'shadow-red-200/50',
-        backgroundGradient: 'from-yellow-200 via-orange-200 to-red-300',
-        accentColors: ['yellow-200', 'orange-200', 'red-300']
+        backgroundGradient: 'from-yellow-200 via-orange-200 to-orange-300',
+        accentColors: ['yellow-200', 'orange-200', 'orange-300']
       };
     } else if (hour >= 15 && hour < 18) {
       return { 
         text: 'Selamat Sore', 
         emoji: '🌇', 
-        color: 'from-orange-600 via-orange-700 to-red-600', 
+        color: 'from-white via-orange-200 to-orange-400', 
         bgColor: 'bg-gradient-to-br from-orange-50 via-red-50 to-pink-50',
         glowColor: 'shadow-orange-200/50',
-        backgroundGradient: 'from-orange-200 via-orange-300 to-orange-400',
-        accentColors: ['orange-200', 'orange-300', 'orange-400']
+        backgroundGradient: 'from-orange-200 via-blue-200 to-blue-300',
+        accentColors: ['orange-200', 'blue-200', 'blue-300']
       };
     } else {
       return { 
         text: 'Selamat Malam', 
         emoji: '🌙', 
-        color: 'from-blue-600 via-indigo-600 to-purple-600', 
+        color: 'from-white via-blue-200 to-blue-400', 
         bgColor: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100',
         glowColor: 'shadow-blue-200/50',
-        backgroundGradient: 'from-blue-200 via-indigo-100 to-purple-200',
-        accentColors: ['blue-200', 'indigo-200', 'blue-300']
+        backgroundGradient: 'from-blue-200 via-indigo-300 to-purple-400',
+        accentColors: ['blue-200', 'indigo-300', 'purple-400']
       };
     }
   };
