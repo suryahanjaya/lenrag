@@ -129,6 +129,16 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     });
   };
 
+  // Format current date for display
+  const formatCurrentDate = (date: Date) => {
+    return date.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   // Helper function to get file type icon
   const getFileIcon = (mimeType?: string) => {
     if (!mimeType || typeof mimeType !== 'string') return '📄';
@@ -651,11 +661,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               )}
             </div>
             
-            <div className="space-y-3">
-              <p className="text-gray-700 text-sm font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
-              <div className="flex items-center justify-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full border border-white/30 shadow-sm">
-                <span className="text-lg">🕐</span>
-                <span className="text-sm font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+            <div className="space-y-4">
+              <p className="text-gray-700 text-sm font-medium text-center">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+              
+              {/* Enhanced Time & Date Display */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/40 shadow-lg">
+                <div className="text-center space-y-2">
+                  <div className="flex items-center justify-center space-x-3">
+                    <span className="text-2xl">🕐</span>
+                    <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 font-medium">
+                    {formatCurrentDate(currentTime)}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -686,9 +705,16 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               </div>
               
               <div className="flex items-center justify-center">
-                <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30 shadow-sm">
-                  <span className="text-xl">🕐</span>
-                  <span className="text-base font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/40 shadow-lg">
+                  <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center space-x-3">
+                      <span className="text-2xl">🕐</span>
+                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 font-medium">
+                      {formatCurrentDate(currentTime)}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -705,11 +731,18 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
                     {greeting.text}, {user.name || 'Pengguna'}!
                   </h1>
-                  <div className="flex flex-col xl:flex-row items-start xl:items-center space-y-2 xl:space-y-0 xl:space-x-4 mt-2">
+                  <div className="flex flex-col xl:flex-row items-start xl:items-center space-y-3 xl:space-y-0 xl:space-x-6 mt-2">
                     <p className="text-gray-700 text-base xl:text-lg font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
-                    <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30 shadow-sm">
-                      <span className="text-2xl">🕐</span>
-                      <span className="text-lg font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                    <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-white/40 shadow-lg">
+                      <div className="text-center space-y-2">
+                        <div className="flex items-center justify-center space-x-3">
+                          <span className="text-2xl">🕐</span>
+                          <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                        </div>
+                        <div className="text-sm text-gray-600 font-medium">
+                          {formatCurrentDate(currentTime)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
