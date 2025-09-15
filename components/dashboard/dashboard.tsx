@@ -81,7 +81,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Pagi', 
         emoji: '🌅', 
-        color: 'from-white via-pink-200 to-pink-400', 
+        color: 'from-blue-600 via-indigo-600 to-purple-600', 
         bgColor: 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100',
         glowColor: 'shadow-pink-200/50',
         backgroundGradient: 'from-pink-200 via-yellow-200 to-yellow-300',
@@ -91,7 +91,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Siang', 
         emoji: '☀️', 
-        color: 'from-white via-yellow-200 to-yellow-400', 
+        color: 'from-purple-600 via-indigo-600 to-blue-600', 
         bgColor: 'bg-gradient-to-br from-red-50 via-red-100 to-red-200',
         glowColor: 'shadow-red-200/50',
         backgroundGradient: 'from-yellow-200 via-orange-200 to-orange-300',
@@ -101,7 +101,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Sore', 
         emoji: '🌇', 
-        color: 'from-white via-orange-200 to-orange-400', 
+        color: 'from-green-600 via-emerald-600 to-teal-600', 
         bgColor: 'bg-gradient-to-br from-orange-50 via-red-50 to-pink-50',
         glowColor: 'shadow-orange-200/50',
         backgroundGradient: 'from-orange-200 via-blue-200 to-blue-300',
@@ -111,7 +111,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Malam', 
         emoji: '🌙', 
-        color: 'from-white via-blue-200 to-blue-400', 
+        color: 'from-pink-600 via-rose-600 to-red-600', 
         bgColor: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100',
         glowColor: 'shadow-blue-200/50',
         backgroundGradient: 'from-blue-200 via-indigo-300 to-purple-400',
