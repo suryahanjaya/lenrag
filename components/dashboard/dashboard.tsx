@@ -636,7 +636,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className={`${greeting.bgColor} rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/50 relative overflow-hidden`}>
+        <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-xl rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in border border-white/50 relative overflow-hidden`}>
           {/* Emoji Background */}
           <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
             <span className="text-[6rem] sm:text-[8rem] md:text-[10rem] lg:text-[12rem] xl:text-[14rem] 2xl:text-[16rem] select-none block leading-none">
@@ -645,7 +645,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           </div>
           
           {/* Content */}
-          <div className={`relative z-10 bg-gradient-to-r ${greeting.color} bg-opacity-20 backdrop-blur-sm rounded-2xl p-6 border border-white/30`}>
+          <div className={`relative z-10 bg-gradient-to-r ${greeting.color} bg-opacity-40 backdrop-blur-sm rounded-2xl p-6 border border-white/40`}>
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="grid grid-cols-1 gap-6">
@@ -673,7 +673,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               </div>
               
               {/* Time & Date */}
-              <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg`}>
+              <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg`}>
                 <div className="text-center space-y-3">
                   <div className="flex items-center justify-center space-x-4">
                     <span className="text-3xl">🕐</span>
@@ -712,7 +712,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Time & Date Row */}
               <div className="flex justify-center">
-                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg`}>
+                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg`}>
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <span className="text-3xl">🕐</span>
@@ -744,7 +744,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Center: Time & Date */}
               <div className="col-span-4">
-                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-30 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg`}>
+                <div className={`bg-gradient-to-r ${greeting.color} bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg`}>
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <span className="text-4xl">🕐</span>
