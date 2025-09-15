@@ -626,33 +626,69 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className={`${greeting.bgColor} rounded-3xl shadow-lg p-6 sm:p-8 animate-fade-in border border-white/20 backdrop-blur-xl`}>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-4">
-              <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-md ${greeting.glowColor}`}>
-                <span className="text-white text-2xl sm:text-3xl">{greeting.emoji}</span>
+        <div className={`${greeting.bgColor} rounded-2xl sm:rounded-3xl shadow-lg p-4 sm:p-6 lg:p-8 animate-fade-in border border-white/20 backdrop-blur-xl`}>
+          {/* Mobile Layout */}
+          <div className="block sm:hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`w-12 h-12 bg-gradient-to-r ${greeting.color} rounded-xl flex items-center justify-center animate-float shadow-md ${greeting.glowColor}`}>
+                  <span className="text-white text-xl">{greeting.emoji}</span>
+                </div>
+                <div>
+                  <h1 className={`text-xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                    {greeting.text}!
+                  </h1>
+                  <p className="text-sm text-gray-600 font-medium">{user.name || 'Pengguna'}</p>
+                </div>
               </div>
-              <div>
-                <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
-                  {greeting.text}, {user.name || 'Pengguna'}!
-                </h1>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-2">
-                  <p className="text-gray-700 text-lg font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
-                  <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30 shadow-sm">
-                    <span className="text-2xl">🕐</span>
-                    <span className="text-lg font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+              {onLogout && (
+                <Button
+                  onClick={onLogout}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-2 rounded-xl text-xs font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  🚪
+                </Button>
+              )}
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-gray-700 text-sm font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+              <div className="flex items-center justify-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full border border-white/30 shadow-sm">
+                <span className="text-lg">🕐</span>
+                <span className="text-sm font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:block">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+              <div className="flex items-center space-x-4">
+                <div className={`w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-r ${greeting.color} rounded-2xl flex items-center justify-center animate-float shadow-md ${greeting.glowColor}`}>
+                  <span className="text-white text-2xl lg:text-3xl">{greeting.emoji}</span>
+                </div>
+                <div>
+                  <h1 className={`text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r ${greeting.color} bg-clip-text text-transparent animate-fade-in drop-shadow-sm`}>
+                    {greeting.text}, {user.name || 'Pengguna'}!
+                  </h1>
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-2 lg:space-y-0 lg:space-x-4 mt-2">
+                    <p className="text-gray-700 text-base lg:text-lg font-medium">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                    <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30 shadow-sm">
+                      <span className="text-2xl">🕐</span>
+                      <span className="text-lg font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
+              {onLogout && (
+                <Button
+                  onClick={onLogout}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  🚪 Logout
+                </Button>
+              )}
             </div>
-            {onLogout && (
-              <Button
-                onClick={onLogout}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
-              >
-                🚪 Logout
-              </Button>
-            )}
           </div>
         </div>
 
