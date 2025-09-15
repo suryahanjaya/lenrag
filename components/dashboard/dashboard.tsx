@@ -813,32 +813,37 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
                 </div>
                 
-                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/25 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-glow border border-white/30">
-                      <span className="text-white text-2xl sm:text-3xl">💬</span>
+                <div className="relative z-10">
+                  {/* Top Row - Title and Icon */}
+                  <div className="flex items-center space-x-3 sm:space-x-4 mb-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/25 backdrop-blur-sm rounded-2xl sm:rounded-3xl flex items-center justify-center animate-glow border border-white/30 flex-shrink-0">
+                      <span className="text-white text-xl sm:text-2xl lg:text-3xl">💬</span>
                     </div>
-                    <div>
-                      <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Chat dengan AI</h2>
-                      <p className="text-blue-100 text-sm font-medium">Tanyakan apapun tentang dokumen Anda</p>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg truncate">Chat dengan AI</h2>
+                      <p className="text-blue-100 text-xs sm:text-sm font-medium truncate">Tanyakan apapun tentang dokumen Anda</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">
-                      <span className="text-sm text-white font-semibold">
-                        {chatHistory.length} pesan
-                      </span>
-                    </div>
-                    {knowledgeBase.length === 0 && (
-                      <div className="bg-yellow-500/30 backdrop-blur-sm px-4 py-2 rounded-2xl border border-yellow-400/50">
-                        <span className="text-xs text-yellow-100 font-medium">
-                          ⚠️ Knowledge Base Kosong
+                  
+                  {/* Bottom Row - Status and Button */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                      <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-xl sm:rounded-2xl border border-white/30">
+                        <span className="text-xs sm:text-sm text-white font-semibold">
+                          {chatHistory.length} pesan
                         </span>
                       </div>
-                    )}
+                      {knowledgeBase.length === 0 && (
+                        <div className="bg-yellow-500/30 backdrop-blur-sm px-3 py-2 rounded-xl sm:rounded-2xl border border-yellow-400/50">
+                          <span className="text-xs text-yellow-100 font-medium">
+                            ⚠️ KB Kosong
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <Button
                       onClick={() => setIsChatExpanded(!isChatExpanded)}
-                      className="bg-white/90 hover:bg-white text-gray-800 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/40"
+                      className="bg-white/90 hover:bg-white text-gray-800 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/40 w-full sm:w-auto"
                     >
                       {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
                     </Button>
