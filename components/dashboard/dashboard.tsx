@@ -662,13 +662,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Greeting Row */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="space-y-2">
-                    <h1 className={`text-lg font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
-                      {greeting.text}.
+                  <div>
+                    <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                      {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <p className="text-2xl text-white font-semibold drop-shadow-lg">
-                      {user.name || 'Pengguna'}
-                    </p>
                   </div>
                 </div>
                 {onLogout && (
@@ -713,12 +710,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="flex items-center space-x-8">
                   <div className="space-y-3">
                     <div>
-                      <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
-                        {greeting.text}.
+                      <h1 className={`text-3xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                        {greeting.text}, {user.name || 'Pengguna'}!
                       </h1>
-                      <p className="text-3xl text-white font-semibold drop-shadow-lg mt-2">
-                        {user.name || 'Pengguna'}
-                      </p>
                     </div>
                     <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
                       <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
@@ -762,12 +756,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="flex items-center space-x-8">
                   <div className="space-y-4">
                     <div>
-                      <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
-                        {greeting.text}.
+                      <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
+                        {greeting.text}, {user.name || 'Pengguna'}!
                       </h1>
-                      <p className="text-4xl xl:text-5xl 2xl:text-6xl text-white font-semibold drop-shadow-lg mt-3">
-                        {user.name || 'Pengguna'}
-                      </p>
                     </div>
                     <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-2xl">
                       <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
