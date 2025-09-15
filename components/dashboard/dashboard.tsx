@@ -885,43 +885,53 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             </select>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
-                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 min-w-0">
-                                <span className="text-xs sm:text-sm text-gray-700 glass-dark px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-white/20 whitespace-nowrap">
-                                    <span className="hidden sm:inline">{organizedContent.folders.length} folder, {filteredAndSortedDocuments.length} dokumen</span>
-                                    <span className="sm:hidden">{organizedContent.folders.length}f, {filteredAndSortedDocuments.length}d</span>
-                                </span>
+                        {/* Status Bar */}
+                        <div className="flex flex-col space-y-3">
+                            {/* File Count and Selection Status */}
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-700 glass-dark px-3 py-2 rounded-lg border border-white/20">
+                                        📁 {organizedContent.folders.length} folder
+                                    </span>
+                                    <span className="text-sm text-gray-700 glass-dark px-3 py-2 rounded-lg border border-white/20">
+                                        📄 {filteredAndSortedDocuments.length} dokumen
+                                    </span>
+                                </div>
+                                
                                 {selectedDocs.size > 0 && (
-                                    <span className="text-xs sm:text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-red-200/50 whitespace-nowrap">
-                                        {selectedDocs.size} dipilih
+                                    <span className="text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-red-200/50">
+                                        ✅ {selectedDocs.size} dipilih
                                     </span>
                                 )}
+                                
                                 {isMultiSelectMode && (
-                                    <span className="text-xs sm:text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-blue-200/50 whitespace-nowrap">
-                                        <span className="hidden sm:inline">Multi-select mode (Tab untuk pilih, Esc untuk keluar)</span>
-                                        <span className="sm:hidden">Multi-select (Tab/Esc)</span>
+                                    <span className="text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-200/50">
+                                        🔄 Multi-select mode (Tab untuk pilih, Esc untuk keluar)
                                     </span>
                                 )}
                             </div>
-                    <div className="flex space-x-2">
-                        <Button 
-                          onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
-                          className={`px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 ${
-                            isMultiSelectMode 
-                              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                              : 'bg-white/90 hover:bg-white text-gray-800 border border-white/30'
-                          }`}
-                        >
-                          {isMultiSelectMode ? '🔘 Multi-select ON' : '☐ Multi-select OFF'}
-                        </Button>
-                        <Button 
-                      onClick={handleAddToKnowledgeBase} 
-                      disabled={selectedDocs.size === 0}
-                          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                        >
-                          ➕ Tambahkan ke Knowledge Base ({selectedDocs.size})
-                        </Button>
-                    </div>
+                            
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap gap-3">
+                                <Button 
+                                  onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 ${
+                                    isMultiSelectMode 
+                                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                      : 'bg-white/90 hover:bg-white text-gray-800 border border-white/30'
+                                  }`}
+                                >
+                                  {isMultiSelectMode ? '🔘 Multi-select ON' : '☐ Multi-select OFF'}
+                                </Button>
+                                
+                                <Button 
+                                  onClick={handleAddToKnowledgeBase} 
+                                  disabled={selectedDocs.size === 0}
+                                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                                >
+                                  ➕ Tambahkan ke Knowledge Base ({selectedDocs.size})
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
