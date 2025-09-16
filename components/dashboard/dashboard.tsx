@@ -772,12 +772,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     </h1>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className={`backdrop-blur-xl rounded-2xl p-3 border border-white/50 shadow-xl ${
-                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
-                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
-                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
-                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
-                }`}>
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 border border-white/50 shadow-xl">
                   <div className="text-center space-y-1">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 bg-white/50 rounded-full flex items-center justify-center">
@@ -801,12 +796,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Description */}
               <div className="text-center">
-                <div className={`backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg ${
-                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
-                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
-                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
-                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
-                }`}>
+                <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
                   <p className="text-gray-800 text-lg font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                 </div>
               </div>
@@ -823,23 +813,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <div className={`backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl ${
-                      currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
-                      currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
-                      currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
-                      'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
-                    }`}>
+                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl">
                       <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                     </div>
                   </div>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className={`backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl ${
-                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
-                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
-                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
-                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
-                }`}>
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl">
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
@@ -872,12 +852,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                     {greeting.text}, {user.name || 'Pengguna'}!
                   </h1>
-                  <div className={`backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl ${
-                    currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
-                    currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
-                    currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
-                    'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
-                  }`}>
+                  <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl">
                     <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                   </div>
                 </div>
@@ -885,12 +860,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Right: Time & Date */}
               <div className="ml-8">
-                <div className={`backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-xl ${
-                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
-                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
-                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
-                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
-                }`}>
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-xl">
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
@@ -1134,14 +1104,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="flex items-center space-x-4">
                   <div className={`w-4 h-4 rounded-full animate-pulse shadow-lg ${
                     message.includes('berhasil') || message.includes('dimuat') 
-                      ? 'bg-blue-400 shadow-blue-400/60' 
+                      ? 'bg-red-400 shadow-red-400/60' 
                       : message.includes('gagal') || message.includes('error')
                       ? 'bg-red-400 shadow-red-400/60'
                       : 'bg-blue-400 shadow-blue-400/60'
                   }`}></div>
                   <p className={`font-semibold text-xl ${
                     message.includes('berhasil') || message.includes('dimuat') 
-                      ? 'text-blue-800' 
+                      ? 'text-red-800' 
                       : message.includes('gagal') || message.includes('error')
                       ? 'text-red-800'
                       : 'text-blue-800'
