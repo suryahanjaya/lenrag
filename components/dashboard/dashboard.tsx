@@ -682,9 +682,36 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         }
       `}} />
       
+      {/* Navigation Bar */}
+      <nav className="bg-white/10 backdrop-blur-xl border-b border-white/20 sticky top-0 z-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">RAG</span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="hidden sm:block text-sm text-gray-600">
+                {user.name || 'Pengguna'}
+              </div>
+              {onLogout && (
+                <Button
+                  onClick={onLogout}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  Logout
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
       <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
-        {/* Header Section */}
-        <div className={`bg-gradient-to-br ${greeting.bgColor} bg-opacity-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in border border-white/30 relative overflow-hidden`}>
+        {/* Header Section - Compact */}
+        <div className={`bg-gradient-to-br ${greeting.bgColor} bg-opacity-20 backdrop-blur-2xl rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden`}>
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -692,18 +719,18 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
           </div>
           
-          {/* Floating Emoji Background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-8 pointer-events-none">
+          {/* Floating Emoji Background - Smaller */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-6 pointer-events-none">
             <div className="relative">
-              <span className="text-[8rem] sm:text-[10rem] md:text-[12rem] lg:text-[14rem] xl:text-[16rem] 2xl:text-[18rem] select-none block leading-none animate-float">
+              <span className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[7rem] xl:text-[8rem] 2xl:text-[9rem] select-none block leading-none animate-float">
                 {greeting.emoji}
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-full blur-2xl animate-pulse"></div>
             </div>
           </div>
           
-          {/* Content */}
-          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-3xl p-4 sm:p-6 lg:p-8 border border-white/40 shadow-2xl">
+          {/* Content - Compact */}
+          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -711,7 +738,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div>
-                    <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                    <h1 className={`text-xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                   </div>
@@ -758,7 +785,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="flex items-center space-x-8">
                   <div className="space-y-3">
                     <div>
-                      <h1 className={`text-3xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                      <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                         {greeting.text}, {user.name || 'Pengguna'}!
                       </h1>
                     </div>
@@ -804,7 +831,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="flex items-center space-x-8">
                   <div className="space-y-4">
                     <div>
-                      <h1 className={`text-4xl xl:text-5xl 2xl:text-6xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
+                      <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                         {greeting.text}, {user.name || 'Pengguna'}!
                       </h1>
                     </div>
@@ -1457,6 +1484,58 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 </div>
             </div>
         </div>
-    </div>
+
+        {/* Footer */}
+        <footer className="bg-white/10 backdrop-blur-xl border-t border-white/20 mt-12">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">RAG</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-800">RAG Chatbot</h3>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  Transform your Google Docs into an intelligent knowledge base with AI-powered Q&A.
+                </p>
+              </div>
+              
+              <div>
+                <h4 className="text-md font-semibold text-gray-800 mb-4">Features</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>• Google Docs Integration</li>
+                  <li>• AI-Powered Q&A</li>
+                  <li>• Document Management</li>
+                  <li>• Real-time Chat</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="text-md font-semibold text-gray-800 mb-4">Support</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>• Help Center</li>
+                  <li>• Documentation</li>
+                  <li>• Contact Support</li>
+                  <li>• Status Page</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="border-t border-white/20 mt-8 pt-6">
+              <div className="flex flex-col sm:flex-row justify-between items-center">
+                <p className="text-sm text-gray-600">
+                  © 2024 RAG Chatbot. All rights reserved.
+                </p>
+                <div className="flex space-x-6 mt-4 sm:mt-0">
+                  <a href="#" className="text-sm text-gray-600 hover:text-gray-800 transition-colors">Privacy</a>
+                  <a href="#" className="text-sm text-gray-600 hover:text-gray-800 transition-colors">Terms</a>
+                  <a href="#" className="text-sm text-gray-600 hover:text-gray-800 transition-colors">Cookies</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
   );
 }
