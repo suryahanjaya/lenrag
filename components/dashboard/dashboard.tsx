@@ -746,10 +746,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header Section - Compact */}
         <div className={`backdrop-blur-2xl rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden ${
-          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-pink-500/30 via-pink-400/25 to-pink-100/20' :
-          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-yellow-500/30 via-yellow-400/25 to-yellow-100/20' :
-          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-orange-500/30 via-orange-400/25 to-orange-100/20' :
-          'bg-gradient-to-br from-blue-500/30 via-blue-400/25 to-blue-100/20'
+          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-pink-500/50 via-pink-400/40 to-pink-200/30' :
+          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-yellow-500/50 via-yellow-400/40 to-yellow-200/30' :
+          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-orange-500/50 via-orange-400/40 to-orange-200/30' :
+          'bg-gradient-to-br from-blue-500/50 via-blue-400/40 to-blue-200/30'
         }`}>
           {/* Animated Background Pattern - Reduced opacity */}
           <div className="absolute inset-0 opacity-2">
@@ -758,25 +758,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.02)_0%,transparent_50%)]"></div>
           </div>
           
-          {/* Floating Emoji Background - Dynamic Color */}
-          <div className="absolute inset-0 flex items-end justify-end opacity-8 pointer-events-none pr-4 pb-4">
-            <div className="relative">
-              <span className={`text-[3rem] sm:text-[4rem] md:text-[5rem] lg:text-[6rem] xl:text-[7rem] 2xl:text-[8rem] select-none block leading-none animate-float ${
-                currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
-                currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
-                currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
-                'text-blue-400'
-              }`}>
-                {greeting.emoji}
-              </span>
-              <div className={`absolute inset-0 rounded-full blur-2xl animate-pulse ${
-                currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-r from-pink-200/30 to-transparent' :
-                currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-r from-yellow-200/30 to-transparent' :
-                currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-r from-orange-200/30 to-transparent' :
-                'bg-gradient-to-r from-blue-200/30 to-transparent'
-              }`}></div>
-            </div>
-          </div>
           
           {/* Content - Compact */}
           <div className={`relative z-10 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl ${
@@ -805,7 +786,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <div className="text-center space-y-1">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className="text-sm">🕐</span>
+                        <span className={`text-sm ${
+                          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
+                          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
+                          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
+                          'text-blue-400'
+                        }`}>
+                          {greeting.emoji}
+                        </span>
                       </div>
                       <span className="text-lg font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
@@ -860,7 +848,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className="text-xl">🕐</span>
+                        <span className={`text-xl ${
+                          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
+                          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
+                          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
+                          'text-blue-400'
+                        }`}>
+                          {greeting.emoji}
+                        </span>
                       </div>
                       <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
@@ -904,7 +899,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className="text-2xl">🕐</span>
+                        <span className={`text-2xl ${
+                          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
+                          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
+                          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
+                          'text-blue-400'
+                        }`}>
+                          {greeting.emoji}
+                        </span>
                       </div>
                       <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
@@ -1160,7 +1162,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* Google Drive Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
