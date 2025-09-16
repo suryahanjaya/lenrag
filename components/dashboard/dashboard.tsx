@@ -684,7 +684,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header Section - Full Width Gradient */}
-        <div className={`bg-gradient-to-r ${greeting.bgColor} bg-opacity-25 backdrop-blur-2xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in border-y border-white/30 relative overflow-hidden -mx-3 sm:-mx-6 lg:-mx-8`}>
+        <div className={`bg-gradient-to-r ${greeting.bgColor} bg-opacity-25 backdrop-blur-2xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in border-y border-white/30 relative overflow-hidden -mx-6 sm:-mx-12 lg:-mx-16 xl:-mx-20 2xl:-mx-24`}>
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_10%_50%,rgba(255,255,255,0.4)_0%,transparent_60%)]"></div>
