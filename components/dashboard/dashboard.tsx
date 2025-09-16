@@ -615,7 +615,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   
   // Get background class based on time
   const getBackgroundClass = () => {
-    return 'min-h-screen bg-white relative overflow-hidden';
+    return 'min-h-screen bg-gradient-to-br from-white via-red-50/30 to-white relative overflow-hidden';
   };
 
   return (
@@ -674,7 +674,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       `}} />
       
       {/* LARA Navigation Bar - Premium Glass */}
-      <nav className="bg-gradient-to-r from-blue-500/20 via-red-500/20 to-blue-500/20 backdrop-blur-3xl border-b border-white/30 sticky top-0 z-50 shadow-2xl">
+      <nav className="bg-gradient-to-r from-blue-500/20 via-red-500/20 to-blue-500/20 backdrop-blur-3xl border-b border-white/30 sticky top-0 z-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo & Brand */}
@@ -689,7 +689,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent">
                   LARA
                 </h2>
-                <p className="text-xs text-gray-600 font-medium">Legal Assistant</p>
               </div>
             </div>
 
@@ -697,10 +696,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="flex items-center space-x-4">
               {/* User Profile - Glass Effect */}
               <div className="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-blue-500/10 via-red-500/10 to-blue-500/10 backdrop-blur-xl rounded-xl px-3 py-2 border border-white/20">
-                <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-xs">
-                    {(user.name || 'U').charAt(0).toUpperCase()}
-                  </span>
+                <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-white/30">
+                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-red-500 flex items-center justify-center">
+                    <span className="text-white font-semibold text-xs">
+                      {(user.name || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{user.name || 'Pengguna'}</p>
@@ -752,13 +753,23 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
           </div>
           
-          {/* Floating Emoji Background - Better Positioned */}
+          {/* Floating Emoji Background - Dynamic Color */}
           <div className="absolute inset-0 flex items-end justify-end opacity-8 pointer-events-none pr-4 pb-4">
             <div className="relative">
-              <span className="text-[3rem] sm:text-[4rem] md:text-[5rem] lg:text-[6rem] xl:text-[7rem] 2xl:text-[8rem] select-none block leading-none animate-float">
+              <span className={`text-[3rem] sm:text-[4rem] md:text-[5rem] lg:text-[6rem] xl:text-[7rem] 2xl:text-[8rem] select-none block leading-none animate-float ${
+                currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
+                currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
+                currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
+                'text-blue-400'
+              }`}>
                 {greeting.emoji}
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-full blur-2xl animate-pulse"></div>
+              <div className={`absolute inset-0 rounded-full blur-2xl animate-pulse ${
+                currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-r from-pink-200/30 to-transparent' :
+                currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-r from-yellow-200/30 to-transparent' :
+                currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-r from-orange-200/30 to-transparent' :
+                'bg-gradient-to-r from-blue-200/30 to-transparent'
+              }`}></div>
             </div>
           </div>
           
@@ -1478,113 +1489,27 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </div>
         </div>
 
-        {/* LARA Footer */}
-        <footer className="bg-gradient-to-br from-blue-900 via-red-800 to-blue-900 text-white relative overflow-hidden mt-16">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
-          </div>
-          
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-            {/* Main Footer Content */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-              {/* Brand Section */}
-              <div className="md:col-span-2">
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="relative group">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110 border-2 border-white/30">
-                      <span className="text-white font-bold text-2xl">L</span>
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-blue-500 rounded-full animate-pulse border-2 border-white"></div>
-                  </div>
-                  <div>
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-white via-red-200 to-blue-200 bg-clip-text text-transparent">
-                      LARA Dashboard
-                    </h3>
-                    <p className="text-gray-300 text-sm font-semibold">Legal And Regulation Assistant</p>
-                    <p className="text-gray-400 text-xs font-medium">Created by Surya Hanjaya</p>
+        {/* LARA Footer - Simplified */}
+        <footer className="bg-gradient-to-br from-blue-900 via-red-800 to-blue-900 text-white relative overflow-hidden mt-8">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <div className="relative group">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-xl flex items-center justify-center border-2 border-white/30">
+                    <span className="text-white font-bold text-lg">L</span>
                   </div>
                 </div>
-                <p className="text-gray-200 text-sm leading-relaxed max-w-md mb-6">
-                  Transform your legal documents into an intelligent knowledge base. Ask questions and get answers powered by AI and your own legal documents.
-                </p>
-                <div className="flex space-x-4">
-                  <a href="#" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20">
-                    <span className="text-xl">📧</span>
-                  </a>
-                  <a href="#" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20">
-                    <span className="text-xl">🐦</span>
-                  </a>
-                  <a href="#" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20">
-                    <span className="text-xl">💬</span>
-                  </a>
+                <div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-white via-red-200 to-blue-200 bg-clip-text text-transparent">
+                    LARA Dashboard
+                  </h3>
+                  <p className="text-gray-300 text-sm font-semibold">Legal And Regulation Assistant</p>
+                  <p className="text-gray-400 text-xs font-medium">Created by Surya Hanjaya</p>
                 </div>
               </div>
-              
-              {/* Features */}
-              <div>
-                <h4 className="text-lg font-bold text-white mb-6 flex items-center">
-                  <span className="w-2 h-2 bg-gradient-to-r from-blue-400 to-red-500 rounded-full mr-3"></span>
-                  Legal Features
-                </h4>
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-blue-400 rounded-full mr-3"></span>
-                    Legal Document Analysis
-                  </li>
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-red-400 rounded-full mr-3"></span>
-                    Regulation Compliance
-                  </li>
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-white rounded-full mr-3"></span>
-                    AI Legal Assistant
-                  </li>
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-blue-300 rounded-full mr-3"></span>
-                    Real-time Legal Chat
-                  </li>
-                </ul>
-              </div>
-              
-              {/* Support */}
-              <div>
-                <h4 className="text-lg font-bold text-white mb-6 flex items-center">
-                  <span className="w-2 h-2 bg-gradient-to-r from-red-400 to-white rounded-full mr-3"></span>
-                  Support
-                </h4>
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-blue-400 rounded-full mr-3"></span>
-                    Legal Help Center
-                  </li>
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-red-400 rounded-full mr-3"></span>
-                    Legal Documentation
-                  </li>
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-red-400 rounded-full mr-3"></span>
-                    Contact Legal Support
-                  </li>
-                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-blue-400 rounded-full mr-3"></span>
-                    System Status
-                  </li>
-                </ul>
-              </div>
-            </div>
-            
-            {/* Bottom Section */}
-            <div className="border-t border-white/20 pt-8">
-              <div className="flex justify-center">
-                <div className="flex space-x-8">
-                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Privacy Policy</a>
-                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Terms of Service</a>
-                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Legal Notice</a>
-                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Security</a>
-                </div>
-              </div>
+              <p className="text-gray-200 text-sm leading-relaxed max-w-2xl mx-auto">
+                Transform your legal documents into an intelligent knowledge base. Ask questions and get answers powered by AI and your own legal documents.
+              </p>
             </div>
           </div>
         </footer>
