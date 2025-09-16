@@ -105,28 +105,28 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         color: 'text-white', 
         bgColor: 'from-pink-500 via-pink-600 to-pink-700', 
         glowColor: 'shadow-pink-200/50',
-        backgroundGradient: 'from-pink-200 via-yellow-200 to-yellow-300',
-        accentColors: ['pink-200', 'yellow-200', 'yellow-300']
+        backgroundGradient: 'from-white via-pink-50 to-pink-100',
+        accentColors: ['white', 'pink-50', 'pink-100']
       };
     } else if (hour >= 12 && hour < 15) {
       return { 
         text: 'Selamat Siang', 
         emoji: '☀️', 
-        color: 'text-yellow-600', 
+        color: 'text-white', 
         bgColor: 'from-yellow-500 via-yellow-600 to-yellow-700', 
         glowColor: 'shadow-yellow-200/50',
-        backgroundGradient: 'from-yellow-200 via-yellow-300 to-yellow-400',
-        accentColors: ['yellow-200', 'yellow-300', 'yellow-400']
+        backgroundGradient: 'from-white via-yellow-50 to-yellow-100',
+        accentColors: ['white', 'yellow-50', 'yellow-100']
       };
     } else if (hour >= 15 && hour < 18) {
       return { 
         text: 'Selamat Sore', 
         emoji: '🌇', 
         color: 'text-white', 
-        bgColor: 'from-orange-500 via-orange-600 to-blue-600', 
+        bgColor: 'from-orange-500 via-orange-600 to-orange-700', 
         glowColor: 'shadow-orange-200/50',
-        backgroundGradient: 'from-orange-200 via-blue-200 to-blue-300',
-        accentColors: ['orange-200', 'blue-200', 'blue-300']
+        backgroundGradient: 'from-white via-orange-50 to-orange-100',
+        accentColors: ['white', 'orange-50', 'orange-100']
       };
     } else {
       return { 
@@ -135,8 +135,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         color: 'text-white', 
         bgColor: 'from-blue-500 via-blue-600 to-blue-700', 
         glowColor: 'shadow-blue-200/50',
-        backgroundGradient: 'from-blue-200 via-indigo-300 to-purple-400',
-        accentColors: ['blue-200', 'indigo-300', 'purple-400']
+        backgroundGradient: 'from-white via-blue-50 to-blue-100',
+        accentColors: ['white', 'blue-50', 'blue-100']
       };
     }
   };
@@ -615,16 +615,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   
   // Get background class based on time
   const getBackgroundClass = () => {
-    const hour = currentTime.getHours();
-    if (hour >= 5 && hour < 12) {
-      return 'min-h-screen bg-gradient-to-br from-pink-100 via-rose-50 to-pink-200 relative overflow-hidden';
-    } else if (hour >= 12 && hour < 15) {
-      return 'min-h-screen bg-gradient-to-br from-yellow-100 via-yellow-50 to-yellow-200 relative overflow-hidden';
-    } else if (hour >= 15 && hour < 18) {
-      return 'min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-red-100 relative overflow-hidden';
-    } else {
-      return 'min-h-screen bg-gradient-to-br from-blue-100 via-indigo-50 to-blue-200 relative overflow-hidden';
-    }
+    return 'min-h-screen bg-white relative overflow-hidden';
   };
 
   return (
