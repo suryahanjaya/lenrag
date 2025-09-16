@@ -753,7 +753,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
       <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header Section - Compact */}
-        <div className={`bg-gradient-to-br ${greeting.bgColor} bg-opacity-20 backdrop-blur-2xl rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden`}>
+        <div className="bg-gradient-to-br from-blue-500/20 via-red-500/20 to-white/20 backdrop-blur-2xl rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden">
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -779,9 +779,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Top Row: Greeting + Time */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h1 className={`text-xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
-                    {greeting.text}, {user.name || 'Pengguna'}!
-                  </h1>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent animate-fade-in drop-shadow-lg tracking-tight">
+                      {greeting.text}, {user.name || 'Pengguna'}!
+                    </h1>
                 </div>
                 {/* Time - Moved to the right */}
                 <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 border border-white/50 shadow-xl">
@@ -815,7 +815,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="space-y-3">
-                    <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent animate-fade-in drop-shadow-lg tracking-tight">
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                     <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl">
@@ -847,7 +847,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Left: Greeting */}
               <div className="flex-1">
                 <div className="space-y-4">
-                  <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
+                  <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent animate-fade-in drop-shadow-lg tracking-tight leading-tight">
                     {greeting.text}, {user.name || 'Pengguna'}!
                   </h1>
                   <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl">
@@ -884,7 +884,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="w-full">
             {/* Chat Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-600 via-red-500 to-blue-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -914,8 +914,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                           </span>
                         </div>
                         {knowledgeBase.length === 0 && (
-                          <div className="bg-yellow-500/30 backdrop-blur-sm px-3 py-2 rounded-xl sm:rounded-2xl border border-yellow-400/50">
-                            <span className="text-xs text-yellow-100 font-medium">
+                          <div className="bg-red-500/30 backdrop-blur-sm px-3 py-2 rounded-xl sm:rounded-2xl border border-red-400/50">
+                            <span className="text-xs text-red-100 font-medium">
                               ⚠️ KB Kosong
                             </span>
                           </div>
@@ -952,8 +952,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                           </span>
                         </div>
                         {knowledgeBase.length === 0 && (
-                          <div className="bg-yellow-500/30 backdrop-blur-sm px-4 py-2 rounded-2xl border border-yellow-400/50">
-                            <span className="text-sm text-yellow-100 font-medium">
+                          <div className="bg-red-500/30 backdrop-blur-sm px-4 py-2 rounded-2xl border border-red-400/50">
+                            <span className="text-sm text-red-100 font-medium">
                               ⚠️ Knowledge Base Kosong
                             </span>
                           </div>
@@ -981,8 +981,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         <p className="text-gray-800 font-medium mb-2 text-lg">Mulai bertanya tentang dokumen Anda!</p>
                         <p className="text-sm text-gray-600">AI akan menjawab berdasarkan dokumen di knowledge base</p>
                         {knowledgeBase.length === 0 && (
-                          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                            <p className="text-sm text-yellow-800">
+                          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                            <p className="text-sm text-red-800">
                               ⚠️ Knowledge base kosong. Tambahkan dokumen terlebih dahulu.
                             </p>
                           </div>
@@ -1095,14 +1095,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="flex items-center space-x-4">
                   <div className={`w-4 h-4 rounded-full animate-pulse shadow-lg ${
                     message.includes('berhasil') || message.includes('dimuat') 
-                      ? 'bg-green-400 shadow-green-400/60' 
+                      ? 'bg-blue-400 shadow-blue-400/60' 
                       : message.includes('gagal') || message.includes('error')
                       ? 'bg-red-400 shadow-red-400/60'
                       : 'bg-blue-400 shadow-blue-400/60'
                   }`}></div>
                   <p className={`font-semibold text-xl ${
                     message.includes('berhasil') || message.includes('dimuat') 
-                      ? 'text-green-800' 
+                      ? 'text-blue-800' 
                       : message.includes('gagal') || message.includes('error')
                       ? 'text-red-800'
                       : 'text-blue-800'
@@ -1118,7 +1118,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* Google Drive Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-red-500 via-red-600 to-red-700 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                <div className="bg-gradient-to-br from-blue-600 via-red-500 to-blue-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -1392,7 +1392,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
             {/* Knowledge Base Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                <div className="bg-gradient-to-br from-red-600 via-blue-500 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -1565,11 +1565,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 </h4>
                 <ul className="space-y-3">
                   <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-yellow-400 rounded-full mr-3"></span>
+                    <span className="w-1 h-1 bg-blue-400 rounded-full mr-3"></span>
                     Legal Help Center
                   </li>
                   <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
-                    <span className="w-1 h-1 bg-orange-400 rounded-full mr-3"></span>
+                    <span className="w-1 h-1 bg-red-400 rounded-full mr-3"></span>
                     Legal Documentation
                   </li>
                   <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
