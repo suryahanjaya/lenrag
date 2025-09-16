@@ -112,11 +112,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return { 
         text: 'Selamat Siang', 
         emoji: '☀️', 
-        color: 'text-white', 
+        color: 'text-yellow-600', 
         bgColor: 'from-yellow-500 via-yellow-600 to-yellow-700', 
-        glowColor: 'shadow-red-200/50',
-        backgroundGradient: 'from-yellow-200 via-orange-200 to-orange-300',
-        accentColors: ['yellow-200', 'orange-200', 'orange-300']
+        glowColor: 'shadow-yellow-200/50',
+        backgroundGradient: 'from-yellow-200 via-yellow-300 to-yellow-400',
+        accentColors: ['yellow-200', 'yellow-300', 'yellow-400']
       };
     } else if (hour >= 15 && hour < 18) {
       return { 
@@ -619,7 +619,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     if (hour >= 5 && hour < 12) {
       return 'min-h-screen bg-gradient-to-br from-pink-100 via-rose-50 to-pink-200 relative overflow-hidden';
     } else if (hour >= 12 && hour < 15) {
-      return 'min-h-screen bg-gradient-to-br from-red-100 via-red-50 to-red-200 relative overflow-hidden';
+      return 'min-h-screen bg-gradient-to-br from-yellow-100 via-yellow-50 to-yellow-200 relative overflow-hidden';
     } else if (hour >= 15 && hour < 18) {
       return 'min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-red-100 relative overflow-hidden';
     } else {
@@ -720,7 +720,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {onLogout && (
                 <button
                   onClick={onLogout}
-                  className="group relative w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 border border-white/30 overflow-hidden"
+                  className="group relative w-12 h-12 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 border border-white/30 overflow-hidden"
                 >
                   {/* Door Frame */}
                   <div className="absolute inset-1.5 bg-gray-800 rounded-lg flex items-center justify-center">
@@ -761,10 +761,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
           </div>
           
-          {/* Floating Emoji Background - Smaller */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-6 pointer-events-none">
+          {/* Floating Emoji Background - Better Positioned */}
+          <div className="absolute inset-0 flex items-end justify-end opacity-8 pointer-events-none pr-4 pb-4">
             <div className="relative">
-              <span className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[7rem] xl:text-[8rem] 2xl:text-[9rem] select-none block leading-none animate-float">
+              <span className="text-[3rem] sm:text-[4rem] md:text-[5rem] lg:text-[6rem] xl:text-[7rem] 2xl:text-[8rem] select-none block leading-none animate-float">
                 {greeting.emoji}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-full blur-2xl animate-pulse"></div>
@@ -779,7 +779,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Top Row: Greeting + Time */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent animate-fade-in drop-shadow-lg tracking-tight">
+                    <h1 className={`text-xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                 </div>
@@ -815,7 +815,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="space-y-3">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent animate-fade-in drop-shadow-lg tracking-tight">
+                    <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                     <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl">
@@ -847,7 +847,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Left: Greeting */}
               <div className="flex-1">
                 <div className="space-y-4">
-                  <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent animate-fade-in drop-shadow-lg tracking-tight leading-tight">
+                  <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                     {greeting.text}, {user.name || 'Pengguna'}!
                   </h1>
                   <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl">
@@ -884,7 +884,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="w-full">
             {/* Chat Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-              <div className="bg-gradient-to-br from-blue-600 via-red-500 to-blue-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -1118,7 +1118,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* Google Drive Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-blue-600 via-red-500 to-blue-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
@@ -1392,7 +1392,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
             {/* Knowledge Base Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-red-600 via-blue-500 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
