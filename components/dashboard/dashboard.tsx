@@ -745,12 +745,17 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
       <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header Section - Compact */}
-        <div className="bg-gradient-to-br from-blue-500/20 via-red-500/20 to-white/20 backdrop-blur-2xl rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden">
-          {/* Animated Background Pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
+        <div className={`backdrop-blur-2xl rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden ${
+          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-pink-500/30 via-pink-400/25 to-pink-100/20' :
+          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-yellow-500/30 via-yellow-400/25 to-yellow-100/20' :
+          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-orange-500/30 via-orange-400/25 to-orange-100/20' :
+          'bg-gradient-to-br from-blue-500/30 via-blue-400/25 to-blue-100/20'
+        }`}>
+          {/* Animated Background Pattern - Reduced opacity */}
+          <div className="absolute inset-0 opacity-2">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.05)_0%,transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.02)_0%,transparent_50%)]"></div>
           </div>
           
           {/* Floating Emoji Background - Dynamic Color */}
@@ -774,7 +779,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           </div>
           
           {/* Content - Compact */}
-          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl">
+          <div className={`relative z-10 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl ${
+            currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/20 via-pink-100/30 to-pink-200/20' :
+            currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/20 via-yellow-100/30 to-yellow-200/20' :
+            currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/20 via-orange-100/30 to-orange-200/20' :
+            'bg-gradient-to-br from-white/20 via-blue-100/30 to-blue-200/20'
+          }`}>
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="space-y-4">
@@ -786,7 +796,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     </h1>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 border border-white/50 shadow-xl">
+                <div className={`backdrop-blur-xl rounded-2xl p-3 border border-white/50 shadow-xl ${
+                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
+                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
+                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
+                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
+                }`}>
                   <div className="text-center space-y-1">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 bg-white/50 rounded-full flex items-center justify-center">
@@ -803,7 +818,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Description */}
               <div className="text-center">
-                <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
+                <div className={`backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg ${
+                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
+                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
+                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
+                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
+                }`}>
                   <p className="text-gray-800 text-lg font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                 </div>
               </div>
@@ -820,13 +840,23 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
-                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl">
+                    <div className={`backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl ${
+                      currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
+                      currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
+                      currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
+                      'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
+                    }`}>
                       <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                     </div>
                   </div>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl">
+                <div className={`backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl ${
+                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
+                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
+                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
+                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
+                }`}>
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
@@ -852,7 +882,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                     {greeting.text}, {user.name || 'Pengguna'}!
                   </h1>
-                  <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl">
+                  <div className={`backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl ${
+                    currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
+                    currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
+                    currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
+                    'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
+                  }`}>
                     <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                   </div>
                 </div>
@@ -860,7 +895,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Right: Time & Date */}
               <div className="ml-8">
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-xl">
+                <div className={`backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-xl ${
+                  currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/50 via-pink-100/60 to-pink-200/50' :
+                  currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/50 via-yellow-100/60 to-yellow-200/50' :
+                  currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/50 via-orange-100/60 to-orange-200/50' :
+                  'bg-gradient-to-br from-white/50 via-blue-100/60 to-blue-200/50'
+                }`}>
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
