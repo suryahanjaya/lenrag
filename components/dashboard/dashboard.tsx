@@ -683,14 +683,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       `}} />
       
       <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
-        {/* Header Section - Full Width Gradient */}
-        <div className={`bg-gradient-to-r ${greeting.bgColor} bg-opacity-25 backdrop-blur-2xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in border-y border-white/30 relative overflow-hidden -mx-6 sm:-mx-12 lg:-mx-16 xl:-mx-20 2xl:-mx-24`}>
+        {/* Header Section */}
+        <div className={`bg-gradient-to-br ${greeting.bgColor} bg-opacity-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in border border-white/30 relative overflow-hidden`}>
           {/* Animated Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_10%_50%,rgba(255,255,255,0.4)_0%,transparent_60%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_90%_50%,rgba(255,255,255,0.3)_0%,transparent_60%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_80%,rgba(255,255,255,0.15)_0%,transparent_50%)]"></div>
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
           </div>
           
           {/* Floating Emoji Background */}
@@ -703,19 +702,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </div>
           </div>
           
-          {/* Animated Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
-          
-          {/* Floating Particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/30 rounded-full animate-bounce" style={{animationDelay: '0s', animationDuration: '3s'}}></div>
-            <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-white/40 rounded-full animate-bounce" style={{animationDelay: '1s', animationDuration: '4s'}}></div>
-            <div className="absolute top-1/2 left-1/6 w-1.5 h-1.5 bg-white/25 rounded-full animate-bounce" style={{animationDelay: '2s', animationDuration: '5s'}}></div>
-            <div className="absolute top-1/3 right-1/6 w-1 h-1 bg-white/35 rounded-full animate-bounce" style={{animationDelay: '0.5s', animationDuration: '3.5s'}}></div>
-          </div>
-          
           {/* Content */}
-          <div className="relative z-10 bg-white/20 backdrop-blur-2xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-white/30 shadow-xl">
+          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-3xl p-4 sm:p-6 lg:p-8 border border-white/40 shadow-2xl">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="grid grid-cols-1 gap-4 sm:gap-6">
