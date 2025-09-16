@@ -760,12 +760,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           
           
           {/* Content - Compact */}
-          <div className={`relative z-10 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl ${
-            currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-white/20 via-pink-100/30 to-pink-200/20' :
-            currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-white/20 via-yellow-100/30 to-yellow-200/20' :
-            currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-white/20 via-orange-100/30 to-orange-200/20' :
-            'bg-gradient-to-br from-white/20 via-blue-100/30 to-blue-200/20'
-          }`}>
+          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="space-y-4">
