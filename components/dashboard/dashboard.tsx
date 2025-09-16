@@ -682,27 +682,71 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         }
       `}} />
       
-      {/* Navigation Bar */}
-      <nav className="bg-white/10 backdrop-blur-xl border-b border-white/20 sticky top-0 z-50">
+      {/* LARA Navigation Bar */}
+      <nav className="bg-white/30 backdrop-blur-2xl border-b border-white/40 sticky top-0 z-50 shadow-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo & Brand */}
             <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">RAG</span>
+              <div className="relative group">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110 border-2 border-white/50">
+                  <span className="text-white font-bold text-xl">L</span>
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-blue-500 rounded-full animate-pulse border-2 border-white"></div>
               </div>
-              <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
+              <div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent">
+                  LARA Dashboard
+                </h2>
+                <p className="text-sm text-gray-600 font-semibold">Legal And Regulation Assistant</p>
+                <p className="text-xs text-gray-500 font-medium">Created by Surya Hanjaya</p>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="hidden sm:block text-sm text-gray-600">
-                {user.name || 'Pengguna'}
+
+            {/* User Info & Actions */}
+            <div className="flex items-center space-x-6">
+              {/* User Profile */}
+              <div className="hidden sm:flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/30">
+                <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">
+                    {(user.name || 'U').charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{user.name || 'Pengguna'}</p>
+                  <p className="text-xs text-gray-500">Online</p>
+                </div>
               </div>
+
+              {/* Logout Button with Door Animation */}
               {onLogout && (
-                <Button
+                <button
                   onClick={onLogout}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="group relative w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 border-2 border-white/40 overflow-hidden"
                 >
-                  Logout
-                </Button>
+                  {/* Door Frame */}
+                  <div className="absolute inset-2 bg-gray-800 rounded-lg flex items-center justify-center">
+                    {/* Door - Opens to the left */}
+                    <div className="w-7 h-9 bg-gradient-to-b from-amber-600 to-amber-700 rounded-sm relative group-hover:translate-x-[-8px] group-hover:rotate-[-15deg] transition-all duration-500 origin-left">
+                      {/* Door Handle */}
+                      <div className="absolute right-1 top-1/2 w-1.5 h-1.5 bg-yellow-400 rounded-full transform -translate-y-1/2"></div>
+                      {/* Door Panel Lines */}
+                      <div className="absolute left-1 top-2 w-0.5 h-5 bg-amber-800"></div>
+                      <div className="absolute left-1 top-8 w-0.5 h-2 bg-amber-800"></div>
+                    </div>
+                    
+                    {/* Door Opening Effect - Background */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-red-100 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  </div>
+                  
+                  {/* Hover Effect */}
+                  <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  {/* Tooltip */}
+                  <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg">
+                    Logout
+                  </div>
+                </button>
               )}
             </div>
           </div>
@@ -733,24 +777,28 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
-            <div className="grid grid-cols-1 gap-4 sm:gap-6">
-              {/* Greeting Row */}
+            <div className="space-y-4">
+              {/* Top Row: Greeting + Time */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div>
-                    <h1 className={`text-xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
-                      {greeting.text}, {user.name || 'Pengguna'}!
-                    </h1>
+                  <h1 className={`text-xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                    {greeting.text}, {user.name || 'Pengguna'}!
+                  </h1>
+                </div>
+                {/* Time - Moved to the right */}
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 border border-white/50 shadow-xl">
+                  <div className="text-center space-y-1">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-6 h-6 bg-white/50 rounded-full flex items-center justify-center">
+                        <span className="text-sm">🕐</span>
+                      </div>
+                      <span className="text-lg font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                    </div>
+                    <div className="text-xs text-gray-700 font-medium bg-white/30 px-2 py-1 rounded-lg">
+                      {formatCurrentDate(currentTime)}
+                    </div>
                   </div>
                 </div>
-                {onLogout && (
-                  <Button
-                    onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-14 h-14 rounded-2xl text-2xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 flex items-center justify-center border border-white/30"
-                  >
-                    🚪
-                  </Button>
-                )}
               </div>
               
               {/* Description */}
@@ -759,54 +807,26 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <p className="text-gray-800 text-lg font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                 </div>
               </div>
-              
-              {/* Time & Date */}
-              <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl max-w-56 mx-auto">
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center space-x-3">
-                    <div className="w-8 h-8 bg-white/50 rounded-full flex items-center justify-center">
-                      <span className="text-lg">🕐</span>
-                    </div>
-                    <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
-                  </div>
-                  <div className="text-sm text-gray-700 font-medium bg-white/30 px-3 py-1 rounded-xl">
-                    {formatCurrentDate(currentTime)}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
           {/* Tablet Layout */}
           <div className="hidden sm:block lg:hidden">
-            <div className="grid grid-cols-1 gap-6 sm:gap-8">
-              {/* Top Row: Greeting + Logout */}
+            <div className="space-y-6">
+              {/* Top Row: Greeting + Time */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-8">
+                <div className="flex-1">
                   <div className="space-y-3">
-                    <div>
-                      <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
-                        {greeting.text}, {user.name || 'Pengguna'}!
-                      </h1>
-                    </div>
-                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
+                    <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                      {greeting.text}, {user.name || 'Pengguna'}!
+                    </h1>
+                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl">
                       <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                     </div>
                   </div>
                 </div>
-                {onLogout && (
-                  <Button
-                    onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-16 h-16 rounded-2xl text-3xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 flex items-center justify-center border border-white/30"
-                  >
-                    🚪
-                  </Button>
-                )}
-              </div>
-              
-              {/* Time & Date Row */}
-              <div className="flex justify-center">
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl max-w-64">
+                {/* Time - Moved to the right */}
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl">
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
@@ -825,28 +845,24 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
           {/* Desktop Layout */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-center">
+            <div className="flex items-center justify-between">
               {/* Left: Greeting */}
-              <div className="col-span-7">
-                <div className="flex items-center space-x-8">
-                  <div className="space-y-4">
-                    <div>
-                      <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
-                        {greeting.text}, {user.name || 'Pengguna'}!
-                      </h1>
-                    </div>
-                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-2xl">
-                      <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
-                    </div>
+              <div className="flex-1">
+                <div className="space-y-4">
+                  <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
+                    {greeting.text}, {user.name || 'Pengguna'}!
+                  </h1>
+                  <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl">
+                    <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                   </div>
                 </div>
               </div>
               
-              {/* Center: Time & Date */}
-              <div className="col-span-4">
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-5 border border-white/50 shadow-xl max-w-72 mx-auto">
+              {/* Right: Time & Date */}
+              <div className="ml-8">
+                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-xl">
                   <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center space-x-3">
+                    <div className="flex items-center justify-center space-x-4">
                       <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
                         <span className="text-2xl">🕐</span>
                       </div>
@@ -857,18 +873,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              {/* Right: Logout */}
-              <div className="col-span-1">
-                {onLogout && (
-                  <Button
-                    onClick={onLogout}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white w-20 h-20 rounded-2xl text-4xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 flex items-center justify-center border border-white/30"
-                  >
-                    🚪
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -1485,52 +1489,116 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </div>
         </div>
 
-        {/* Footer */}
-        <footer className="bg-white/10 backdrop-blur-xl border-t border-white/20 mt-12">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">RAG</span>
+        {/* LARA Footer */}
+        <footer className="bg-gradient-to-br from-blue-900 via-red-800 to-blue-900 text-white relative overflow-hidden mt-16">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+          </div>
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+            {/* Main Footer Content */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+              {/* Brand Section */}
+              <div className="md:col-span-2">
+                <div className="flex items-center space-x-4 mb-6">
+                  <div className="relative group">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110 border-2 border-white/30">
+                      <span className="text-white font-bold text-2xl">L</span>
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-blue-500 rounded-full animate-pulse border-2 border-white"></div>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800">RAG Chatbot</h3>
+                  <div>
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-white via-red-200 to-blue-200 bg-clip-text text-transparent">
+                      LARA Dashboard
+                    </h3>
+                    <p className="text-gray-300 text-sm font-semibold">Legal And Regulation Assistant</p>
+                    <p className="text-gray-400 text-xs font-medium">Created by Surya Hanjaya</p>
+                  </div>
                 </div>
-                <p className="text-gray-600 text-sm">
-                  Transform your Google Docs into an intelligent knowledge base with AI-powered Q&A.
+                <p className="text-gray-200 text-sm leading-relaxed max-w-md mb-6">
+                  Transform your legal documents into an intelligent knowledge base. Ask questions and get answers powered by AI and your own legal documents.
                 </p>
+                <div className="flex space-x-4">
+                  <a href="#" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20">
+                    <span className="text-xl">📧</span>
+                  </a>
+                  <a href="#" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20">
+                    <span className="text-xl">🐦</span>
+                  </a>
+                  <a href="#" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20">
+                    <span className="text-xl">💬</span>
+                  </a>
+                </div>
               </div>
               
+              {/* Features */}
               <div>
-                <h4 className="text-md font-semibold text-gray-800 mb-4">Features</h4>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Google Docs Integration</li>
-                  <li>• AI-Powered Q&A</li>
-                  <li>• Document Management</li>
-                  <li>• Real-time Chat</li>
+                <h4 className="text-lg font-bold text-white mb-6 flex items-center">
+                  <span className="w-2 h-2 bg-gradient-to-r from-blue-400 to-red-500 rounded-full mr-3"></span>
+                  Legal Features
+                </h4>
+                <ul className="space-y-3">
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-blue-400 rounded-full mr-3"></span>
+                    Legal Document Analysis
+                  </li>
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-red-400 rounded-full mr-3"></span>
+                    Regulation Compliance
+                  </li>
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-white rounded-full mr-3"></span>
+                    AI Legal Assistant
+                  </li>
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-blue-300 rounded-full mr-3"></span>
+                    Real-time Legal Chat
+                  </li>
                 </ul>
               </div>
               
+              {/* Support */}
               <div>
-                <h4 className="text-md font-semibold text-gray-800 mb-4">Support</h4>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Help Center</li>
-                  <li>• Documentation</li>
-                  <li>• Contact Support</li>
-                  <li>• Status Page</li>
+                <h4 className="text-lg font-bold text-white mb-6 flex items-center">
+                  <span className="w-2 h-2 bg-gradient-to-r from-red-400 to-white rounded-full mr-3"></span>
+                  Support
+                </h4>
+                <ul className="space-y-3">
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-yellow-400 rounded-full mr-3"></span>
+                    Legal Help Center
+                  </li>
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-orange-400 rounded-full mr-3"></span>
+                    Legal Documentation
+                  </li>
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-red-400 rounded-full mr-3"></span>
+                    Contact Legal Support
+                  </li>
+                  <li className="flex items-center text-gray-300 text-sm hover:text-white transition-colors cursor-pointer">
+                    <span className="w-1 h-1 bg-blue-400 rounded-full mr-3"></span>
+                    System Status
+                  </li>
                 </ul>
               </div>
             </div>
             
-            <div className="border-t border-white/20 mt-8 pt-6">
+            {/* Bottom Section */}
+            <div className="border-t border-white/20 pt-8">
               <div className="flex flex-col sm:flex-row justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  © 2024 RAG Chatbot. All rights reserved.
-                </p>
-                <div className="flex space-x-6 mt-4 sm:mt-0">
-                  <a href="#" className="text-sm text-gray-600 hover:text-gray-800 transition-colors">Privacy</a>
-                  <a href="#" className="text-sm text-gray-600 hover:text-gray-800 transition-colors">Terms</a>
-                  <a href="#" className="text-sm text-gray-600 hover:text-gray-800 transition-colors">Cookies</a>
+                <div className="flex items-center space-x-6 mb-4 sm:mb-0">
+                  <p className="text-gray-300 text-sm font-medium">
+                    © 2024 LARA Dashboard. Created by Surya Hanjaya
+                  </p>
+                </div>
+                <div className="flex space-x-8">
+                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Privacy Policy</a>
+                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Terms of Service</a>
+                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Legal Notice</a>
+                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Security</a>
                 </div>
               </div>
             </div>
