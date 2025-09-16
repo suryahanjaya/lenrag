@@ -682,39 +682,37 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         }
       `}} />
       
-      {/* LARA Navigation Bar */}
-      <nav className="bg-white/30 backdrop-blur-2xl border-b border-white/40 sticky top-0 z-50 shadow-xl">
+      {/* LARA Navigation Bar - Premium Glass */}
+      <nav className="bg-gradient-to-r from-blue-500/20 via-red-500/20 to-blue-500/20 backdrop-blur-3xl border-b border-white/30 sticky top-0 z-50 shadow-2xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-16">
             {/* Logo & Brand */}
             <div className="flex items-center space-x-4">
               <div className="relative group">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110 border-2 border-white/50">
-                  <span className="text-white font-bold text-xl">L</span>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 border border-white/40">
+                  <span className="text-white font-bold text-lg">L</span>
                 </div>
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-blue-500 rounded-full animate-pulse border-2 border-white"></div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-500 to-blue-500 rounded-full animate-pulse border border-white"></div>
               </div>
               <div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent">
-                  LARA Dashboard
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent">
+                  LARA
                 </h2>
-                <p className="text-sm text-gray-600 font-semibold">Legal And Regulation Assistant</p>
-                <p className="text-xs text-gray-500 font-medium">Created by Surya Hanjaya</p>
+                <p className="text-xs text-gray-600 font-medium">Legal Assistant</p>
               </div>
             </div>
 
             {/* User Info & Actions */}
-            <div className="flex items-center space-x-6">
-              {/* User Profile */}
-              <div className="hidden sm:flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/30">
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
+            <div className="flex items-center space-x-4">
+              {/* User Profile - Glass Effect */}
+              <div className="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-blue-500/10 via-red-500/10 to-blue-500/10 backdrop-blur-xl rounded-xl px-3 py-2 border border-white/20">
+                <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-xs">
                     {(user.name || 'U').charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{user.name || 'Pengguna'}</p>
-                  <p className="text-xs text-gray-500">Online</p>
                 </div>
               </div>
 
@@ -722,17 +720,17 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {onLogout && (
                 <button
                   onClick={onLogout}
-                  className="group relative w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110 border-2 border-white/40 overflow-hidden"
+                  className="group relative w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 border border-white/30 overflow-hidden"
                 >
                   {/* Door Frame */}
-                  <div className="absolute inset-2 bg-gray-800 rounded-lg flex items-center justify-center">
+                  <div className="absolute inset-1.5 bg-gray-800 rounded-lg flex items-center justify-center">
                     {/* Door - Opens to the left */}
-                    <div className="w-7 h-9 bg-gradient-to-b from-amber-600 to-amber-700 rounded-sm relative group-hover:translate-x-[-8px] group-hover:rotate-[-15deg] transition-all duration-500 origin-left">
+                    <div className="w-6 h-8 bg-gradient-to-b from-amber-600 to-amber-700 rounded-sm relative group-hover:translate-x-[-6px] group-hover:rotate-[-12deg] transition-all duration-500 origin-left">
                       {/* Door Handle */}
-                      <div className="absolute right-1 top-1/2 w-1.5 h-1.5 bg-yellow-400 rounded-full transform -translate-y-1/2"></div>
+                      <div className="absolute right-1 top-1/2 w-1 h-1 bg-yellow-400 rounded-full transform -translate-y-1/2"></div>
                       {/* Door Panel Lines */}
-                      <div className="absolute left-1 top-2 w-0.5 h-5 bg-amber-800"></div>
-                      <div className="absolute left-1 top-8 w-0.5 h-2 bg-amber-800"></div>
+                      <div className="absolute left-1 top-2 w-0.5 h-4 bg-amber-800"></div>
+                      <div className="absolute left-1 top-6 w-0.5 h-2 bg-amber-800"></div>
                     </div>
                     
                     {/* Door Opening Effect - Background */}
@@ -740,10 +738,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   </div>
                   
                   {/* Hover Effect */}
-                  <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   
                   {/* Tooltip */}
-                  <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg">
+                  <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                     Logout
                   </div>
                 </button>
@@ -1588,12 +1586,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             
             {/* Bottom Section */}
             <div className="border-t border-white/20 pt-8">
-              <div className="flex flex-col sm:flex-row justify-between items-center">
-                <div className="flex items-center space-x-6 mb-4 sm:mb-0">
-                  <p className="text-gray-300 text-sm font-medium">
-                    © 2024 LARA Dashboard. Created by Surya Hanjaya
-                  </p>
-                </div>
+              <div className="flex justify-center">
                 <div className="flex space-x-8">
                   <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Privacy Policy</a>
                   <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-300 hover:scale-105 transform font-medium">Terms of Service</a>
