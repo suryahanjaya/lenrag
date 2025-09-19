@@ -1536,28 +1536,24 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </div>
         </div>
 
-        {/* LARA Footer - Simplified */}
-        <footer className="bg-gradient-to-br from-blue-900 via-red-800 to-blue-900 text-white relative overflow-hidden mt-8">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-4 mb-4">
-                <div className="relative group">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-xl flex items-center justify-center border-2 border-white/30">
-                    <span className="text-white font-bold text-lg">L</span>
-                  </div>
+        {/* LARA Footer - Compact with Logo Side by Side */}
+        <footer className="footer-main">
+          <div className="footer-content">
+            <div className="footer-brand-container">
+              <div className="footer-logo">
+                <div className="footer-logo-icon">
+                  <span className="footer-logo-text">L</span>
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-white via-red-200 to-blue-200 bg-clip-text text-transparent">
-                    LARA Dashboard
-                  </h3>
-                  <p className="text-gray-300 text-sm font-semibold">Legal And Regulation Assistant</p>
-                  <p className="text-gray-400 text-xs font-medium">Created by Surya Hanjaya</p>
-                </div>
+                <div className="footer-logo-dot"></div>
               </div>
-              <p className="text-gray-200 text-sm leading-relaxed max-w-2xl mx-auto">
-                Transform your legal documents into an intelligent knowledge base. Ask questions and get answers powered by AI and your own legal documents.
-              </p>
+              <div className="footer-brand-text">
+                <h3 className="footer-title">LARA</h3>
+                <p className="footer-subtitle">Legal Assistant</p>
+              </div>
             </div>
+            <p className="footer-description">
+              Transform your legal documents into an intelligent knowledge base.
+            </p>
           </div>
         </footer>
       </div>
