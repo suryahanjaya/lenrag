@@ -167,7 +167,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     if (!mimeType || typeof mimeType !== 'string') return '📄';
     if (mimeType.includes('google-apps.document')) return '📄';
     if (mimeType.includes('google-apps.presentation')) return '📊';
-    if (mimeType.includes('pdf')) return '📕';
+    if (mimeType.includes('pdf')) return '📘';
     if (mimeType.includes('wordprocessingml')) return '📝';
     if (mimeType.includes('presentationml')) return '📊';
     if (mimeType.includes('text/plain')) return '📄';
@@ -675,7 +675,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     <img 
                       src={user.picture} 
                       alt="Profile" 
-                      className="w-full h-full object-cover"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="nav-profile-fallback">
@@ -732,60 +732,58 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         }`}>
           {/* Animated Background Pattern - Reduced opacity */}
           <div className="absolute inset-0 opacity-2">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.05)_0%,transparent_50%)]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.02)_0%,transparent_50%)]"></div>
+            <div className="header-bg-pattern-1"></div>
+            <div className="header-bg-pattern-2"></div>
+            <div className="header-bg-pattern-3"></div>
           </div>
           
           
           {/* Content - Compact */}
           {/* Mobile Layout */}
-          <div className="block sm:hidden">
-            <div className="space-y-4">
+          <div className="header-mobile">
+            <div className="header-mobile-content">
               {/* Top Row: Greeting + Time */}
-              <div className="flex flex-col space-y-3">
+              <div className="header-mobile-content">
                 <div className="w-full">
-                    <h1 className={`text-lg font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
+                    <h1 className={`mobile-greeting-text ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                 </div>
                 {/* Time - Full width on mobile */}
-                <div className={`${getTimeBoxClass()} rounded-2xl p-4 w-full`}>
-                  <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center space-x-3">
-                      <div className="w-8 h-8 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className={`text-lg ${
-                          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
-                          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
-                          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
-                          'text-blue-400'
-                        }`}>
-                          {greeting.emoji}
-                        </span>
-                      </div>
-                      <span className="text-xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className={`${getTimeBoxClass()} time-box-mobile`}>
+                  <div className="time-display-mobile">
+                    <div className="time-icon-mobile">
+                      <span className={`text-lg ${
+                        currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
+                        currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
+                        currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
+                        'text-blue-400'
+                      }`}>
+                        {greeting.emoji}
+                      </span>
                     </div>
-                    <div className="text-sm text-gray-700 font-medium bg-white/30 px-3 py-2 rounded-lg">
-                      {formatCurrentDate(currentTime)}
-                    </div>
+                    <span className="time-text-mobile">{formatTime(currentTime)}</span>
+                  </div>
+                  <div className="date-display-mobile">
+                    {formatCurrentDate(currentTime)}
                   </div>
                 </div>
               </div>
               
               {/* Description */}
               <div className="text-center">
-                <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
-                  <p className="text-gray-800 text-base font-semibold drop-shadow-sm leading-relaxed">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                <div className="description-box-mobile">
+                  <p className="description-text-mobile">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Tablet Layout */}
-          <div className="hidden sm:block lg:hidden">
-            <div className="space-y-6">
+          <div className="header-tablet">
+            <div className="header-tablet-content">
               {/* Top Row: Greeting + Time */}
-              <div className="flex flex-col space-y-4">
+              <div className="header-tablet-content">
                 <div className="w-full">
                   <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                     {greeting.text}, {user.name || 'Pengguna'}!
@@ -793,70 +791,66 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 </div>
                 
                 {/* Time - Full width on tablet */}
-                <div className={`${getTimeBoxClass()} rounded-2xl p-5 w-full`}>
-                  <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center space-x-4">
-                      <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className={`text-2xl ${
-                          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
-                          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
-                          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
-                          'text-blue-400'
-                        }`}>
-                          {greeting.emoji}
-                        </span>
-                      </div>
-                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className={`${getTimeBoxClass()} time-box-tablet`}>
+                  <div className="time-display-tablet">
+                    <div className="time-icon-tablet">
+                      <span className={`text-2xl ${
+                        currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
+                        currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
+                        currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
+                        'text-blue-400'
+                      }`}>
+                        {greeting.emoji}
+                      </span>
                     </div>
-                    <div className="text-base text-gray-700 font-medium bg-white/30 px-4 py-2 rounded-xl">
-                      {formatCurrentDate(currentTime)}
-                    </div>
+                    <span className="time-text-tablet">{formatTime(currentTime)}</span>
+                  </div>
+                  <div className="date-display-tablet">
+                    {formatCurrentDate(currentTime)}
                   </div>
                 </div>
                 
                 {/* Description */}
-                <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg">
-                  <p className="text-gray-800 text-lg font-semibold drop-shadow-sm leading-relaxed text-center">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                <div className="description-box-tablet">
+                  <p className="description-text-tablet">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Desktop Layout */}
-          <div className="hidden lg:block">
-            <div className="flex items-center justify-between">
+          <div className="header-desktop">
+            <div className="header-desktop-content">
               {/* Left: Greeting */}
               <div className="flex-1">
                 <div className="space-y-4">
                   <h1 className={`text-3xl xl:text-4xl 2xl:text-5xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                     {greeting.text}, {user.name || 'Pengguna'}!
                   </h1>
-                  <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg max-w-3xl">
-                    <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                  <div className="description-box-desktop">
+                    <p className="description-text-desktop">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                   </div>
                 </div>
               </div>
               
               {/* Right: Time & Date */}
               <div className="ml-8">
-                <div className={`${getTimeBoxClass()} rounded-2xl p-6`}>
-                  <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center space-x-4">
-                      <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className={`text-2xl ${
-                          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
-                          currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
-                          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
-                          'text-blue-400'
-                        }`}>
-                          {greeting.emoji}
-                        </span>
-                      </div>
-                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                <div className={`${getTimeBoxClass()} time-box-desktop`}>
+                  <div className="time-display-desktop">
+                    <div className="time-icon-desktop">
+                      <span className={`text-2xl ${
+                        currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
+                        currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
+                        currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
+                        'text-blue-400'
+                      }`}>
+                        {greeting.emoji}
+                      </span>
                     </div>
-                    <div className="text-sm text-gray-700 font-medium bg-white/30 px-4 py-2 rounded-xl">
-                      {formatCurrentDate(currentTime)}
-                    </div>
+                    <span className="time-text-desktop">{formatTime(currentTime)}</span>
+                  </div>
+                  <div className="date-display-desktop">
+                    {formatCurrentDate(currentTime)}
                   </div>
                 </div>
               </div>
@@ -874,35 +868,35 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+                  <div className="chat-bg-pattern-1"></div>
+                  <div className="chat-bg-pattern-2"></div>
                 </div>
                 
                 <div className="relative z-10">
                   {/* Mobile Layout - Stacked */}
-                  <div className="block lg:hidden">
+                  <div className="chat-mobile">
                     {/* Top Row - Title and Icon */}
-                    <div className="flex items-center space-x-3 sm:space-x-4 mb-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/25 backdrop-blur-sm rounded-2xl sm:rounded-3xl flex items-center justify-center animate-glow border border-white/30 flex-shrink-0">
+                    <div className="chat-header-mobile">
+                      <div className="chat-icon-mobile">
                         <span className="text-white text-xl sm:text-2xl">💬</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg truncate">Chat dengan AI</h2>
-                        <p className="text-blue-100 text-xs sm:text-sm font-medium truncate">Tanyakan apapun tentang dokumen Anda</p>
+                        <h2 className="chat-title-mobile">Chat dengan AI</h2>
+                        <p className="chat-subtitle-mobile">Tanyakan apapun tentang dokumen Anda</p>
                       </div>
                     </div>
                     
                     {/* Bottom Row - Status and Button */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="chat-status-mobile">
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-xl sm:rounded-2xl border border-white/30">
-                          <span className="text-xs sm:text-sm text-white font-semibold">
+                        <div className="status-badge">
+                          <span className="status-text">
                             {chatHistory.length} pesan
                           </span>
                         </div>
                         {knowledgeBase.length === 0 && (
-                          <div className="bg-red-500/30 backdrop-blur-sm px-3 py-2 rounded-xl sm:rounded-2xl border border-red-400/50">
-                            <span className="text-xs text-red-100 font-medium">
+                          <div className="status-badge-error">
+                            <span className="status-text-error">
                               ⚠️ KB Kosong
                             </span>
                           </div>
@@ -910,7 +904,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                       </div>
                       <Button
                         onClick={() => setIsChatExpanded(!isChatExpanded)}
-                        className="bg-white/90 hover:bg-white text-gray-800 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/40 w-full sm:w-auto"
+                        className="chat-button"
                       >
                         {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
                       </Button>
@@ -918,29 +912,29 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   </div>
 
                   {/* Desktop Layout - Horizontal */}
-                  <div className="hidden lg:flex items-center justify-between">
+                  <div className="chat-desktop">
                     {/* Left Side - Title and Icon */}
-                    <div className="flex items-center space-x-4">
-                      <div className="w-14 h-14 bg-white/25 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-glow border border-white/30 flex-shrink-0">
+                    <div className="chat-header-desktop">
+                      <div className="chat-icon-desktop">
                         <span className="text-white text-3xl">💬</span>
                       </div>
                       <div>
-                        <h2 className="text-3xl font-bold text-white drop-shadow-lg">Chat dengan AI</h2>
-                        <p className="text-blue-100 text-sm font-medium">Tanyakan apapun tentang dokumen Anda</p>
+                        <h2 className="chat-title-desktop">Chat dengan AI</h2>
+                        <p className="chat-subtitle-desktop">Tanyakan apapun tentang dokumen Anda</p>
                       </div>
                     </div>
                     
                     {/* Right Side - Status and Button */}
-                    <div className="flex items-center space-x-4">
+                    <div className="chat-status-desktop">
                       <div className="flex items-center space-x-3">
-                        <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">
-                          <span className="text-sm text-white font-semibold">
+                        <div className="status-badge">
+                          <span className="status-text">
                             {chatHistory.length} pesan
                           </span>
                         </div>
                         {knowledgeBase.length === 0 && (
-                          <div className="bg-red-500/30 backdrop-blur-sm px-4 py-2 rounded-2xl border border-red-400/50">
-                            <span className="text-sm text-red-100 font-medium">
+                          <div className="status-badge-error">
+                            <span className="status-text-error">
                               ⚠️ Knowledge Base Kosong
                             </span>
                           </div>
@@ -948,7 +942,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                       </div>
                       <Button
                         onClick={() => setIsChatExpanded(!isChatExpanded)}
-                        className="bg-white/90 hover:bg-white text-gray-800 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/40"
+                        className="chat-button"
                       >
                         {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
                       </Button>
@@ -1087,7 +1081,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                       ? 'bg-red-400 shadow-red-400/60'
                       : 'bg-blue-400 shadow-blue-400/60'
                   }`}></div>
-                  <p className={`font-semibold text-xl ${
+                  <p className={`font-semibold text-xl mobile-small-text ${
                     message.includes('berhasil') || message.includes('dimuat') 
                       ? 'text-red-800' 
                       : message.includes('gagal') || message.includes('error')
@@ -1108,27 +1102,27 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+                        <div className="documents-bg-pattern-1"></div>
+                        <div className="documents-bg-pattern-2"></div>
                     </div>
                     
                     <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                        <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/25 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-glow border border-white/30">
+                        <div className="documents-header">
+                            <div className="documents-icon">
                                 <span className="text-white text-2xl sm:text-3xl">📁</span>
                             </div>
                             <div>
-                                <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Google Drive Documents</h2>
-                                <p className="text-red-100 text-sm font-medium">
+                                <h2 className="documents-title">Google Drive Documents</h2>
+                                <p className="documents-subtitle">
                                     {currentFolder ? `📁 ${folderPath.length > 0 ? folderPath.join(' / ') : 'Folder'}` : 'Kelola dokumen dari Google Drive Anda'}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="documents-actions">
                             {(currentFolder || folderPath.length > 0) && (
                                 <Button
                                     onClick={handleBackToParent}
-                                    className="bg-white/90 hover:bg-white border border-white/40 text-gray-800 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
+                                    className="documents-button flex items-center space-x-2"
                                 >
                                     <span>←</span>
                                     <span>Back</span>
@@ -1140,26 +1134,26 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                     fetchKnowledgeBase();
                                 }}
                                 disabled={isLoading}
-                                className="bg-white/90 hover:bg-white border border-white/40 disabled:bg-opacity-50 text-gray-800 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg hover:shadow-xl"
+                                className="documents-button"
                             >
                                 {isLoading ? '⏳ Loading...' : '🔄 Refresh'}
                             </Button>
                         </div>
                     </div>
                 </div>
-                <div className="p-4 sm:p-6 lg:p-8">
+                <div className="documents-content">
                     {/* Search and Sort Controls */}
-                    <div className="mb-6 space-y-4">
+                    <div className="search-controls">
                         <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-                            <div className="flex-1 relative">
+                            <div className="search-input-container">
                                 <input
                                     type="text"
                                     placeholder="Cari dokumen..."
                                     value={searchTerm}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                    className="w-full px-4 py-3 pl-10 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm sm:text-base text-gray-800 placeholder-gray-600 transition-all duration-200"
+                                    className="search-input"
                                 />
-                                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                <div className="search-icon">
                                     🔍
                                 </div>
                             </div>
@@ -1382,21 +1376,21 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
+                        <div className="knowledge-bg-pattern-1"></div>
+                        <div className="knowledge-bg-pattern-2"></div>
                     </div>
                     
                     <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                        <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/25 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-glow border border-white/30">
+                        <div className="knowledge-header">
+                            <div className="knowledge-icon">
                                 <span className="text-white text-2xl sm:text-3xl">🧠</span>
                             </div>
                             <div>
-                                <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Knowledge Base</h2>
-                                <p className="text-red-100 text-sm font-medium">Dokumen yang siap untuk AI</p>
+                                <h2 className="knowledge-title">Knowledge Base</h2>
+                                <p className="knowledge-subtitle">Dokumen yang siap untuk AI</p>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="knowledge-actions">
                             <Button
                                 onClick={async () => {
                                     if (!token) return;
@@ -1411,7 +1405,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         console.error('Debug error:', error);
                                     }
                                 }}
-                                className="bg-white/90 hover:bg-white border border-white/40 text-gray-800 px-4 py-2 rounded-2xl text-xs font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                                className="knowledge-button"
                             >
                                 🔍 Debug
                             </Button>
@@ -1423,9 +1417,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         </div>
                     </div>
                 </div>
-                <div className="p-4 sm:p-6 lg:p-8">
-                    <div className="h-[350px] sm:h-[450px] lg:h-[500px] bg-white/30 backdrop-blur-xl rounded-2xl overflow-y-auto border border-white/40 shadow-lg">
-                        <div className="p-4">
+                <div className="knowledge-content">
+                    <div className="knowledge-list">
+                        <div className="knowledge-list-content">
                         {knowledgeBase.length > 0 ? (
                                 <div className="space-y-3">
                                     {knowledgeBase.map(doc => (
