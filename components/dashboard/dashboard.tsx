@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import '../../styles.css';
 
 // Komponen UI kustom diganti dengan elemen HTML standar untuk memperbaiki error render.
 // Jika Anda telah menginstal komponen shadcn/ui, Anda dapat mengembalikan impor asli.
@@ -635,118 +636,41 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   return (
     <div className={getBackgroundClass()}>
       {/* Premium Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.05)_1px,transparent_0)] bg-[length:24px_24px] opacity-20"></div>
+      <div className="background-dots"></div>
       
       {/* Dynamic Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-pink-200 to-rose-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-orange-100 to-red-100 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
-        <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-12 animate-pulse"></div>
+      <div className="background-animated">
+        <div className="background-blob-1"></div>
+        <div className="background-blob-2"></div>
+        <div className="background-blob-3"></div>
+        <div className="background-blob-4"></div>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(147, 51, 234, 0.3); }
-          50% { box-shadow: 0 0 40px rgba(147, 51, 234, 0.6); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out;
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
-        .animate-glow {
-          animation: glow 2s ease-in-out infinite;
-        }
-        .glass {
-          background: rgba(255, 255, 255, 0.3);
-          backdrop-filter: blur(15px) saturate(150%);
-          border: 1px solid rgba(255, 255, 255, 0.4);
-          box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
-        }
-        .glass-dark {
-          background: rgba(255, 255, 255, 0.4);
-          backdrop-filter: blur(15px) saturate(150%);
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
-        }
-        .glass-premium {
-          background: rgba(255, 255, 255, 0.5);
-          backdrop-filter: blur(20px) saturate(180%);
-          border: 1px solid rgba(255, 255, 255, 0.6);
-          box-shadow: 0 6px 20px 0 rgba(0, 0, 0, 0.15);
-        }
-        .glass-badge {
-          background: rgba(255, 255, 255, 0.4);
-          backdrop-filter: blur(15px) saturate(150%);
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
-        }
-         .glass-time {
-           background: rgba(255, 255, 255, 0.8);
-           backdrop-filter: blur(2xl);
-           border: 1px solid rgba(255, 255, 255, 0.9);
-           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-         }
-         .glass-time-morning {
-           background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(244, 114, 182, 0.2));
-           backdrop-filter: blur(2xl);
-           border: 1px solid rgba(236, 72, 153, 0.4);
-           box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.2);
-         }
-         .glass-time-noon {
-           background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2));
-           backdrop-filter: blur(2xl);
-           border: 1px solid rgba(251, 191, 36, 0.4);
-           box-shadow: 0 8px 32px 0 rgba(251, 191, 36, 0.2);
-         }
-         .glass-time-afternoon {
-           background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.2));
-           backdrop-filter: blur(2xl);
-           border: 1px solid rgba(249, 115, 22, 0.4);
-           box-shadow: 0 8px 32px 0 rgba(249, 115, 22, 0.2);
-         }
-         .glass-time-evening {
-           background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.2));
-           backdrop-filter: blur(2xl);
-           border: 1px solid rgba(59, 130, 246, 0.4);
-           box-shadow: 0 8px 32px 0 rgba(59, 130, 246, 0.2);
-         }
-      `}} />
       
       {/* LARA Navigation Bar - Premium Glass */}
-      <nav className="bg-gradient-to-r from-blue-500/20 via-red-500/20 to-blue-500/20 backdrop-blur-3xl border-b border-white/30 sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <nav className="nav-main">
+        <div className="nav-container">
+          <div className="nav-content">
             {/* Logo & Brand */}
-            <div className="flex items-center space-x-4">
-              <div className="relative group">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-red-500 to-white rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 border border-white/40">
-                  <span className="text-white font-bold text-lg">L</span>
+            <div className="nav-brand">
+              <div className="nav-logo">
+                <div className="nav-logo-icon">
+                  <span className="nav-logo-text">L</span>
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-500 to-blue-500 rounded-full animate-pulse border border-white"></div>
+                <div className="nav-logo-dot"></div>
               </div>
               <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-blue-800 bg-clip-text text-transparent">
+                <h2 className="nav-title">
                   LARA
                 </h2>
               </div>
             </div>
 
             {/* User Info & Actions */}
-            <div className="flex items-center space-x-4">
+            <div className="nav-actions">
               {/* User Profile Picture - Glass Effect */}
-              <div className="hidden sm:flex items-center bg-white/15 backdrop-blur-2xl rounded-xl p-2 border border-white/25 shadow-lg">
-                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/30">
+              <div className="nav-profile">
+                <div className="nav-profile-avatar">
                   {user.picture ? (
                     <img 
                       src={user.picture} 
@@ -754,8 +678,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-600 to-red-500 flex items-center justify-center">
-                      <span className="text-white font-semibold text-xs">
+                    <div className="nav-profile-fallback">
+                      <span className="nav-profile-text">
                         {(user.name || 'U').charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -767,28 +691,28 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {onLogout && (
                 <button
                   onClick={onLogout}
-                  className="group relative w-12 h-12 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 border border-white/30 overflow-hidden"
+                  className="nav-logout"
                 >
                   {/* Door Frame */}
-                  <div className="absolute inset-1.5 bg-gray-800 rounded-lg flex items-center justify-center">
+                  <div className="nav-logout-icon">
                     {/* Door - Opens to the left */}
-                    <div className="w-6 h-8 bg-gradient-to-b from-amber-600 to-amber-700 rounded-sm relative group-hover:translate-x-[-6px] group-hover:rotate-[-12deg] transition-all duration-500 origin-left">
+                    <div className="nav-logout-flame">
                       {/* Door Handle */}
-                      <div className="absolute right-1 top-1/2 w-1 h-1 bg-yellow-400 rounded-full transform -translate-y-1/2"></div>
+                      <div className="nav-logout-spark"></div>
                       {/* Door Panel Lines */}
-                      <div className="absolute left-1 top-2 w-0.5 h-4 bg-amber-800"></div>
-                      <div className="absolute left-1 top-6 w-0.5 h-2 bg-amber-800"></div>
+                      <div className="nav-logout-line-1"></div>
+                      <div className="nav-logout-line-2"></div>
                     </div>
                     
                     {/* Door Opening Effect - Background */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-red-100 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="nav-logout-overlay"></div>
                   </div>
                   
                   {/* Hover Effect */}
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="nav-logout-glow"></div>
                   
                   {/* Tooltip */}
-                  <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                  <div className="nav-tooltip">
                     Logout
                   </div>
                 </button>
@@ -798,7 +722,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         </div>
       </nav>
 
-      <div className="relative z-10 container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 space-y-4 sm:space-y-6 lg:space-y-8">
+      <div className="main-content">
         {/* Header Section - Compact */}
         <div className={`backdrop-blur-2xl rounded-2xl shadow-xl p-4 sm:p-5 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden ${
           currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-pink-500/50 via-pink-400/40 to-pink-200/30' :
