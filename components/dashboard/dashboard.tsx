@@ -1461,12 +1461,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
                             <div className="space-y-4">
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
+                                    <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
                                         <span className="text-white text-lg">📁</span>
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-semibold text-gray-800">Akses Folder Google Drive</h3>
-                                        <p className="text-sm text-gray-600">Masukkan URL folder Google Drive yang sudah di-set public</p>
+                                        <h3 className="text-lg font-semibold text-red-800">Akses Folder Google Drive</h3>
+                                        <p className="text-sm text-red-600">Masukkan URL folder Google Drive yang sudah di-set public</p>
                                     </div>
                                 </div>
                                 
@@ -1477,7 +1477,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             placeholder="https://drive.google.com/drive/folders/1ABC123..."
                                             value={folderUrl}
                                             onChange={(e) => setFolderUrl(e.target.value)}
-                                            className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg"
+                                            className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg"
                                         />
                                         <Button
                                             onClick={() => {
@@ -1488,15 +1488,15 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                 }
                                             }}
                                             disabled={isLoadingFolder || !folderUrl.trim()}
-                                            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                                            className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
                                         >
                                             {isLoadingFolder ? '⏳ Loading...' : '🔍 Buka Folder'}
                                         </Button>
                                     </div>
                                     
-                                    <div className="text-xs text-gray-600 bg-blue-50/80 p-3 rounded-xl border border-blue-200/50">
-                                        <p className="font-medium text-blue-800 mb-1">💡 Cara mendapatkan URL folder:</p>
-                                        <ol className="list-decimal list-inside space-y-1 text-blue-700">
+                                    <div className="text-xs text-gray-600 bg-red-50/80 p-3 rounded-xl border border-red-200/50">
+                                        <p className="font-medium text-red-800 mb-1">💡 Cara mendapatkan URL folder:</p>
+                                        <ol className="list-decimal list-inside space-y-1 text-red-700">
                                             <li>Buka Google Drive di browser</li>
                                             <li>Klik kanan pada folder yang ingin diakses</li>
                                             <li>Pilih "Get link" atau "Dapatkan link"</li>
