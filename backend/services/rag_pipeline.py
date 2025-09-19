@@ -5,7 +5,6 @@ import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
-import hashlib
 import json
 import re
 

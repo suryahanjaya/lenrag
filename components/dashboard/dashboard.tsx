@@ -671,6 +671,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           border: 1px solid rgba(255, 255, 255, 0.6);
           box-shadow: 0 6px 20px 0 rgba(0, 0, 0, 0.15);
         }
+        .glass-badge {
+          background: rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(15px) saturate(150%);
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+        }
       `}} />
       
       {/* LARA Navigation Bar - Premium Glass */}
@@ -1356,16 +1362,16 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             {doc.name}
                                         </label>
                                                         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mt-1">
-                                                            <span className="glass-dark px-2 py-1 rounded-full border border-white/20">
+                                                            <span className="glass-badge px-2 py-1 rounded-full border border-white/20">
                                                                 {getFileTypeName(doc.mime_type || doc.mimeType)}
                                                             </span>
                                                             {doc.size && (
-                                                                <span className="glass-dark px-2 py-1 rounded-full border border-white/20">
+                                                                <span className="glass-badge px-2 py-1 rounded-full border border-white/20">
                                                                     {formatFileSize(doc.size)}
                                                                 </span>
                                                             )}
                                                             {doc.modified_time && (
-                                                                <span className="glass-dark px-2 py-1 rounded-full text-gray-700 border border-white/20">
+                                                                <span className="glass-badge px-2 py-1 rounded-full text-gray-700 border border-white/20">
                                                                     📅 {formatDate(doc.modified_time)}
                                                                 </span>
                                                             )}
@@ -1460,7 +1466,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-semibold text-gray-800 break-words leading-tight">{doc.name}</p>
                                                         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mt-2">
-                                                            <span className="glass-dark px-2 py-1 rounded-full border border-white/20">
+                                                            <span className="glass-badge px-2 py-1 rounded-full border border-white/20">
                                                                 {getFileTypeName(doc.mime_type)}
                                                             </span>
                                                             <span className="bg-red-100/80 backdrop-blur-sm text-red-700 px-2 py-1 rounded-full border border-red-200/50">

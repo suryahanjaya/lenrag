@@ -15,7 +15,7 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ENVIRONMENT=production
     volumes:
-      - ./chroma_db:/app/chroma_db
+      - chroma_db:/app/chroma_db
     restart: unless-stopped
 
   frontend:

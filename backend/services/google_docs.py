@@ -4,7 +4,6 @@ from typing import List, Dict, Any
 import logging
 import json
 import io
-import tempfile
 
 # Import libraries for document processing
 try:
