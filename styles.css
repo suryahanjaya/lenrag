@@ -299,9 +299,9 @@
 }
 
 .nav-container {
-  max-width: 1400px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
 }
 
 .nav-content {
@@ -534,9 +534,9 @@
 .main-content {
   position: relative;
   z-index: 10;
-  max-width: 1550px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding: 1rem 1rem 1.5rem;
+  padding: 1rem 1.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -552,9 +552,9 @@
 
 .section-container {
   width: 100%;
-  max-width: 1550px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
 }
 
 /* Base section styles */
