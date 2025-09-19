@@ -352,7 +352,7 @@
   right: -0.25rem;
   width: 0.75rem;
   height: 0.75rem;
-  background: linear-gradient(to right, #ef4444, #2563eb);
+  background: linear-gradient(to right, #ef4444, #e4e9f6);
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
   border: 1px solid white;
@@ -361,7 +361,7 @@
 .nav-title {
   font-size: 1.5rem;
   font-weight: 700;
-  background: linear-gradient(to right, #2563eb, #ef4444, #1e40af);
+  background: linear-gradient(to right, #2563eb, #ef4444, #ffffff);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -2056,7 +2056,7 @@
 .footer-title {
   font-size: 1.25rem;
   font-weight: bold;
-  background: linear-gradient(to right, #ef4444, #2563eb);
+  background: linear-gradient(to right, #2563eb, #ef4444, #ffffff);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
