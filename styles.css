@@ -889,6 +889,9 @@
   
   .chat-desktop {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
   }
 }
 
@@ -1023,7 +1026,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 1rem;
-  margin-right: -5rem !important;
+  flex: 1;
+  margin-left: auto;
 }
 
 .chat-status-content-tablet {
@@ -1036,7 +1040,6 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-left: 38.5rem;
 }
 
 /* Status Badge */

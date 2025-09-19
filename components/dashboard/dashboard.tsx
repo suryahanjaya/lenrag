@@ -199,6 +199,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   // Helper function to get file type icon
   const getFileIcon = (mimeType?: string) => {
     if (!mimeType || typeof mimeType !== 'string') return '📄';
+    if (mimeType.includes('google-apps.folder')) return '📁';
     if (mimeType.includes('google-apps.document')) return '📄';
     if (mimeType.includes('google-apps.presentation')) return '📊';
     if (mimeType.includes('pdf')) return '📘';
@@ -589,14 +590,30 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Handle folder navigation
   const handleFolderClick = (folderId: string) => {
+    console.log('=== FOLDER CLICK DEBUG ===');
+    console.log('Folder clicked:', folderId);
+    console.log('Current documents:', documents);
+    console.log('Folder hierarchy:', folderHierarchy);
+    console.log('Is folderHierarchy null?', folderHierarchy === null);
+    
     // If we're in folder URL mode (no hierarchy), fetch documents from the clicked folder
     if (!folderHierarchy) {
+      console.log('In folder URL mode - looking for folder in documents');
       // Find the folder in current documents
       const folder = documents.find((doc: Document) => doc.id === folderId && doc.is_folder);
+      console.log('Found folder:', folder);
+      console.log('Folder web_view_link:', folder?.web_view_link);
+      console.log('Folder id:', folder?.id);
+      
       if (folder) {
         setSelectedDocs(new Set()); // Clear selection when navigating
         // Fetch documents from the clicked folder
-        fetchDocumentsFromFolder(folder.web_view_link || `https://drive.google.com/drive/folders/${folderId}`);
+        const folderUrl = folder.web_view_link || `https://drive.google.com/drive/folders/${folderId}`;
+        console.log('Fetching documents from folder URL:', folderUrl);
+        fetchDocumentsFromFolder(folderUrl);
+      } else {
+        console.log('ERROR: Folder not found in documents');
+        console.log('Available documents:', documents.map(d => ({ id: d.id, name: d.name, is_folder: d.is_folder })));
       }
       return;
     }
@@ -1630,7 +1647,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         <div 
                                             key={folder.id} 
                                             className="flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer glass-dark border-white/20 hover:border-white/40 hover:shadow-md"
-                                            onClick={() => handleFolderClick(folder.id)}
+                                            onClick={() => {
+                                                console.log('🚀🚀🚀 FOLDER DIV CLICKED:', folder.id, folder.name);
+                                                alert(`FOLDER CLICKED: ${folder.name}`);
+                                                handleFolderClick(folder.id);
+                                            }}
                                             onKeyDown={(e) => handleKeyDown(e, folder.id, index)}
                                             tabIndex={0}
                                         >
@@ -1638,17 +1659,26 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                 <span className="text-xl">📁</span>
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-gray-800 truncate">{folder.name}</p>
-                                                <p className="text-xs text-gray-600">Folder</p>
+                                                <p className="text-sm font-semibold text-red-600 truncate">🚀 {folder.name} - TEST CHANGE VISIBLE 🚀</p>
+                                                <p className="text-xs text-blue-600 font-bold">✅ FOLDER UI UPDATED - SHOULD BE VISIBLE NOW</p>
                                             </div>
-                                            <div className="text-gray-400">
-                                                →
-                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    console.log('🚀 OPEN BUTTON CLICKED for folder:', folder.id, folder.name);
+                                                    alert(`Opening folder: ${folder.name}`);
+                                                    handleFolderClick(folder.id);
+                                                }}
+                                                className="flex items-center justify-center w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors duration-200 shadow-2xl hover:shadow-2xl border-4 border-yellow-400 animate-pulse"
+                                                title="🚀 OPEN FOLDER"
+                                            >
+                                                <span className="text-2xl font-bold">🚀</span>
+                                            </button>
                                         </div>
                                     ))}
                                     
                                     {/* Documents */}
-                                    {filteredAndSortedDocuments.map((doc: Document, index: number) => {
+                                    {filteredAndSortedDocuments.filter(doc => !doc.is_folder).map((doc: Document, index: number) => {
                                         // Debug: Check if this is actually a folder
                                         if (doc.is_folder) {
                                             console.log('ERROR: Folder found in documents rendering:', doc.name, doc);

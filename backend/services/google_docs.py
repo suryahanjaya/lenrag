@@ -405,6 +405,10 @@ class GoogleDocsService:
                 is_folder = mime_type == 'application/vnd.google-apps.folder'
                 logger.info(f"File: {file.get('name')}, MIME: {mime_type}, Is Folder: {is_folder}")
                 
+                # Special logging for folders
+                if is_folder:
+                    logger.info(f"FOLDER DATA: {file.get('name')}, webViewLink: {file.get('webViewLink', '')}, id: {file['id']}")
+                
                 doc = {
                     'id': file['id'],
                     'name': file['name'],
