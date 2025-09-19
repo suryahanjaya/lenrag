@@ -228,15 +228,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Helper function to format date
+  // Helper function to format date - mobile optimized
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    const date = new Date(dateString);
+    
+    // Use shorter format for mobile: DD/MM/YY, HH:MM
+    return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric',
+      year: '2-digit'
+    }) + ', ' + date.toLocaleTimeString('id-ID', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false
     });
   };
 
@@ -1718,22 +1723,22 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                             <label htmlFor={doc.id} className="block text-sm font-semibold text-red-800 truncate cursor-pointer">
                                                                 {doc.name}
                                                             </label>
-                                                             <div className="flex flex-wrap items-center gap-2 text-xs text-red-600 mt-1">
-                                                                 <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
+                                                             <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-red-600 mt-1">
+                                                                 <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs">
                                                                      {getFileTypeName(doc.mime_type || doc.mimeType)}
                                                                  </span>
                                                                  {doc.size && (
-                                                                     <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
+                                                                     <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs">
                                                                          {formatFileSize(doc.size)}
                                                                      </span>
                                                                  )}
                                                                  {doc.modified_time && (
-                                                                     <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
+                                                                     <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs break-words max-w-full">
                                                                          📅 {formatDate(doc.modified_time)}
                                                                      </span>
                                                                  )}
                                                                  {doc.source_subfolder && (
-                                                                     <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50 text-red-700">
+                                                                     <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-red-700 text-xs">
                                                                          📁 {doc.source_subfolder}
                                                                      </span>
                                                                  )}
