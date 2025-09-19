@@ -48,6 +48,7 @@ interface User {
   id:string;
   name?: string;
   email?: string;
+  picture?: string;
 }
 
 interface DashboardProps {
@@ -677,6 +678,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           border: 1px solid rgba(255, 255, 255, 0.5);
           box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
         }
+        .glass-time {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(2xl);
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
       `}} />
       
       {/* LARA Navigation Bar - Premium Glass */}
@@ -700,17 +707,22 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
             {/* User Info & Actions */}
             <div className="flex items-center space-x-4">
-              {/* User Profile - Glass Effect */}
-              <div className="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-blue-500/10 via-red-500/10 to-blue-500/10 backdrop-blur-xl rounded-xl px-3 py-2 border border-white/20">
-                <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-white/30">
-                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-red-500 flex items-center justify-center">
-                    <span className="text-white font-semibold text-xs">
-                      {(user.name || 'U').charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{user.name || 'Pengguna'}</p>
+              {/* User Profile Picture - Glass Effect */}
+              <div className="hidden sm:flex items-center bg-white/15 backdrop-blur-2xl rounded-xl p-2 border border-white/25 shadow-lg">
+                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/30">
+                  {user.picture ? (
+                    <img 
+                      src={user.picture} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-600 to-red-500 flex items-center justify-center">
+                      <span className="text-white font-semibold text-xs">
+                        {(user.name || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -777,7 +789,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     </h1>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 border border-white/50 shadow-xl">
+                <div className="glass-time rounded-2xl p-3">
                   <div className="text-center space-y-1">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 bg-white/50 rounded-full flex items-center justify-center">
@@ -824,7 +836,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   </div>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-xl">
+                <div className="glass-time rounded-2xl p-4">
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
@@ -865,7 +877,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Right: Time & Date */}
               <div className="ml-8">
-                <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-xl">
+                <div className="glass-time rounded-2xl p-6">
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
