@@ -918,7 +918,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     
                     {/* Bottom Row - Status and Button */}
                     <div className="chat-status-mobile">
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                         <div className="status-badge">
                           <span className="status-text">
                             {chatHistory.length} pesan
@@ -931,13 +931,51 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             </span>
                           </div>
                         )}
+                        <Button
+                          onClick={handleChatToggle}
+                          className={`chat-button ${chatAnimation}`}
+                        >
+                          {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
+                        </Button>
                       </div>
-                      <Button
-                        onClick={handleChatToggle}
-                        className={`chat-button ${chatAnimation}`}
-                      >
-                        {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
-                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Tablet Layout - Horizontal */}
+                  <div className="chat-tablet">
+                    {/* Left Side - Title and Icon */}
+                    <div className="chat-header-tablet">
+                      <div className="chat-icon-tablet">
+                        <span className="text-white text-2xl">💬</span>
+                      </div>
+                      <div>
+                        <h2 className="chat-title-tablet">Chat dengan AI</h2>
+                        <p className="chat-subtitle-tablet">Tanyakan apapun tentang dokumen Anda</p>
+                      </div>
+                    </div>
+                    
+                    {/* Right Side - Status and Button */}
+                    <div className="chat-status-tablet">
+                      <div className="chat-status-content-tablet">
+                        <div className="status-badge">
+                          <span className="status-text">
+                            {chatHistory.length} pesan
+                          </span>
+                        </div>
+                        {knowledgeBase.length === 0 && (
+                          <div className="status-badge-error">
+                            <span className="status-text-error">
+                              ⚠️ Knowledge Base Kosong
+                            </span>
+                          </div>
+                        )}
+                        <Button
+                          onClick={handleChatToggle}
+                          className={`chat-button ${chatAnimation}`}
+                        >
+                          {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -956,7 +994,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     
                     {/* Right Side - Status and Button */}
                     <div className="chat-status-desktop">
-                      <div className="flex items-center space-x-3">
+                      <div className="chat-status-content-desktop">
                         <div className="status-badge">
                           <span className="status-text">
                             {chatHistory.length} pesan
@@ -969,13 +1007,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             </span>
                           </div>
                         )}
+                        <Button
+                          onClick={handleChatToggle}
+                          className={`chat-button ${chatAnimation}`}
+                        >
+                          {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
+                        </Button>
                       </div>
-                      <Button
-                        onClick={handleChatToggle}
-                        className={`chat-button ${chatAnimation}`}
-                      >
-                        {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
-                      </Button>
                     </div>
                   </div>
                 </div>

@@ -860,12 +860,30 @@
   display: block;
 }
 
+.chat-tablet {
+  display: none;
+}
+
 .chat-desktop {
   display: none;
 }
 
+@media (min-width: 768px) and (max-width: 1023px) {
+  .chat-mobile {
+    display: none;
+  }
+  
+  .chat-tablet {
+    display: flex;
+  }
+}
+
 @media (min-width: 1024px) {
   .chat-mobile {
+    display: none;
+  }
+  
+  .chat-tablet {
     display: none;
   }
   
@@ -882,6 +900,12 @@
   margin-bottom: 1rem;
 }
 
+.chat-header-tablet {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
 .chat-header-desktop {
   display: flex;
   align-items: center;
@@ -895,6 +919,20 @@
   background: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(4px);
   border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: glow 2s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.chat-icon-tablet {
+  width: 3rem;
+  height: 3rem;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  border-radius: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -928,6 +966,13 @@
   white-space: nowrap;
 }
 
+.chat-title-tablet {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .chat-title-desktop {
   font-size: 1.875rem;
   font-weight: bold;
@@ -945,6 +990,12 @@
   white-space: nowrap;
 }
 
+.chat-subtitle-tablet {
+  font-size: 0.8125rem;
+  color: rgb(191, 219, 254);
+  font-weight: 500;
+}
+
 .chat-subtitle-desktop {
   font-size: 0.875rem;
   color: rgb(191, 219, 254);
@@ -954,14 +1005,38 @@
 /* Chat Status */
 .chat-status-mobile {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   gap: 0.75rem;
+}
+
+.chat-status-tablet {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.875rem;
+  margin-right: -4rem !important;
 }
 
 .chat-status-desktop {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 1rem;
+  margin-right: -5rem !important;
+}
+
+.chat-status-content-tablet {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chat-status-content-desktop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 38.5rem;
 }
 
 /* Status Badge */
