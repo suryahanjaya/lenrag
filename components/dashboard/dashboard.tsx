@@ -87,6 +87,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const [folderHierarchy, setFolderHierarchy] = useState<FolderHierarchy | null>(null);
   const [folderPath, setFolderPath] = useState<string[]>([]);
+  const [chatAnimation, setChatAnimation] = useState<string>('');
+  const [chatWindowAnimation, setChatWindowAnimation] = useState<string>('');
+  const [showChatWindow, setShowChatWindow] = useState<boolean>(false);
 
   // Real-time clock
   useEffect(() => {
@@ -96,6 +99,33 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Handle chat button click with animation
+  const handleChatToggle = () => {
+    console.log('Chat button clicked, starting animation');
+    setChatAnimation('animate-chat-bounce');
+    
+    if (!isChatExpanded) {
+      // Opening chat
+      setTimeout(() => {
+        setShowChatWindow(true);
+        setIsChatExpanded(true);
+        setChatWindowAnimation('animate-chat-slide-in');
+        setChatAnimation('');
+        console.log('Chat window opening animation started');
+      }, 300);
+    } else {
+      // Closing chat
+      setChatWindowAnimation('animate-chat-slide-out');
+      setTimeout(() => {
+        setShowChatWindow(false);
+        setIsChatExpanded(false);
+        setChatWindowAnimation('');
+        setChatAnimation('');
+        console.log('Chat window closing animation completed');
+      }, 300);
+    }
+  };
 
   // Get greeting and background based on time with premium gradients
   const getGreeting = () => {
@@ -903,8 +933,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         )}
                       </div>
                       <Button
-                        onClick={() => setIsChatExpanded(!isChatExpanded)}
-                        className="chat-button"
+                        onClick={handleChatToggle}
+                        className={`chat-button ${chatAnimation}`}
                       >
                         {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
                       </Button>
@@ -941,8 +971,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         )}
                       </div>
                       <Button
-                        onClick={() => setIsChatExpanded(!isChatExpanded)}
-                        className="chat-button"
+                        onClick={handleChatToggle}
+                        className={`chat-button ${chatAnimation}`}
                       >
                         {isChatExpanded ? '📤 Tutup Chat' : '💬 Buka Chat'}
                       </Button>
@@ -950,8 +980,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   </div>
                 </div>
               </div>
-              {isChatExpanded && (
-                <div className="p-4 sm:p-6 lg:p-8">
+              {showChatWindow && (
+                <div className={`p-4 sm:p-6 lg:p-8 ${chatWindowAnimation}`}>
                   <div className="h-[450px] sm:h-[550px] bg-white/30 backdrop-blur-xl rounded-3xl overflow-y-auto mb-6 border border-white/40 shadow-xl">
                   <div className="p-4 space-y-4">
                     {chatHistory.length === 0 ? (
