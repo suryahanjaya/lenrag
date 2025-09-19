@@ -31,17 +31,17 @@ class GoogleDocsService:
         self.docs_api_base = "https://www.googleapis.com/docs/v1"
     
     async def list_documents(self, access_token: str) -> List[Dict[str, Any]]:
-        """List all document files (.docx, .pdf, .txt, .pptx, Google Docs) and folders for the user"""
+        """List all document files (.docx, .pdf, .txt, .pptx, Google Docs) for the user (NO FOLDERS)"""
         try:
-            # Query for various document types AND folders using Drive API
-            # Include: Word docs, PDFs, text files, PowerPoint, Google Docs, and folders
+            # Query for various document types using Drive API (EXCLUDE FOLDERS)
+            # Include: Word docs, PDFs, text files, PowerPoint, Google Docs
+            # Fixed: Use correct Google Drive API query syntax and exclude folders
             query = ("(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
                     "mimeType='application/pdf' or "
                     "mimeType='text/plain' or "
                     "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or "
                     "mimeType='application/vnd.google-apps.document' or "
-                    "mimeType='application/vnd.google-apps.presentation' or "
-                    "mimeType='application/vnd.google-apps.folder') and "
+                    "mimeType='application/vnd.google-apps.presentation') and "
                     "trashed=false")
             url = f"{self.drive_api_base}/files"
             
@@ -69,12 +69,46 @@ class GoogleDocsService:
             logger.info(f"Google Drive API response: {data}")
             logger.info(f"Raw files found: {len(files)}")
             
+            # If no files found with the specific query, try a broader query
+            if len(files) == 0:
+                logger.warning("No files found with specific query, trying broader search...")
+                broader_query = "trashed=false"
+                broader_params = {
+                    'q': broader_query,
+                    'pageSize': 100,
+                    'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
+                }
+                
+                async with httpx.AsyncClient() as client:
+                    broader_response = await client.get(url, params=broader_params, headers=headers)
+                
+                if broader_response.status_code == 200:
+                    broader_data = broader_response.json()
+                    broader_files = broader_data.get('files', [])
+                    logger.info(f"Broader search found {len(broader_files)} files")
+                    
+                    # Filter for document types from the broader results (EXCLUDE FOLDERS)
+                    document_files = []
+                    for file in broader_files:
+                        mime_type = file.get('mimeType', '')
+                        if any(doc_type in mime_type for doc_type in [
+                            'document', 'pdf', 'text', 'presentation'
+                        ]) and 'folder' not in mime_type:
+                            document_files.append(file)
+                    
+                    logger.info(f"Filtered to {len(document_files)} document files")
+                    files = document_files
+            
             documents = []
             for file in files:
                 logger.info(f"Processing file: {file.get('name')} (ID: {file.get('id')})")
                 
                 # Get the actual MIME type from the file
                 mime_type = file.get('mimeType', 'unknown')
+                
+                # Skip folders (double check)
+                if 'folder' in mime_type:
+                    continue
                 
                 # Get parent folder information
                 parents = file.get('parents', [])
@@ -95,7 +129,7 @@ class GoogleDocsService:
                     'mime_type': mime_type,
                     'file_extension': file_extension,
                     'parent_id': parent_id,
-                    'is_folder': mime_type == 'application/vnd.google-apps.folder'
+                    'is_folder': False  # Always false since we exclude folders
                 }
                 documents.append(doc)
             
@@ -106,11 +140,77 @@ class GoogleDocsService:
             logger.error(f"Error listing documents: {e}")
             raise
     
+    async def _get_all_items_with_folders(self, access_token: str) -> List[Dict[str, Any]]:
+        """Get all items including folders (for hierarchy purposes only)"""
+        try:
+            # Query for various document types AND folders using Drive API
+            query = ("(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
+                    "mimeType='application/pdf' or "
+                    "mimeType='text/plain' or "
+                    "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or "
+                    "mimeType='application/vnd.google-apps.document' or "
+                    "mimeType='application/vnd.google-apps.presentation' or "
+                    "mimeType='application/vnd.google-apps.folder') and "
+                    "trashed=false")
+            
+            url = f"{self.drive_api_base}/files"
+            
+            params = {
+                'q': query,
+                'pageSize': 1000,
+                'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
+            }
+            
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, params=params, headers=headers)
+                
+            if response.status_code != 200:
+                logger.error(f"Drive API error: {response.status_code} - {response.text}")
+                raise Exception(f"Failed to fetch items: {response.status_code}")
+            
+            data = response.json()
+            files = data.get('files', [])
+            
+            items = []
+            for file in files:
+                mime_type = file.get('mimeType', 'unknown')
+                parents = file.get('parents', [])
+                parent_id = parents[0] if parents else None
+                
+                file_extension = self._get_file_extension(file.get('name', ''))
+                if not file_extension:
+                    file_extension = self._mime_to_extension(mime_type)
+                
+                item = {
+                    'id': file['id'],
+                    'name': file['name'],
+                    'created_time': file.get('createdTime', ''),
+                    'modified_time': file.get('modifiedTime', ''),
+                    'web_view_link': file.get('webViewLink', ''),
+                    'size': file.get('size'),
+                    'mime_type': mime_type,
+                    'file_extension': file_extension,
+                    'parent_id': parent_id,
+                    'is_folder': mime_type == 'application/vnd.google-apps.folder'
+                }
+                items.append(item)
+            
+            return items
+            
+        except Exception as e:
+            logger.error(f"Error getting all items with folders: {e}")
+            raise
+
     async def get_folder_hierarchy(self, access_token: str) -> Dict[str, Any]:
         """Get folder hierarchy and organize documents by folders"""
         try:
-            # Get all documents and folders
-            all_items = await self.list_documents(access_token)
+            # Get all documents and folders (including folders for hierarchy)
+            all_items = await self._get_all_items_with_folders(access_token)
             
             # Separate folders and documents
             folders = [item for item in all_items if item.get('is_folder', False)]
@@ -176,6 +276,248 @@ class GoogleDocsService:
             'application/vnd.ms-powerpoint': 'ppt'
         }
         return mime_map.get(mime_type, 'unknown')
+    
+    def _extract_folder_id_from_url(self, folder_url: str) -> str:
+        """Extract folder ID from Google Drive folder URL"""
+        import re
+        
+        # Pattern untuk berbagai format Google Drive URL
+        patterns = [
+            r'drive\.google\.com/drive/folders/([a-zA-Z0-9_-]+)',  # Standard folder URL
+            r'drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)',       # Open URL
+            r'folders/([a-zA-Z0-9_-]+)',                          # Direct folder ID
+            r'id=([a-zA-Z0-9_-]+)',                               # ID parameter
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, folder_url)
+            if match:
+                return match.group(1)
+        
+        # Jika tidak ada pattern yang match, mungkin URL sudah berupa ID
+        if re.match(r'^[a-zA-Z0-9_-]+$', folder_url.strip()):
+            return folder_url.strip()
+        
+        raise ValueError(f"Tidak dapat mengekstrak folder ID dari URL: {folder_url}")
+    
+    async def list_documents_from_folder(self, folder_url: str, access_token: str = None) -> List[Dict[str, Any]]:
+        """List all documents from a specific Google Drive folder (public or private)"""
+        try:
+            # Extract folder ID from URL
+            folder_id = self._extract_folder_id_from_url(folder_url)
+            logger.info(f"Extracted folder ID: {folder_id}")
+            
+            # Query for documents AND folders in the specific folder
+            query = (f"'{folder_id}' in parents and "
+                    "(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
+                    "mimeType='application/pdf' or "
+                    "mimeType='text/plain' or "
+                    "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or "
+                    "mimeType='application/vnd.google-apps.document' or "
+                    "mimeType='application/vnd.google-apps.presentation' or "
+                    "mimeType='application/vnd.google-apps.folder') and "
+                    "trashed=false")
+            
+            url = f"{self.drive_api_base}/files"
+            
+            params = {
+                'q': query,
+                'pageSize': 1000,
+                'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
+            }
+            
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            
+            # Add authorization header if access token is provided
+            if access_token:
+                headers['Authorization'] = f'Bearer {access_token}'
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, params=params, headers=headers)
+                
+            if response.status_code != 200:
+                logger.error(f"Drive API error: {response.status_code} - {response.text}")
+                
+                # If folder is not accessible, fallback to recent files
+                if response.status_code in [403, 404]:
+                    logger.warning(f"Folder {folder_id} is not accessible, falling back to recent files")
+                    return await self._get_recent_documents(access_token)
+                
+                raise Exception(f"Failed to fetch documents from folder: {response.status_code} - {response.text}")
+            
+            data = response.json()
+            files = data.get('files', [])
+            
+            logger.info(f"Found {len(files)} files in folder {folder_id}")
+            
+            # If no files found, try a broader search in the folder
+            if len(files) == 0:
+                logger.warning("No files found with specific query, trying broader search in folder...")
+                broader_query = f"'{folder_id}' in parents and trashed=false"
+                broader_params = {
+                    'q': broader_query,
+                    'pageSize': 100,
+                    'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
+                }
+                
+                async with httpx.AsyncClient() as client:
+                    broader_response = await client.get(url, params=broader_params, headers=headers)
+                
+                if broader_response.status_code == 200:
+                    broader_data = broader_response.json()
+                    broader_files = broader_data.get('files', [])
+                    logger.info(f"Broader search found {len(broader_files)} files in folder")
+                    
+                    # Filter for document types and folders from the broader results
+                    document_files = []
+                    for file in broader_files:
+                        mime_type = file.get('mimeType', '')
+                        if any(doc_type in mime_type for doc_type in [
+                            'document', 'pdf', 'text', 'presentation', 'folder'
+                        ]):
+                            document_files.append(file)
+                    
+                    logger.info(f"Filtered to {len(document_files)} files and folders in folder")
+                    files = document_files
+                else:
+                    # If broader search also fails, fallback to recent files
+                    logger.warning("Broader search also failed, falling back to recent files")
+                    return await self._get_recent_documents(access_token)
+            
+            documents = []
+            for file in files:
+                logger.info(f"Processing file: {file.get('name')} (ID: {file.get('id')})")
+                
+                # Get the actual MIME type from the file
+                mime_type = file.get('mimeType', 'unknown')
+                
+                # Get parent folder information
+                parents = file.get('parents', [])
+                parent_id = parents[0] if parents else None
+                
+                # Determine file type for display
+                file_extension = self._get_file_extension(file.get('name', ''))
+                if not file_extension:
+                    file_extension = self._mime_to_extension(mime_type)
+                
+                is_folder = mime_type == 'application/vnd.google-apps.folder'
+                logger.info(f"File: {file.get('name')}, MIME: {mime_type}, Is Folder: {is_folder}")
+                
+                doc = {
+                    'id': file['id'],
+                    'name': file['name'],
+                    'created_time': file.get('createdTime', ''),
+                    'modified_time': file.get('modifiedTime', ''),
+                    'web_view_link': file.get('webViewLink', ''),
+                    'size': file.get('size'),
+                    'mime_type': mime_type,
+                    'file_extension': file_extension,
+                    'parent_id': parent_id,
+                    'is_folder': is_folder,  # Include folders
+                    'source_folder_id': folder_id,
+                    'source_folder_url': folder_url
+                }
+                documents.append(doc)
+            
+            logger.info(f"Processed {len(documents)} documents from folder successfully")
+            return documents
+            
+        except Exception as e:
+            logger.error(f"Error listing documents from folder: {e}")
+            # If any error occurs, fallback to recent files
+            logger.warning("Falling back to recent files due to error")
+            try:
+                return await self._get_recent_documents(access_token)
+            except Exception as fallback_error:
+                logger.error(f"Fallback to recent files also failed: {fallback_error}")
+                raise e
+    
+    async def _get_recent_documents(self, access_token: str = None) -> List[Dict[str, Any]]:
+        """Get recent documents from Google Drive (fallback when folder is not accessible)"""
+        try:
+            logger.info("Fetching recent documents as fallback")
+            
+            # Query for recent documents (exclude folders)
+            query = ("(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
+                    "mimeType='application/pdf' or "
+                    "mimeType='text/plain' or "
+                    "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or "
+                    "mimeType='application/vnd.google-apps.document' or "
+                    "mimeType='application/vnd.google-apps.presentation') and "
+                    "trashed=false")
+            
+            url = f"{self.drive_api_base}/files"
+            
+            params = {
+                'q': query,
+                'pageSize': 50,  # Limit to 50 recent files
+                'orderBy': 'modifiedTime desc',  # Order by most recent first
+                'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
+            }
+            
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            
+            # Add authorization header if access token is provided
+            if access_token:
+                headers['Authorization'] = f'Bearer {access_token}'
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, params=params, headers=headers)
+                
+            if response.status_code != 200:
+                logger.error(f"Recent documents API error: {response.status_code} - {response.text}")
+                raise Exception(f"Failed to fetch recent documents: {response.status_code} - {response.text}")
+            
+            data = response.json()
+            files = data.get('files', [])
+            
+            logger.info(f"Found {len(files)} recent files")
+            
+            documents = []
+            for file in files:
+                # Get the actual MIME type from the file
+                mime_type = file.get('mimeType', 'unknown')
+                
+                # Skip folders (double check)
+                if 'folder' in mime_type:
+                    continue
+                
+                # Get parent folder information
+                parents = file.get('parents', [])
+                parent_id = parents[0] if parents else None
+                
+                # Determine file type for display
+                file_extension = self._get_file_extension(file.get('name', ''))
+                if not file_extension:
+                    file_extension = self._mime_to_extension(mime_type)
+                
+                doc = {
+                    'id': file['id'],
+                    'name': file['name'],
+                    'created_time': file.get('createdTime', ''),
+                    'modified_time': file.get('modifiedTime', ''),
+                    'web_view_link': file.get('webViewLink', ''),
+                    'size': file.get('size'),
+                    'mime_type': mime_type,
+                    'file_extension': file_extension,
+                    'parent_id': parent_id,
+                    'is_folder': False,
+                    'source_folder_id': None,
+                    'source_folder_url': None,
+                    'is_recent_fallback': True  # Mark as recent fallback
+                }
+                documents.append(doc)
+            
+            logger.info(f"Processed {len(documents)} recent documents successfully")
+            return documents
+            
+        except Exception as e:
+            logger.error(f"Error fetching recent documents: {e}")
+            raise
     
     async def get_document_content(self, access_token: str, document_id: str, mime_type: str = None) -> str:
         """Get the content of a document based on its type"""

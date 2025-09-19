@@ -17,6 +17,9 @@ class DocumentResponse(BaseModel):
 class AddDocumentsRequest(BaseModel):
     document_ids: List[str] = Field(..., description="List of Google Doc IDs to add")
 
+class FolderRequest(BaseModel):
+    folder_url: str = Field(..., description="Google Drive folder URL or folder ID")
+
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User's chat message")
 

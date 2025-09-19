@@ -18,7 +18,8 @@ from models.schemas import (
     ChatRequest, 
     ChatResponse,
     AddDocumentsRequest,
-    UserProfile
+    UserProfile,
+    FolderRequest
 )
 
 load_dotenv()
@@ -145,6 +146,58 @@ async def get_user_documents(
         raise
     except Exception as e:
         logger.error(f"Unexpected error fetching documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+@app.post("/documents/from-folder", response_model=List[DocumentResponse])
+async def get_documents_from_folder(
+    request: FolderRequest,
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """Fetch documents from a specific Google Drive folder (public or private)"""
+    try:
+        # Try to get access token from Supabase first
+        access_token = await supabase_client.get_user_google_token(current_user['id'])
+        
+        # If no token in Supabase (development mode), use token from header
+        if not access_token:
+            access_token = x_google_token
+            
+        logger.info(f"Fetching documents from folder: {request.folder_url}")
+        
+        # Fetch documents from the specific folder
+        try:
+            documents = await google_docs_service.list_documents_from_folder(
+                request.folder_url, 
+                access_token
+            )
+            logger.info(f"Successfully fetched {len(documents)} documents from folder")
+            return documents
+        except Exception as api_error:
+            logger.error(f"Google API error: {api_error}")
+            
+            # If it's an auth error, provide clear instructions
+            if "401" in str(api_error) or "invalid" in str(api_error).lower():
+                raise HTTPException(
+                    status_code=401,
+                    detail="Google access token is invalid or expired. Please sign out and sign in again with Google."
+                )
+            elif "403" in str(api_error) or "permission" in str(api_error).lower():
+                raise HTTPException(
+                    status_code=403,
+                    detail="Insufficient permissions or folder is not accessible. Please check if the folder is public or you have access to it."
+                )
+            else:
+                # For other errors, return the actual error to help debug
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to fetch documents from folder: {str(api_error)}"
+                )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error fetching documents from folder: {e}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.get("/documents/hierarchy")
@@ -388,6 +441,69 @@ async def test_google_token(
     except Exception as e:
         return {"error": str(e), "token_received": x_google_token is not None}
 
+@app.post("/test-folder-access")
+async def test_folder_access(
+    request: FolderRequest,
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """Test access to a specific Google Drive folder"""
+    try:
+        if not x_google_token:
+            return {"error": "No Google token provided"}
+        
+        logger.info(f"Testing folder access: {request.folder_url}")
+        
+        # Test the folder access
+        documents = await google_docs_service.list_documents_from_folder(
+            request.folder_url, 
+            x_google_token
+        )
+        
+        return {
+            "status": "success",
+            "folder_url": request.folder_url,
+            "documents_found": len(documents),
+            "sample_documents": documents[:3] if documents else [],
+            "token_info": {
+                "length": len(x_google_token),
+                "prefix": x_google_token[:30]
+            }
+        }
+            
+    except Exception as e:
+        logger.error(f"Folder access test error: {e}")
+        return {"error": str(e), "folder_url": request.folder_url}
+
+@app.get("/test-google-docs-service")
+async def test_google_docs_service(
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """Test the Google Docs service directly"""
+    try:
+        if not x_google_token:
+            return {"error": "No Google token provided"}
+        
+        logger.info(f"Testing Google Docs service with token: {x_google_token[:20]}...")
+        
+        # Test the Google Docs service
+        documents = await google_docs_service.list_documents(x_google_token)
+        
+        return {
+            "status": "success",
+            "documents_found": len(documents),
+            "sample_documents": documents[:3] if documents else [],
+            "token_info": {
+                "length": len(x_google_token),
+                "prefix": x_google_token[:30]
+            }
+        }
+            
+    except Exception as e:
+        logger.error(f"Google Docs service test error: {e}")
+        return {"error": str(e), "token_received": x_google_token is not None}
+
 @app.get("/test-drive-direct")
 async def test_drive_api_direct(
     x_google_token: Optional[str] = Header(None),
@@ -400,7 +516,7 @@ async def test_drive_api_direct(
         
         logger.info(f"Testing Drive API with token: {x_google_token[:20]}...")
         
-        # Test Google Drive API directly
+        # Test Google Drive API directly with the fixed query
         url = "https://www.googleapis.com/drive/v3/files"
         params = {
             'q': ("(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
@@ -432,6 +548,29 @@ async def test_drive_api_direct(
                 "prefix": x_google_token[:30]
             }
         }
+        
+        # If no files found, try a broader search
+        if response.status_code == 200:
+            data = response.json()
+            files = data.get('files', [])
+            if len(files) == 0:
+                logger.info("No files found with specific query, trying broader search...")
+                broader_params = {
+                    'q': 'trashed=false',
+                    'pageSize': 10,
+                    'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType)'
+                }
+                
+                async with httpx.AsyncClient() as client:
+                    broader_response = await client.get(url, params=broader_params, headers=headers)
+                
+                if broader_response.status_code == 200:
+                    broader_data = broader_response.json()
+                    result["broader_search"] = {
+                        "status_code": broader_response.status_code,
+                        "files_found": len(broader_data.get('files', [])),
+                        "sample_files": broader_data.get('files', [])[:3]  # First 3 files
+                    }
         
         logger.info(f"Drive API test result: {result}")
         return result

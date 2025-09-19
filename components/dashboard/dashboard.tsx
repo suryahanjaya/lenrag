@@ -90,6 +90,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [chatAnimation, setChatAnimation] = useState<string>('');
   const [chatWindowAnimation, setChatWindowAnimation] = useState<string>('');
   const [showChatWindow, setShowChatWindow] = useState<boolean>(false);
+  const [folderUrl, setFolderUrl] = useState<string>('');
+  const [isLoadingFolder, setIsLoadingFolder] = useState<boolean>(false);
+  const [showFolderInput, setShowFolderInput] = useState<boolean>(false);
+  const [isShowingRecentFiles, setIsShowingRecentFiles] = useState<boolean>(false);
 
   // Real-time clock
   useEffect(() => {
@@ -207,6 +211,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   // Helper function to get file type name
   const getFileTypeName = (mimeType?: string) => {
     if (!mimeType || typeof mimeType !== 'string') return 'Document';
+    if (mimeType.includes('google-apps.folder')) return 'Folder';
     if (mimeType.includes('google-apps.document')) return 'Google Doc';
     if (mimeType.includes('google-apps.presentation')) return 'Google Slides';
     if (mimeType.includes('pdf')) return 'PDF';
@@ -239,8 +244,33 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Organize documents by folders using real hierarchy
   const organizedContent = useMemo(() => {
+    // If we're showing documents from a specific folder (no hierarchy), separate folders and documents
     if (!folderHierarchy) {
-      return { folders: [], documents: [] };
+      const folders = documents.filter((doc: Document) => doc.is_folder);
+      const docs = documents.filter((doc: Document) => !doc.is_folder);
+      
+      // Debug logging
+      console.log('Documents from folder URL:', documents);
+      console.log('Folders found:', folders);
+      console.log('Documents found:', docs);
+      
+      // Check each document's properties
+      documents.forEach((doc, index) => {
+        console.log(`Document ${index}:`, {
+          name: doc.name,
+          mime_type: doc.mime_type,
+          mimeType: doc.mimeType,
+          is_folder: doc.is_folder,
+          file_extension: doc.file_extension
+        });
+        
+        // Special check for folders
+        if (doc.mime_type === 'application/vnd.google-apps.folder' || doc.is_folder === true) {
+          console.log(`FOLDER DETECTED: ${doc.name}, is_folder: ${doc.is_folder}, mime_type: ${doc.mime_type}`);
+        }
+      });
+      
+      return { folders: folders, documents: docs };
     }
 
     // Get current folder's children and documents
@@ -254,7 +284,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       folders: currentFolderFolders,
       documents: currentFolderDocs
     };
-  }, [folderHierarchy, currentFolder]);
+  }, [folderHierarchy, currentFolder, documents]);
 
   // Filter and sort documents
   const filteredAndSortedDocuments = organizedContent.documents
@@ -274,8 +304,160 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
     });
 
-  // Fungsi untuk mengambil dokumen dari Google Drive dengan hierarki folder
+  // Debug: Check if any folders are in documents
+  const foldersInDocuments = organizedContent.documents.filter((doc: Document) => doc.is_folder);
+  if (foldersInDocuments.length > 0) {
+    console.log('WARNING: Folders found in documents array:', foldersInDocuments);
+  }
+
+  // Filter and sort folders (always show folders first)
+  const filteredAndSortedFolders = organizedContent.folders
+    .filter((folder: Folder) => 
+      folder.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a: Folder, b: Folder) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'modified':
+          return new Date(b.modified_time || '').getTime() - new Date(a.modified_time || '').getTime();
+        case 'size':
+          return (parseInt(b.size || '0') - parseInt(a.size || '0'));
+        default:
+          return 0;
+      }
+    });
+
+  // Fungsi untuk mengambil dokumen dari folder Google Drive
+  const fetchDocumentsFromFolder = async (url: string) => {
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      setIsLoadingFolder(false);
+      return;
+    }
+    
+    setIsLoadingFolder(true);
+    setMessage('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Google-Token': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ folder_url: url }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Folder API Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          setMessage('Sesi telah berakhir. Silakan login ulang.');
+        } else if (response.status === 403) {
+          setMessage('Folder tidak dapat diakses. Pastikan folder sudah di-set public atau Anda memiliki akses ke folder tersebut.');
+        } else {
+          setMessage(`Gagal memuat dokumen dari folder: ${response.status}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Folder documents API response:', data);
+      
+      // Check if this is a fallback to recent files
+      const isRecentFallback = data && data.length > 0 && data[0].is_recent_fallback;
+      setIsShowingRecentFiles(isRecentFallback);
+      
+      // Set documents from folder
+      setDocuments(data || []);
+      
+      // Clear folder hierarchy since we're showing specific folder content
+      setFolderHierarchy(null);
+      setCurrentFolder(null);
+      setFolderPath([]);
+      
+      if (data && data.length > 0) {
+        if (isRecentFallback) {
+          setMessage(`Folder tidak dapat diakses. Menampilkan ${data.length} dokumen terbaru dari Google Drive Anda.`);
+        } else {
+          setMessage(`Berhasil memuat ${data.length} dokumen dari folder.`);
+        }
+      } else {
+        setMessage('Tidak ada dokumen ditemukan di folder tersebut.');
+      }
+
+    } catch (error) {
+      console.error('Error fetching documents from folder:', error);
+      setMessage('Gagal memuat dokumen dari folder. Periksa URL folder dan coba lagi.');
+    } finally {
+      setIsLoadingFolder(false);
+    }
+  };
+
+  // Fungsi untuk mengambil dokumen dari Google Drive (tanpa folder)
   const fetchDocuments = async () => {
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    setMessage('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Google-Token': token,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          setMessage('Sesi telah berakhir. Silakan login ulang.');
+        } else if (response.status === 403) {
+          setMessage('Tidak memiliki izin untuk mengakses Google Drive. Silakan cek pengaturan OAuth.');
+        } else {
+          setMessage(`Gagal memuat dokumen: ${response.status}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Documents API response:', data);
+      
+      // Set documents (no folders)
+      setDocuments(data || []);
+      
+      // Clear folder hierarchy since we're showing documents only
+      setFolderHierarchy(null);
+      setCurrentFolder(null);
+      setFolderPath([]);
+      setIsShowingRecentFiles(false);
+      
+      if (data && data.length > 0) {
+        setMessage(`Berhasil dimuat ${data.length} dokumen dari Google Drive Anda.`);
+      } else {
+        setMessage('Tidak ada dokumen ditemukan di Google Drive Anda.');
+      }
+
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      setMessage('Gagal memuat dokumen. Periksa koneksi internet dan coba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fungsi untuk mengambil dokumen dengan hierarki folder (jika diperlukan)
+  const fetchDocumentsWithHierarchy = async () => {
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       setIsLoading(false);
@@ -384,7 +566,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         // Range selection (Shift + Click)
         const start = Math.min(lastSelectedIndex, index);
         const end = Math.max(lastSelectedIndex, index);
-        const allItems = [...organizedContent.folders, ...filteredAndSortedDocuments];
+        const allItems = [...filteredAndSortedFolders, ...filteredAndSortedDocuments];
         
         for (let i = start; i <= end; i++) {
           if (allItems[i] && 'id' in allItems[i]) {
@@ -407,7 +589,17 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Handle folder navigation
   const handleFolderClick = (folderId: string) => {
-    if (!folderHierarchy) return;
+    // If we're in folder URL mode (no hierarchy), fetch documents from the clicked folder
+    if (!folderHierarchy) {
+      // Find the folder in current documents
+      const folder = documents.find((doc: Document) => doc.id === folderId && doc.is_folder);
+      if (folder) {
+        setSelectedDocs(new Set()); // Clear selection when navigating
+        // Fetch documents from the clicked folder
+        fetchDocumentsFromFolder(folder.web_view_link || `https://drive.google.com/drive/folders/${folderId}`);
+      }
+      return;
+    }
     
     const folder = folderHierarchy.folder_map[folderId];
     if (folder) {
@@ -429,7 +621,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Handle back navigation
   const handleBackToParent = () => {
-    if (!folderHierarchy) return;
+    // If we're in folder URL mode (no hierarchy), go back to original folder URL
+    if (!folderHierarchy) {
+      if (folderUrl) {
+        setSelectedDocs(new Set()); // Clear selection when navigating
+        fetchDocumentsFromFolder(folderUrl);
+      }
+      return;
+    }
     
     if (currentFolder) {
       const currentFolderData = folderHierarchy.folder_map[currentFolder];
@@ -1182,11 +1381,39 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             <div>
                                 <h2 className="documents-title">Google Drive Documents</h2>
                                 <p className="documents-subtitle">
-                                    {currentFolder ? `📁 ${folderPath.length > 0 ? folderPath.join(' / ') : 'Folder'}` : 'Kelola dokumen dari Google Drive Anda'}
+                                    {isShowingRecentFiles ? (
+                                        <span className="flex items-center space-x-2">
+                                            <span>📄</span>
+                                            <span>Dokumen Terbaru (Fallback)</span>
+                                        </span>
+                                    ) : currentFolder ? (
+                                        `📁 ${folderPath.length > 0 ? folderPath.join(' / ') : 'Folder'}`
+                                    ) : (
+                                        'Kelola dokumen dari Google Drive Anda'
+                                    )}
                                 </p>
                             </div>
                         </div>
                         <div className="documents-actions">
+                            {isShowingRecentFiles && (
+                                <Button
+                                    onClick={() => {
+                                        setIsShowingRecentFiles(false);
+                                        setFolderUrl('');
+                                        fetchDocuments();
+                                        fetchKnowledgeBase();
+                                    }}
+                                    className="documents-button"
+                                >
+                                    🔄 Kembali ke Normal
+                                </Button>
+                            )}
+                            <Button
+                                onClick={() => setShowFolderInput(!showFolderInput)}
+                                className="documents-button"
+                            >
+                                📁 Folder URL
+                            </Button>
                             {(currentFolder || folderPath.length > 0) && (
                                 <Button
                                     onClick={handleBackToParent}
@@ -1210,6 +1437,59 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     </div>
                 </div>
                 <div className="documents-content">
+                    {/* Folder URL Input */}
+                    {showFolderInput && (
+                        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
+                                        <span className="text-white text-lg">📁</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-800">Akses Folder Google Drive</h3>
+                                        <p className="text-sm text-gray-600">Masukkan URL folder Google Drive yang sudah di-set public</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                                        <input
+                                            type="text"
+                                            placeholder="https://drive.google.com/drive/folders/1ABC123..."
+                                            value={folderUrl}
+                                            onChange={(e) => setFolderUrl(e.target.value)}
+                                            className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg"
+                                        />
+                                        <Button
+                                            onClick={() => {
+                                                if (folderUrl.trim()) {
+                                                    fetchDocumentsFromFolder(folderUrl.trim());
+                                                } else {
+                                                    setMessage('Masukkan URL folder terlebih dahulu.');
+                                                }
+                                            }}
+                                            disabled={isLoadingFolder || !folderUrl.trim()}
+                                            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                                        >
+                                            {isLoadingFolder ? '⏳ Loading...' : '🔍 Buka Folder'}
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="text-xs text-gray-600 bg-blue-50/80 p-3 rounded-xl border border-blue-200/50">
+                                        <p className="font-medium text-blue-800 mb-1">💡 Cara mendapatkan URL folder:</p>
+                                        <ol className="list-decimal list-inside space-y-1 text-blue-700">
+                                            <li>Buka Google Drive di browser</li>
+                                            <li>Klik kanan pada folder yang ingin diakses</li>
+                                            <li>Pilih "Get link" atau "Dapatkan link"</li>
+                                            <li>Set sharing ke "Anyone with the link can view"</li>
+                                            <li>Copy URL yang muncul</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Search and Sort Controls */}
                     <div className="search-controls">
                         <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
@@ -1242,7 +1522,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
-                                        📁 {organizedContent.folders.length} folder
+                                        📁 {filteredAndSortedFolders.length} folder
                                     </span>
                                     <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
                                         📄 {filteredAndSortedDocuments.length} dokumen
@@ -1263,6 +1543,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 {isMultiSelectMode && (
                                     <span className="text-xs sm:text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-200/50">
                                         🔄 Multi-select mode
+                                    </span>
+                                )}
+                                
+                                {isShowingRecentFiles && (
+                                    <span className="text-xs sm:text-sm text-orange-700 bg-orange-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-orange-200/50">
+                                        📄 Menampilkan dokumen terbaru
                                     </span>
                                 )}
                             </div>
@@ -1299,7 +1585,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-400"></div>
                                     <span className="ml-3 text-gray-700 font-medium">Memuat dokumen...</span>
                                 </div>
-                            ) : (organizedContent.folders.length > 0 || filteredAndSortedDocuments.length > 0) ? (
+                            ) : (filteredAndSortedFolders.length > 0 || filteredAndSortedDocuments.length > 0) ? (
                                 <div className="space-y-3">
                                     {/* Breadcrumb Navigation */}
                                     {(currentFolder || folderPath.length > 0) && (
@@ -1333,14 +1619,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                     </div>
                                                 </div>
                                                 <div className="text-xs text-gray-500 bg-white/30 px-3 py-1 rounded-lg">
-                                                    {organizedContent.folders.length} folder, {filteredAndSortedDocuments.length} dokumen
+                                                    {filteredAndSortedFolders.length} folder, {filteredAndSortedDocuments.length} dokumen
                                                 </div>
                                             </div>
                                         </div>
                                     )}
                                     
                                     {/* Folders */}
-                                    {organizedContent.folders.map((folder: Folder, index: number) => (
+                                    {filteredAndSortedFolders.map((folder: Folder, index: number) => (
                                         <div 
                                             key={folder.id} 
                                             className="flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer glass-dark border-white/20 hover:border-white/40 hover:shadow-md"
@@ -1362,7 +1648,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                     ))}
                                     
                                     {/* Documents */}
-                                    {filteredAndSortedDocuments.map((doc: Document, index: number) => (
+                                    {filteredAndSortedDocuments.map((doc: Document, index: number) => {
+                                        // Debug: Check if this is actually a folder
+                                        if (doc.is_folder) {
+                                            console.log('ERROR: Folder found in documents rendering:', doc.name, doc);
+                                        }
+                                        
+                                        return (
                                         <div 
                                             key={doc.id} 
                                             className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
@@ -1372,16 +1664,16 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             }`}
                                             onClick={(e: React.MouseEvent<HTMLDivElement>) => {
                                                 if (e.ctrlKey || e.metaKey) {
-                                                    handleSelectDoc(doc.id, organizedContent.folders.length + index);
+                                                    handleSelectDoc(doc.id, filteredAndSortedFolders.length + index);
                                                 }
                                             }}
-                                            onKeyDown={(e) => handleKeyDown(e, doc.id, organizedContent.folders.length + index)}
+                                            onKeyDown={(e) => handleKeyDown(e, doc.id, filteredAndSortedFolders.length + index)}
                                             tabIndex={0}
                                         >
                                         <input
                                             type="checkbox"
                                             id={doc.id}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectDoc(doc.id, organizedContent.folders.length + index)}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectDoc(doc.id, filteredAndSortedFolders.length + index)}
                                             checked={selectedDocs.has(doc.id)}
                                             className="h-5 w-5 text-red-400 rounded focus:ring-red-400"
                                             onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
@@ -1414,7 +1706,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                     </div>
                             ) : (
                                 <div className="text-center py-12">
