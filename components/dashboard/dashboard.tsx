@@ -766,7 +766,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           
           
           {/* Content - Compact */}
-          <div className="relative z-10 bg-white/25 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 lg:p-6 border border-white/40 shadow-xl">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="space-y-4">
@@ -888,7 +887,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
 
