@@ -20,6 +20,7 @@ interface Document {
   parent_id?: string;
   is_folder?: boolean;
   file_extension?: string;
+  source_subfolder?: string;
 }
 
 interface KnowledgeBaseDocument {
@@ -360,6 +361,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       const data = await response.json();
       console.log('All documents from folder API response:', data);
       console.log('Number of documents:', data?.length || 0);
+      
       
       // Set documents from folder (NO FOLDERS, only documents)
       setDocuments(data || []);
@@ -1716,21 +1718,26 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                             <label htmlFor={doc.id} className="block text-sm font-semibold text-red-800 truncate cursor-pointer">
                                                                 {doc.name}
                                                             </label>
-                                                            <div className="flex flex-wrap items-center gap-2 text-xs text-red-600 mt-1">
-                                                                <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
-                                                                    {getFileTypeName(doc.mime_type || doc.mimeType)}
-                                                                </span>
-                                                                {doc.size && (
-                                                                    <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
-                                                                        {formatFileSize(doc.size)}
-                                                                    </span>
-                                                                )}
-                                                                {doc.modified_time && (
-                                                                    <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
-                                                                        📅 {formatDate(doc.modified_time)}
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                             <div className="flex flex-wrap items-center gap-2 text-xs text-red-600 mt-1">
+                                                                 <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
+                                                                     {getFileTypeName(doc.mime_type || doc.mimeType)}
+                                                                 </span>
+                                                                 {doc.size && (
+                                                                     <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
+                                                                         {formatFileSize(doc.size)}
+                                                                     </span>
+                                                                 )}
+                                                                 {doc.modified_time && (
+                                                                     <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
+                                                                         📅 {formatDate(doc.modified_time)}
+                                                                     </span>
+                                                                 )}
+                                                                 {doc.source_subfolder && (
+                                                                     <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50 text-red-700">
+                                                                         📁 {doc.source_subfolder}
+                                                                     </span>
+                                                                 )}
+                                                             </div>
                                                         </div>
                                                     </div>
                                                 ))}

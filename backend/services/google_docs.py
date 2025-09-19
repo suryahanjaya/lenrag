@@ -536,7 +536,7 @@ class GoogleDocsService:
             
             # Get all documents recursively
             all_documents = []
-            await self._get_documents_recursive(folder_id, access_token, all_documents)
+            await self._get_documents_recursive(folder_id, access_token, all_documents, "")
             
             logger.info(f"Found {len(all_documents)} total documents in folder and subfolders")
             logger.info(f"Documents: {[doc.get('name') for doc in all_documents]}")
@@ -548,10 +548,11 @@ class GoogleDocsService:
             logger.error(f"Error details: {str(e)}")
             raise Exception(f"Failed to fetch all documents from folder: {str(e)}")
     
-    async def _get_documents_recursive(self, folder_id: str, access_token: str, all_documents: List[Dict[str, Any]]):
+    async def _get_documents_recursive(self, folder_id: str, access_token: str, all_documents: List[Dict[str, Any]], current_folder_name: str = ""):
         """Recursively get all documents from a folder and its subfolders"""
         try:
             logger.info(f"=== RECURSIVE SEARCH IN FOLDER {folder_id} ===")
+            logger.info(f"Current folder name: {current_folder_name}")
             
             # Query for documents and folders in the current folder
             query = (f"'{folder_id}' in parents and "
@@ -610,7 +611,7 @@ class GoogleDocsService:
                 if mime_type == 'application/vnd.google-apps.folder':
                     # It's a folder, recurse into it
                     logger.info(f"Found subfolder: {file_name} (ID: {file_id}) - recursing...")
-                    await self._get_documents_recursive(file_id, access_token, all_documents)
+                    await self._get_documents_recursive(file_id, access_token, all_documents, file_name)
                 else:
                     # It's a document, add to results
                     logger.info(f"Found document: {file_name} (ID: {file_id}) - adding to results")
@@ -624,7 +625,7 @@ class GoogleDocsService:
                     if not file_extension:
                         file_extension = self._mime_to_extension(mime_type)
                     
-                    # Create document object
+                    # Create document object with subfolder info
                     document = {
                         'id': file_id,
                         'name': file_name,
@@ -635,11 +636,12 @@ class GoogleDocsService:
                         'size': file.get('size'),
                         'parent_id': parent_id,
                         'is_folder': False,  # Always False for this function
-                        'file_extension': file_extension
+                        'file_extension': file_extension,
+                        'source_subfolder': current_folder_name if current_folder_name else None  # Only for subfolder documents
                     }
                     
                     all_documents.append(document)
-                    logger.info(f"Added document to results: {file_name}")
+                    logger.info(f"Added document to results: {file_name} from subfolder: {current_folder_name}")
             
         except Exception as e:
             logger.error(f"Error in recursive document fetch for folder {folder_id}: {e}")

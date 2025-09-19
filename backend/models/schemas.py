@@ -13,6 +13,7 @@ class DocumentResponse(BaseModel):
     web_view_link: str
     size: Optional[str] = None
     mime_type: str
+    source_subfolder: Optional[str] = None
 
 class AddDocumentsRequest(BaseModel):
     document_ids: List[str] = Field(..., description="List of Google Doc IDs to add")
