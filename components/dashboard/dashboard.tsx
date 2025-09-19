@@ -35,6 +35,8 @@ interface Folder {
   parent_id?: string;
   level?: number;
   children?: Folder[];
+  modified_time?: string;
+  size?: string;
 }
 
 interface FolderHierarchy {
@@ -1642,103 +1644,104 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         </div>
                                     )}
                                     
-                                    {/* Folders */}
-                                    {filteredAndSortedFolders.map((folder: Folder, index: number) => (
-                                        <div 
-                                            key={folder.id} 
-                                            className="flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer glass-dark border-white/20 hover:border-white/40 hover:shadow-md"
-                                            onClick={() => {
-                                                console.log('🚀🚀🚀 FOLDER DIV CLICKED:', folder.id, folder.name);
-                                                alert(`FOLDER CLICKED: ${folder.name}`);
-                                                handleFolderClick(folder.id);
-                                            }}
-                                            onKeyDown={(e) => handleKeyDown(e, folder.id, index)}
-                                            tabIndex={0}
-                                        >
-                                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-md">
-                                                <span className="text-xl">📁</span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-red-600 truncate">🚀 {folder.name} - TEST CHANGE VISIBLE 🚀</p>
-                                                <p className="text-xs text-blue-600 font-bold">✅ FOLDER UI UPDATED - SHOULD BE VISIBLE NOW</p>
-                                            </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    console.log('🚀 OPEN BUTTON CLICKED for folder:', folder.id, folder.name);
-                                                    alert(`Opening folder: ${folder.name}`);
-                                                    handleFolderClick(folder.id);
-                                                }}
-                                                className="flex items-center justify-center w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors duration-200 shadow-2xl hover:shadow-2xl border-4 border-yellow-400 animate-pulse"
-                                                title="🚀 OPEN FOLDER"
-                                            >
-                                                <span className="text-2xl font-bold">🚀</span>
-                                            </button>
-                                        </div>
-                                    ))}
-                                    
-                                    {/* Documents */}
-                                    {filteredAndSortedDocuments.filter(doc => !doc.is_folder).map((doc: Document, index: number) => {
-                                        // Debug: Check if this is actually a folder
-                                        if (doc.is_folder) {
-                                            console.log('ERROR: Folder found in documents rendering:', doc.name, doc);
-                                        }
-                                        
-                                        return (
-                                        <div 
-                                            key={doc.id} 
-                                            className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
-                                                selectedDocs.has(doc.id) 
-                                                    ? 'glass-premium border-red-400 shadow-md animate-glow' 
-                                                    : 'glass-dark border-white/20 hover:border-white/40 hover:shadow-md'
-                                            }`}
-                                            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                                                if (e.ctrlKey || e.metaKey) {
-                                                    handleSelectDoc(doc.id, filteredAndSortedFolders.length + index);
-                                                }
-                                            }}
-                                            onKeyDown={(e) => handleKeyDown(e, doc.id, filteredAndSortedFolders.length + index)}
-                                            tabIndex={0}
-                                        >
-                                        <input
-                                            type="checkbox"
-                                            id={doc.id}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectDoc(doc.id, filteredAndSortedFolders.length + index)}
-                                            checked={selectedDocs.has(doc.id)}
-                                            className="h-5 w-5 text-red-400 rounded focus:ring-red-400"
-                                            onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
-                                        />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
-                                                        <span className="text-xl">{getFileIcon(doc.mime_type || doc.mimeType)}</span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <label htmlFor={doc.id} className="block text-sm font-semibold text-gray-800 truncate cursor-pointer">
-                                            {doc.name}
-                                        </label>
-                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mt-1">
-                                                            <span className="glass-badge px-2 py-1 rounded-full border border-white/20">
-                                                                {getFileTypeName(doc.mime_type || doc.mimeType)}
-                                                            </span>
-                                                            {doc.size && (
-                                                                <span className="glass-badge px-2 py-1 rounded-full border border-white/20">
-                                                                    {formatFileSize(doc.size)}
-                                                                </span>
-                                                            )}
-                                                            {doc.modified_time && (
-                                                                <span className="glass-badge px-2 py-1 rounded-full text-gray-700 border border-white/20">
-                                                                    📅 {formatDate(doc.modified_time)}
-                                                                </span>
-                                                            )}
+                                    {/* Folders Section - Completely Separate */}
+                                    {filteredAndSortedFolders.length > 0 && (
+                                        <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50/20 to-orange-50/20 rounded-2xl border-2 border-yellow-200/30">
+                                            <h3 className="text-lg font-bold text-yellow-800 mb-4 flex items-center">
+                                                <span className="text-2xl mr-2">📁</span>
+                                                Folders ({filteredAndSortedFolders.length})
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {filteredAndSortedFolders.map((folder: Folder, index: number) => (
+                                                    <div 
+                                                        key={folder.id} 
+                                                        className="bg-white/60 backdrop-blur-xl rounded-xl p-4 border-2 border-yellow-300/40 hover:border-yellow-400/60 transition-all duration-300 cursor-pointer hover:shadow-lg group"
+                                                        onClick={() => {
+                                                            console.log('FOLDER CLICKED:', folder.id, folder.name);
+                                                            handleFolderClick(folder.id);
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center space-x-3">
+                                                            <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200">
+                                                                <span className="text-xl">📁</span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-yellow-800 truncate group-hover:text-yellow-900">
+                                                                    {folder.name}
+                                                                </p>
+                                                                <p className="text-xs text-yellow-600">
+                                                                    Click to open
+                                                                </p>
+                                                            </div>
+                                                            <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center group-hover:bg-yellow-600 transition-colors duration-200">
+                                                                <span className="text-white text-sm">→</span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                ))}
                                             </div>
                                         </div>
-                                        );
-                                    })}
-                                    </div>
+                                    )}
+                                    
+                                    {/* Documents Section - Completely Separate */}
+                                    {filteredAndSortedDocuments.filter(doc => !doc.is_folder).length > 0 && (
+                                        <div className="p-4 bg-gradient-to-r from-blue-50/20 to-indigo-50/20 rounded-2xl border-2 border-blue-200/30">
+                                            <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center">
+                                                <span className="text-2xl mr-2">📄</span>
+                                                Documents ({filteredAndSortedDocuments.filter(doc => !doc.is_folder).length})
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {filteredAndSortedDocuments.filter(doc => !doc.is_folder).map((doc: Document, index: number) => (
+                                                    <div 
+                                                        key={doc.id} 
+                                                        className={`flex items-center space-x-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+                                                            selectedDocs.has(doc.id) 
+                                                                ? 'bg-blue-100/80 border-blue-400 shadow-md' 
+                                                                : 'bg-white/60 border-blue-200/40 hover:border-blue-300/60 hover:shadow-md'
+                                                        }`}
+                                                        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                                                            if (e.ctrlKey || e.metaKey) {
+                                                                handleSelectDoc(doc.id, filteredAndSortedFolders.length + index);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            id={doc.id}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectDoc(doc.id, filteredAndSortedFolders.length + index)}
+                                                            checked={selectedDocs.has(doc.id)}
+                                                            className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                                                            onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
+                                                        />
+                                                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                                                            <span className="text-xl">{getFileIcon(doc.mime_type || doc.mimeType)}</span>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <label htmlFor={doc.id} className="block text-sm font-semibold text-blue-800 truncate cursor-pointer">
+                                                                {doc.name}
+                                                            </label>
+                                                            <div className="flex flex-wrap items-center gap-2 text-xs text-blue-600 mt-1">
+                                                                <span className="bg-blue-100/80 px-2 py-1 rounded-full border border-blue-200/50">
+                                                                    {getFileTypeName(doc.mime_type || doc.mimeType)}
+                                                                </span>
+                                                                {doc.size && (
+                                                                    <span className="bg-blue-100/80 px-2 py-1 rounded-full border border-blue-200/50">
+                                                                        {formatFileSize(doc.size)}
+                                                                    </span>
+                                                                )}
+                                                                {doc.modified_time && (
+                                                                    <span className="bg-blue-100/80 px-2 py-1 rounded-full border border-blue-200/50">
+                                                                        📅 {formatDate(doc.modified_time)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="text-center py-12">
                                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
