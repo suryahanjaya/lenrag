@@ -1,18 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, MessageSquare, Brain, Shield } from 'lucide-react'
 import { GoogleAuthButton } from '@/components/auth/google-auth-button'
 import { Dashboard } from '@/components/dashboard/dashboard'
-
-interface User {
-  id: string
-  email: string
-  name: string
-  picture?: string
-}
+import { User } from '@/lib/types'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)

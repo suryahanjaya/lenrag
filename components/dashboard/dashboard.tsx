@@ -2,51 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TimeDisplay } from '@/components/ui/time-display';
+import { User, Document, KnowledgeBaseDocument, Folder } from '@/lib/types';
 import '../../styles.css';
-
-// Komponen UI kustom diganti dengan elemen HTML standar untuk memperbaiki error render.
-// Jika Anda telah menginstal komponen shadcn/ui, Anda dapat mengembalikan impor asli.
-
-interface Document {
-  id: string;
-  name: string;
-  mime_type?: string;
-  mimeType?: string; // Fallback for different API response formats
-  created_time?: string;
-  modified_time?: string;
-  web_view_link?: string;
-  size?: string;
-  parent_id?: string;
-  is_folder?: boolean;
-  file_extension?: string;
-  source_subfolder?: string;
-}
-
-interface KnowledgeBaseDocument {
-  id: string;
-  name: string;
-  mime_type: string;
-  chunk_count: number;
-}
-
-// Folder interface - simplified for new system
-interface Folder {
-  id: string;
-  name: string;
-  mime_type?: string;
-  web_view_link?: string;
-  parent_id?: string;
-  modified_time?: string;
-  size?: string;
-}
-
-interface User {
-  id:string;
-  name?: string;
-  email?: string;
-  picture?: string;
-}
 
 interface DashboardProps {
   user: User | null;
@@ -103,7 +61,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Handle chat button click with animation
   const handleChatToggle = () => {
-    console.log('Chat button clicked, starting animation');
     setChatAnimation('animate-chat-bounce');
     
     if (!isChatExpanded) {
@@ -113,7 +70,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         setIsChatExpanded(true);
         setChatWindowAnimation('animate-chat-slide-in');
         setChatAnimation('');
-        console.log('Chat window opening animation started');
       }, 300);
     } else {
       // Closing chat
@@ -123,7 +79,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         setIsChatExpanded(false);
         setChatWindowAnimation('');
         setChatAnimation('');
-        console.log('Chat window closing animation completed');
       }, 300);
     }
   };
@@ -174,24 +129,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     }
   };
 
-  // Format time
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  // Format current date for display
-  const formatCurrentDate = (date: Date) => {
-    return date.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   // Helper function to get file type icon
   const getFileIcon = (mimeType?: string) => {
@@ -251,25 +188,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     const folders = documents.filter((doc: Document) => doc.is_folder);
     const docs = documents.filter((doc: Document) => !doc.is_folder);
     
-    console.log('=== CONTENT ORGANIZATION DEBUG ===');
-    console.log('Current documents:', documents);
-    console.log('Total documents:', documents.length);
-    console.log('Folders found:', folders);
-    console.log('Folders count:', folders.length);
-    console.log('Documents found:', docs);
-    console.log('Documents count:', docs.length);
-    
-    // Debug each document
-    documents.forEach((doc, index) => {
-      console.log(`Document ${index}:`, {
-        id: doc.id,
-        name: doc.name,
-        mime_type: doc.mime_type,
-        mimeType: doc.mimeType,
-        is_folder: doc.is_folder,
-        web_view_link: doc.web_view_link
-      });
-    });
     
     return { folders: folders, documents: docs };
   }, [documents]);
@@ -292,11 +210,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
     });
 
-  // Debug: Check if any folders are in documents
-  const foldersInDocuments = organizedContent.documents.filter((doc: Document) => doc.is_folder);
-  if (foldersInDocuments.length > 0) {
-    console.log('WARNING: Folders found in documents array:', foldersInDocuments);
-  }
 
   // Filter and sort folders
   const filteredAndSortedFolders = organizedContent.folders
@@ -318,10 +231,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Fungsi untuk mengambil SEMUA dokumen dari folder (termasuk subfolder)
   const fetchAllDocumentsFromFolder = async (url: string) => {
-    console.log('=== FETCH ALL DOCUMENTS FROM FOLDER ===');
-    console.log('URL:', url);
-    console.log('Token available:', !!token);
-    console.log('Backend URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
     
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
@@ -334,7 +243,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     
     try {
       const requestBody = { folder_url: url };
-      console.log('Request body:', requestBody);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
         method: 'POST',
@@ -346,8 +254,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         body: JSON.stringify(requestBody),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -364,8 +270,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      console.log('All documents from folder API response:', data);
-      console.log('Number of documents:', data?.length || 0);
       
       
       // Set documents from folder (NO FOLDERS, only documents)
@@ -427,7 +331,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      console.log('Folder documents API response:', data);
       
       // Check if this is a fallback to recent files
       const isRecentFallback = data && data.length > 0 && data[0].is_recent_fallback;
@@ -493,7 +396,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      console.log('Documents API response:', data);
       
       // Set documents (no folders)
       setDocuments(data || []);
@@ -532,10 +434,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Knowledge base API response:', data);
-        console.log('Documents in knowledge base:', data.documents);
-        console.log('Total documents:', data.total_documents);
-        console.log('Debug info:', data.debug_info);
         setKnowledgeBase(data.documents || []);
       } else {
         console.error('Failed to fetch knowledge base:', response.status);
@@ -549,8 +447,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Jalankan fetchDocuments ketika token tersedia
   useEffect(() => {
-    // BARIS DEBUGGING: Tampilkan nilai token di konsol browser
-    console.log('Dashboard received token:', token);
     
     if (token) {
       fetchDocuments();
@@ -594,12 +490,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // New simplified folder click handler - Fetch all documents recursively
   const handleFolderClick = (folder: Document) => {
-    console.log('=== FOLDER CLICK DEBUG ===');
-    console.log('Folder clicked:', folder);
-    console.log('Folder ID:', folder.id);
-    console.log('Folder Name:', folder.name);
-    console.log('Folder web_view_link:', folder.web_view_link);
-    console.log('Folder is_folder:', folder.is_folder);
     
     if (!folder.web_view_link) {
       setMessage('Folder tidak memiliki link yang valid.');
@@ -613,7 +503,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     setSelectedDocs(new Set()); // Clear selection when navigating
     
     // Fetch ALL documents from the clicked folder (including subfolders)
-    console.log('Fetching ALL documents from folder URL:', folder.web_view_link);
     fetchAllDocumentsFromFolder(folder.web_view_link);
   };
 
@@ -698,9 +587,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           }
           
           const result = await response.json();
-          console.log('Add documents result:', result);
-          console.log('Processed count:', result.processed_count);
-          console.log('Total requested:', result.total_requested);
           setMessage(`Berhasil menambahkan ${result.processed_count || selectedDocs.size} dokumen ke knowledge base!`);
           setSelectedDocs(new Set());
           
@@ -708,7 +594,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           fetchDocuments();
           // Add a small delay to ensure the backend has processed the documents
           setTimeout(() => {
-            console.log('Refreshing knowledge base after adding documents...');
             fetchKnowledgeBase();
           }, 2000);
           
@@ -845,18 +730,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     return 'min-h-screen bg-gradient-to-br from-white via-red-50/30 to-white relative overflow-hidden';
   };
 
-  const getTimeBoxClass = () => {
-    const hour = currentTime.getHours();
-    if (hour >= 5 && hour < 12) {
-      return 'glass-time-morning'; // Pink untuk pagi
-    } else if (hour >= 12 && hour < 15) {
-      return 'glass-time-noon'; // Kuning untuk siang
-    } else if (hour >= 15 && hour < 18) {
-      return 'glass-time-afternoon'; // Orange untuk sore
-    } else {
-      return 'glass-time-evening'; // Biru untuk malam
-    }
-  };
 
   return (
     <div className={getBackgroundClass()}>
@@ -975,24 +848,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     </h1>
                 </div>
                 {/* Time - Full width on mobile */}
-                <div className={`${getTimeBoxClass()} time-box-mobile`}>
-                  <div className="time-display-mobile">
-                    <div className="time-icon-mobile">
-                      <span className={`text-lg ${
-                        currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
-                        currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
-                        currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
-                        'text-blue-400'
-                      }`}>
-                        {greeting.emoji}
-                      </span>
-                    </div>
-                    <span className="time-text-mobile">{formatTime(currentTime)}</span>
-                  </div>
-                  <div className="date-display-mobile">
-                    {formatCurrentDate(currentTime)}
-                  </div>
-                </div>
+                <TimeDisplay currentTime={currentTime} greeting={greeting} variant="mobile" />
               </div>
               
               {/* Description */}
@@ -1016,24 +872,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 </div>
                 
                 {/* Time - Full width on tablet */}
-                <div className={`${getTimeBoxClass()} time-box-tablet`}>
-                  <div className="time-display-tablet">
-                    <div className="time-icon-tablet">
-                      <span className={`text-2xl ${
-                        currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
-                        currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
-                        currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
-                        'text-blue-400'
-                      }`}>
-                        {greeting.emoji}
-                      </span>
-                    </div>
-                    <span className="time-text-tablet">{formatTime(currentTime)}</span>
-                  </div>
-                  <div className="date-display-tablet">
-                    {formatCurrentDate(currentTime)}
-                  </div>
-                </div>
+                <TimeDisplay currentTime={currentTime} greeting={greeting} variant="tablet" />
                 
                 {/* Description */}
                 <div className="description-box-tablet">
@@ -1060,24 +899,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Right: Time & Date */}
               <div className="ml-8">
-                <div className={`${getTimeBoxClass()} time-box-desktop`}>
-                  <div className="time-display-desktop">
-                    <div className="time-icon-desktop">
-                      <span className={`text-2xl ${
-                        currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
-                        currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
-                        currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
-                        'text-blue-400'
-                      }`}>
-                        {greeting.emoji}
-                      </span>
-                    </div>
-                    <span className="time-text-desktop">{formatTime(currentTime)}</span>
-                  </div>
-                  <div className="date-display-desktop">
-                    {formatCurrentDate(currentTime)}
-                  </div>
-                </div>
+                <TimeDisplay currentTime={currentTime} greeting={greeting} variant="desktop" />
               </div>
             </div>
           </div>
@@ -1625,12 +1447,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             </h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {filteredAndSortedFolders.map((folder: Document, index: number) => {
-                                                    console.log(`Rendering folder ${index}:`, {
-                                                        id: folder.id,
-                                                        name: folder.name,
-                                                        is_folder: folder.is_folder,
-                                                        web_view_link: folder.web_view_link
-                                                    });
                                                     
                                                     return (
                                                         <div 
@@ -1639,16 +1455,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                             onClick={(e) => {
                                                                 e.preventDefault();
                                                                 e.stopPropagation();
-                                                                console.log('🚀🚀🚀 FOLDER DIV CLICKED:', folder.id, folder.name);
-                                                                console.log('Event:', e);
-                                                                alert(`DIV CLICKED: ${folder.name}`);
                                                                 handleFolderClick(folder);
-                                                            }}
-                                                            onMouseDown={(e) => {
-                                                                console.log('FOLDER MOUSE DOWN:', folder.name);
-                                                            }}
-                                                            onMouseUp={(e) => {
-                                                                console.log('FOLDER MOUSE UP:', folder.name);
                                                             }}
                                                         >
                                                             <div className="flex items-center space-x-3">
@@ -1671,8 +1478,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                                     onClick={(e) => {
                                                                         e.preventDefault();
                                                                         e.stopPropagation();
-                                                                        console.log('🚀 ARROW CLICKED:', folder.id, folder.name);
-                                                                        alert(`ARROW CLICKED: ${folder.name}`);
                                                                         handleFolderClick(folder);
                                                                     }}
                                                                 >
@@ -1801,7 +1606,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             headers: { 'Authorization': `Bearer ${token}` }
                                         });
                                         const data = await response.json();
-                                        console.log('Debug knowledge base:', data);
                                         alert(`Debug Info:\nTotal chunks: ${data.document_count}\nUnique docs: ${data.unique_document_count}\nCollection: ${data.collection_name}`);
                                     } catch (error) {
                                         console.error('Debug error:', error);

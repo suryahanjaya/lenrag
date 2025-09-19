@@ -180,38 +180,6 @@
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
 
-/* Base glass time styles */
-.glass-time-morning,
-.glass-time-noon,
-.glass-time-afternoon,
-.glass-time-evening {
-  backdrop-filter: blur(2xl);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-}
-
-.glass-time-morning {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(244, 114, 182, 0.2));
-  border: 1px solid rgba(236, 72, 153, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.2);
-}
-
-.glass-time-noon {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2));
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(251, 191, 36, 0.2);
-}
-
-.glass-time-afternoon {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.2));
-  border: 1px solid rgba(249, 115, 22, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(249, 115, 22, 0.2);
-}
-
-.glass-time-evening {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.2));
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(59, 130, 246, 0.2);
-}
 
 /* ========================================
    BACKGROUND AND LAYOUT CLASSES

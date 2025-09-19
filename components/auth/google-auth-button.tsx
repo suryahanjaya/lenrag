@@ -2,13 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-
-interface User {
-  id: string
-  email: string
-  name: string
-  picture?: string
-}
+import { User } from '@/lib/types'
 
 interface GoogleAuthButtonProps {
   onSuccess: (user: User) => void
