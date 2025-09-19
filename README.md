@@ -1,3 +1,4 @@
+d
 # 🚀 **Lara** - Legal RAG Assistant
 
 <div align="center">
