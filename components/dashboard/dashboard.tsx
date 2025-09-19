@@ -619,6 +619,19 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     return 'min-h-screen bg-gradient-to-br from-white via-red-50/30 to-white relative overflow-hidden';
   };
 
+  const getTimeBoxClass = () => {
+    const hour = currentTime.getHours();
+    if (hour >= 5 && hour < 12) {
+      return 'glass-time-morning'; // Pink untuk pagi
+    } else if (hour >= 12 && hour < 15) {
+      return 'glass-time-noon'; // Kuning untuk siang
+    } else if (hour >= 15 && hour < 18) {
+      return 'glass-time-afternoon'; // Orange untuk sore
+    } else {
+      return 'glass-time-evening'; // Biru untuk malam
+    }
+  };
+
   return (
     <div className={getBackgroundClass()}>
       {/* Premium Background Pattern */}
@@ -678,12 +691,36 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           border: 1px solid rgba(255, 255, 255, 0.5);
           box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
         }
-        .glass-time {
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(2xl);
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-        }
+         .glass-time {
+           background: rgba(255, 255, 255, 0.8);
+           backdrop-filter: blur(2xl);
+           border: 1px solid rgba(255, 255, 255, 0.9);
+           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+         }
+         .glass-time-morning {
+           background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(244, 114, 182, 0.2));
+           backdrop-filter: blur(2xl);
+           border: 1px solid rgba(236, 72, 153, 0.4);
+           box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.2);
+         }
+         .glass-time-noon {
+           background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2));
+           backdrop-filter: blur(2xl);
+           border: 1px solid rgba(251, 191, 36, 0.4);
+           box-shadow: 0 8px 32px 0 rgba(251, 191, 36, 0.2);
+         }
+         .glass-time-afternoon {
+           background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.2));
+           backdrop-filter: blur(2xl);
+           border: 1px solid rgba(249, 115, 22, 0.4);
+           box-shadow: 0 8px 32px 0 rgba(249, 115, 22, 0.2);
+         }
+         .glass-time-evening {
+           background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.2));
+           backdrop-filter: blur(2xl);
+           border: 1px solid rgba(59, 130, 246, 0.4);
+           box-shadow: 0 8px 32px 0 rgba(59, 130, 246, 0.2);
+         }
       `}} />
       
       {/* LARA Navigation Bar - Premium Glass */}
@@ -789,7 +826,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     </h1>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className="glass-time rounded-2xl p-3">
+                <div className={`${getTimeBoxClass()} rounded-2xl p-3`}>
                   <div className="text-center space-y-1">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 bg-white/50 rounded-full flex items-center justify-center">
@@ -836,7 +873,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   </div>
                 </div>
                 {/* Time - Moved to the right */}
-                <div className="glass-time rounded-2xl p-4">
+                <div className={`${getTimeBoxClass()} rounded-2xl p-4`}>
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
@@ -877,7 +914,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               
               {/* Right: Time & Date */}
               <div className="ml-8">
-                <div className="glass-time rounded-2xl p-6">
+                <div className={`${getTimeBoxClass()} rounded-2xl p-6`}>
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-4">
                       <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
