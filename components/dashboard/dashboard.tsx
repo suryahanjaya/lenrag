@@ -918,7 +918,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     
                     {/* Bottom Row - Status and Button */}
                     <div className="chat-status-mobile">
-                      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                      <div className="flex-center-wrap gap-2 sm:gap-3">
                         <div className="status-badge">
                           <span className="status-text">
                             {chatHistory.length} pesan
@@ -1024,7 +1024,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                   <div className="p-4 space-y-4">
                     {chatHistory.length === 0 ? (
                       <div className="text-center py-12">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-400 to-blue-500 rounded-2xl flex-center mx-auto mb-4 animate-float">
                           <span className="text-2xl sm:text-3xl">💬</span>
                         </div>
                         <p className="text-gray-800 font-medium mb-2 text-lg">Mulai bertanya tentang dokumen Anda!</p>
@@ -1046,7 +1046,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                               : 'glass-dark text-gray-800 shadow-md w-full max-w-4xl border border-white/20'
                           }`}>
                             <div className="flex items-start space-x-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                              <div className={`w-8 h-8 rounded-full flex-center text-sm ${
                                 msg.role === 'user' 
                                   ? 'bg-white bg-opacity-20' 
                                   : 'bg-blue-100'
@@ -1105,7 +1105,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                       <div className="flex justify-start">
                         <div className="glass-dark text-gray-800 px-4 py-3 rounded-xl border border-white/20 shadow-sm w-full max-w-4xl">
                           <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex-center">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                             </div>
                             <span className="text-sm font-medium">AI sedang berpikir...</span>

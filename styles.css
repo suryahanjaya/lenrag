@@ -1976,6 +1976,39 @@
 }
 
 /* ========================================
+   UTILITY CLASSES
+   ======================================== */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-center-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.flex-center-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.flex-center-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-center-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ========================================
    OBJECT FIT CLASSES
    ======================================== */
 .object-cover {
