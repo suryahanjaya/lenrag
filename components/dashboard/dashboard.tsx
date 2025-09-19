@@ -1335,8 +1335,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           {/* Message Display - Below Chat */}
           {message && (
             <div className="bg-white/25 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 animate-fade-in">
-              <div className="p-4 sm:p-6 lg:p-8">
-                <div className="flex items-center space-x-4">
+              <div className="p-3 sm:p-6 lg:p-8">
+                <div className="flex items-center space-x-2 sm:space-x-4">
                   <div className={`w-4 h-4 rounded-full animate-pulse shadow-lg ${
                     message.includes('berhasil') || message.includes('dimuat') 
                       ? 'bg-red-400 shadow-red-400/60' 
@@ -1344,7 +1344,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                       ? 'bg-red-400 shadow-red-400/60'
                       : 'bg-blue-400 shadow-blue-400/60'
                   }`}></div>
-                  <p className={`font-semibold text-xl mobile-small-text ${
+                  <p className={`font-semibold text-sm sm:text-lg lg:text-xl ${
                     message.includes('berhasil') || message.includes('dimuat') 
                       ? 'text-red-800' 
                       : message.includes('gagal') || message.includes('error')
