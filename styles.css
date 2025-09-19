@@ -234,9 +234,9 @@
 }
 
 .nav-container {
-  max-width: 1300px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 1rem;
 }
 
 .nav-content {
@@ -469,9 +469,9 @@
 .main-content {
   position: relative;
   z-index: 10;
-  max-width: 1300px;
+  max-width: 1550px;
   margin: 0 auto;
-  padding: 1rem 1.5rem 1.5rem;
+  padding: 1rem 1rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -487,32 +487,32 @@
 
 .section-container {
   width: 100%;
-  max-width: 1300px;
+  max-width: 1550px;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
 .header-section {
   width: 100%;
-  padding: 3rem 2rem;
+  padding: 3rem 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .chat-section {
   width: 100%;
-  padding: 3rem 2rem;
+  padding: 3rem 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .documents-section {
   width: 100%;
-  padding: 3rem 2rem;
+  padding: 3rem 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .knowledge-base-section {
   width: 100%;
-  padding: 3rem 2rem;
+  padding: 3rem 1.5rem;
   margin-bottom: 1.5rem;
 }
 
@@ -1079,8 +1079,7 @@
 
 .search-input:focus {
   outline: none;
-  ring: 2px;
-  ring-color: rgb(248, 113, 113);
+  box-shadow: 0 0 0 2px rgb(248, 113, 113);
   border-color: transparent;
 }
 
@@ -1367,7 +1366,7 @@
 /* Empty State */
 .empty-state {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 3rem 1.5rem;
   color: rgb(107, 114, 128);
 }
 
@@ -1623,7 +1622,7 @@
 /* Knowledge Base Empty State */
 .knowledge-empty-state {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 3rem 1.5rem;
   color: rgb(107, 114, 128);
 }
 
@@ -1961,8 +1960,8 @@
 /* Large Desktop Styles */
 @media (min-width: 1280px) {
   .responsive-container {
-    max-width: 1200px;
-    padding: 0 2.5rem;
+    max-width: 1550px;
+    padding: 0 1rem;
   }
   
   .responsive-grid {
@@ -1979,8 +1978,8 @@
 /* Extra Large Desktop Styles */
 @media (min-width: 1536px) {
   .responsive-container {
-    max-width: 1400px;
-    padding: 0 3rem;
+    max-width: 1550px;
+    padding: 0 1rem;
   }
   
   .responsive-grid {
@@ -2193,7 +2192,7 @@
   .chat-section,
   .documents-section,
   .knowledge-base-section {
-    padding: 2rem 1.5rem;
+    padding: 2rem 1rem;
     margin-bottom: 1rem;
   }
 }
@@ -2204,14 +2203,14 @@
   }
   
   .main-content {
-    padding: 1rem 1.5rem 1.5rem;
+    padding: 1rem 1rem 1.5rem;
   }
   
   .header-section,
   .chat-section,
   .documents-section,
   .knowledge-base-section {
-    padding: 2.5rem 1.75rem;
+    padding: 2.5rem 1rem;
     margin-bottom: 1.25rem;
   }
 }
@@ -2226,42 +2225,42 @@
   }
   
   .main-content {
-    padding: 1rem 1.5rem 1.5rem;
+    padding: 1rem 1rem 1.5rem;
   }
   
   .header-section,
   .chat-section,
   .documents-section,
   .knowledge-base-section {
-    padding: 3rem 2rem;
+    padding: 3rem 1rem;
     margin-bottom: 1.5rem;
   }
 }
 
 @media (min-width: 1280px) {
   .main-content {
-    padding: 1.25rem 2rem 2rem;
+    padding: 1.25rem 1rem 2rem;
   }
   
   .header-section,
   .chat-section,
   .documents-section,
   .knowledge-base-section {
-    padding: 3.5rem 2.5rem;
+    padding: 3.5rem 1rem;
     margin-bottom: 1.75rem;
   }
 }
 
 @media (min-width: 1536px) {
   .main-content {
-    padding: 1.5rem 2.5rem 2.5rem;
+    padding: 1.5rem 1rem 2.5rem;
   }
   
   .header-section,
   .chat-section,
   .documents-section,
   .knowledge-base-section {
-    padding: 4rem 3rem;
+    padding: 4rem 1rem;
     margin-bottom: 2rem;
   }
 }
@@ -2313,11 +2312,11 @@
 
 @media (min-width: 1280px) {
   .nav-container {
-    max-width: 1280px;
+    max-width: 1550px;
   }
   
   .main-content {
-    max-width: 1280px;
+    max-width: 1550px;
   }
 }
 
