@@ -523,6 +523,130 @@ class GoogleDocsService:
             logger.error(f"Error fetching recent documents: {e}")
             raise
     
+    async def list_all_documents_from_folder(self, folder_url: str, access_token: str = None) -> List[Dict[str, Any]]:
+        """List ALL documents from a folder and its subfolders (recursive) - NO FOLDERS in result"""
+        try:
+            logger.info(f"=== LIST ALL DOCUMENTS FROM FOLDER ===")
+            logger.info(f"Folder URL: {folder_url}")
+            logger.info(f"Access token available: {bool(access_token)}")
+            
+            # Extract folder ID from URL
+            folder_id = self._extract_folder_id_from_url(folder_url)
+            logger.info(f"Extracted folder ID: {folder_id}")
+            
+            # Get all documents recursively
+            all_documents = []
+            await self._get_documents_recursive(folder_id, access_token, all_documents)
+            
+            logger.info(f"Found {len(all_documents)} total documents in folder and subfolders")
+            logger.info(f"Documents: {[doc.get('name') for doc in all_documents]}")
+            return all_documents
+            
+        except Exception as e:
+            logger.error(f"Error fetching all documents from folder: {e}")
+            logger.error(f"Error type: {type(e)}")
+            logger.error(f"Error details: {str(e)}")
+            raise Exception(f"Failed to fetch all documents from folder: {str(e)}")
+    
+    async def _get_documents_recursive(self, folder_id: str, access_token: str, all_documents: List[Dict[str, Any]]):
+        """Recursively get all documents from a folder and its subfolders"""
+        try:
+            logger.info(f"=== RECURSIVE SEARCH IN FOLDER {folder_id} ===")
+            
+            # Query for documents and folders in the current folder
+            query = (f"'{folder_id}' in parents and "
+                    "(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
+                    "mimeType='application/pdf' or "
+                    "mimeType='text/plain' or "
+                    "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or "
+                    "mimeType='application/vnd.google-apps.document' or "
+                    "mimeType='application/vnd.google-apps.presentation' or "
+                    "mimeType='application/vnd.google-apps.folder') and "
+                    "trashed=false")
+            
+            url = f"{self.drive_api_base}/files"
+            
+            params = {
+                'q': query,
+                'pageSize': 1000,
+                'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
+            }
+            
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            
+            # Add authorization header if access token is provided
+            if access_token:
+                headers['Authorization'] = f'Bearer {access_token}'
+            
+            logger.info(f"Making API request to: {url}")
+            logger.info(f"Query: {query}")
+            logger.info(f"Headers: {headers}")
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, params=params, headers=headers)
+            
+            logger.info(f"API Response status: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.error(f"Drive API error: {response.status_code} - {response.text}")
+                return
+            
+            data = response.json()
+            files = data.get('files', [])
+            
+            logger.info(f"Found {len(files)} items in folder {folder_id}")
+            logger.info(f"Files: {[f.get('name') for f in files]}")
+            
+            # Process each file
+            for file in files:
+                mime_type = file.get('mimeType', '')
+                file_name = file.get('name', '')
+                file_id = file.get('id', '')
+                
+                logger.info(f"Processing file: {file_name} (ID: {file_id}, MIME: {mime_type})")
+                
+                if mime_type == 'application/vnd.google-apps.folder':
+                    # It's a folder, recurse into it
+                    logger.info(f"Found subfolder: {file_name} (ID: {file_id}) - recursing...")
+                    await self._get_documents_recursive(file_id, access_token, all_documents)
+                else:
+                    # It's a document, add to results
+                    logger.info(f"Found document: {file_name} (ID: {file_id}) - adding to results")
+                    
+                    # Get parent folder information
+                    parents = file.get('parents', [])
+                    parent_id = parents[0] if parents else None
+                    
+                    # Determine file type for display
+                    file_extension = self._get_file_extension(file_name)
+                    if not file_extension:
+                        file_extension = self._mime_to_extension(mime_type)
+                    
+                    # Create document object
+                    document = {
+                        'id': file_id,
+                        'name': file_name,
+                        'mime_type': mime_type,
+                        'created_time': file.get('createdTime'),
+                        'modified_time': file.get('modifiedTime'),
+                        'web_view_link': file.get('webViewLink'),
+                        'size': file.get('size'),
+                        'parent_id': parent_id,
+                        'is_folder': False,  # Always False for this function
+                        'file_extension': file_extension
+                    }
+                    
+                    all_documents.append(document)
+                    logger.info(f"Added document to results: {file_name}")
+            
+        except Exception as e:
+            logger.error(f"Error in recursive document fetch for folder {folder_id}: {e}")
+            logger.error(f"Error type: {type(e)}")
+            logger.error(f"Error details: {str(e)}")
+            # Continue with other folders even if one fails
+    
     async def get_document_content(self, access_token: str, document_id: str, mime_type: str = None) -> str:
         """Get the content of a document based on its type"""
         try:

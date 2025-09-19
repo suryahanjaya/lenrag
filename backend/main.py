@@ -200,6 +200,70 @@ async def get_documents_from_folder(
         logger.error(f"Unexpected error fetching documents from folder: {e}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
+@app.post("/documents/from-folder-all", response_model=List[DocumentResponse])
+async def get_all_documents_from_folder(
+    request: FolderRequest,
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """Fetch ALL documents from a folder and its subfolders (recursive)"""
+    try:
+        logger.info(f"=== ENDPOINT: /documents/from-folder-all ===")
+        logger.info(f"Request: {request}")
+        logger.info(f"Current user: {current_user}")
+        logger.info(f"X-Google-Token: {x_google_token}")
+        
+        # Try to get access token from Supabase first
+        access_token = await supabase_client.get_user_google_token(current_user['id'])
+        logger.info(f"Access token from Supabase: {bool(access_token)}")
+        
+        # If no token in Supabase (development mode), use token from header
+        if not access_token:
+            access_token = x_google_token
+            logger.info(f"Using token from header: {bool(access_token)}")
+            
+        logger.info(f"Final access token available: {bool(access_token)}")
+        logger.info(f"Fetching ALL documents from folder: {request.folder_url}")
+        
+        # Fetch ALL documents from the folder and subfolders
+        try:
+            documents = await google_docs_service.list_all_documents_from_folder(
+                request.folder_url, 
+                access_token
+            )
+            logger.info(f"Successfully fetched {len(documents)} documents from folder and subfolders")
+            return documents
+        except Exception as api_error:
+            logger.error(f"Google API error: {api_error}")
+            logger.error(f"Error type: {type(api_error)}")
+            logger.error(f"Error details: {str(api_error)}")
+            
+            # If it's an auth error, provide clear instructions
+            if "401" in str(api_error) or "invalid" in str(api_error).lower():
+                raise HTTPException(
+                    status_code=401,
+                    detail="Google access token is invalid or expired. Please sign out and sign in again with Google."
+                )
+            elif "403" in str(api_error) or "permission" in str(api_error).lower():
+                raise HTTPException(
+                    status_code=403,
+                    detail="Insufficient permissions or folder is not accessible. Please check if the folder is public or you have access to it."
+                )
+            else:
+                # For other errors, return the actual error to help debug
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to fetch documents from folder: {str(api_error)}"
+                )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error fetching all documents from folder: {e}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error(f"Error details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
 @app.get("/documents/hierarchy")
 async def get_documents_hierarchy(
     x_google_token: Optional[str] = Header(None),

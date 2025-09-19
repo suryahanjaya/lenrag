@@ -245,9 +245,25 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     const folders = documents.filter((doc: Document) => doc.is_folder);
     const docs = documents.filter((doc: Document) => !doc.is_folder);
     
+    console.log('=== CONTENT ORGANIZATION DEBUG ===');
     console.log('Current documents:', documents);
+    console.log('Total documents:', documents.length);
     console.log('Folders found:', folders);
+    console.log('Folders count:', folders.length);
     console.log('Documents found:', docs);
+    console.log('Documents count:', docs.length);
+    
+    // Debug each document
+    documents.forEach((doc, index) => {
+      console.log(`Document ${index}:`, {
+        id: doc.id,
+        name: doc.name,
+        mime_type: doc.mime_type,
+        mimeType: doc.mimeType,
+        is_folder: doc.is_folder,
+        web_view_link: doc.web_view_link
+      });
+    });
     
     return { folders: folders, documents: docs };
   }, [documents]);
@@ -294,7 +310,80 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
     });
 
-  // Fungsi untuk mengambil dokumen dari folder Google Drive
+  // Fungsi untuk mengambil SEMUA dokumen dari folder (termasuk subfolder)
+  const fetchAllDocumentsFromFolder = async (url: string) => {
+    console.log('=== FETCH ALL DOCUMENTS FROM FOLDER ===');
+    console.log('URL:', url);
+    console.log('Token available:', !!token);
+    console.log('Backend URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
+    
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      setIsLoadingFolder(false);
+      return;
+    }
+    
+    setIsLoadingFolder(true);
+    setMessage('');
+    
+    try {
+      const requestBody = { folder_url: url };
+      console.log('Request body:', requestBody);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Google-Token': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Folder API Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          setMessage('Sesi telah berakhir. Silakan login ulang.');
+        } else if (response.status === 403) {
+          setMessage('Folder tidak dapat diakses. Pastikan folder sudah di-set public atau Anda memiliki akses ke folder tersebut.');
+        } else {
+          setMessage(`Gagal memuat dokumen dari folder: ${response.status}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+      console.log('All documents from folder API response:', data);
+      console.log('Number of documents:', data?.length || 0);
+      
+      // Set documents from folder (NO FOLDERS, only documents)
+      setDocuments(data || []);
+      
+      // Clear folder state
+      setCurrentFolderId(null);
+      setCurrentFolderName('');
+      setFolderHistory([]);
+      
+      if (data && data.length > 0) {
+        setMessage(`Berhasil memuat ${data.length} dokumen dari folder dan subfolder.`);
+      } else {
+        setMessage('Tidak ada dokumen ditemukan di folder tersebut.');
+      }
+
+    } catch (error) {
+      console.error('Error fetching all documents from folder:', error);
+      setMessage('Gagal memuat dokumen dari folder. Periksa URL folder dan coba lagi.');
+    } finally {
+      setIsLoadingFolder(false);
+    }
+  };
+
+  // Fungsi untuk mengambil dokumen dari folder Google Drive (original)
   const fetchDocumentsFromFolder = async (url: string) => {
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
@@ -496,10 +585,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     setLastSelectedIndex(index || null);
   };
 
-  // New simplified folder click handler
+  // New simplified folder click handler - Fetch all documents recursively
   const handleFolderClick = (folder: Document) => {
-    console.log('=== FOLDER CLICK ===');
+    console.log('=== FOLDER CLICK DEBUG ===');
     console.log('Folder clicked:', folder);
+    console.log('Folder ID:', folder.id);
+    console.log('Folder Name:', folder.name);
+    console.log('Folder web_view_link:', folder.web_view_link);
+    console.log('Folder is_folder:', folder.is_folder);
     
     if (!folder.web_view_link) {
       setMessage('Folder tidak memiliki link yang valid.');
@@ -512,9 +605,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     setCurrentFolderName(folder.name);
     setSelectedDocs(new Set()); // Clear selection when navigating
     
-    // Fetch documents from the clicked folder
-    console.log('Fetching documents from folder URL:', folder.web_view_link);
-    fetchDocumentsFromFolder(folder.web_view_link);
+    // Fetch ALL documents from the clicked folder (including subfolders)
+    console.log('Fetching ALL documents from folder URL:', folder.web_view_link);
+    fetchAllDocumentsFromFolder(folder.web_view_link);
   };
 
   // New simplified back navigation
@@ -533,7 +626,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         
         // Fetch documents from previous folder
         const folderUrl = `https://drive.google.com/drive/folders/${prevFolder.id}`;
-        fetchDocumentsFromFolder(folderUrl);
+        fetchAllDocumentsFromFolder(folderUrl);
       } else {
         // Go back to root
         setFolderHistory([]);
@@ -543,7 +636,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
     } else if (folderUrl) {
       // Go back to original folder URL
-      fetchDocumentsFromFolder(folderUrl);
+      fetchAllDocumentsFromFolder(folderUrl);
     } else {
       // Go back to root
       fetchDocuments();
@@ -1359,7 +1452,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         <Button
                                             onClick={() => {
                                                 if (folderUrl.trim()) {
-                                                    fetchDocumentsFromFolder(folderUrl.trim());
+                                                    fetchAllDocumentsFromFolder(folderUrl.trim());
                                                 } else {
                                                     setMessage('Masukkan URL folder terlebih dahulu.');
                                                 }
@@ -1516,51 +1609,82 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         </div>
                                     )}
                                     
-                                    {/* Folders Section - New System */}
-                                    {filteredAndSortedFolders.length > 0 && (
+                                    {/* Folders Section - Only show when NOT in "all documents" mode */}
+                                    {filteredAndSortedFolders.length > 0 && !currentFolderId && (
                                         <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50/20 to-orange-50/20 rounded-2xl border-2 border-yellow-200/30">
                                             <h3 className="text-lg font-bold text-yellow-800 mb-4 flex items-center">
                                                 <span className="text-2xl mr-2">📁</span>
                                                 Folders ({filteredAndSortedFolders.length})
                                             </h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {filteredAndSortedFolders.map((folder: Document, index: number) => (
-                                                    <div 
-                                                        key={folder.id} 
-                                                        className="bg-white/60 backdrop-blur-xl rounded-xl p-4 border-2 border-yellow-300/40 hover:border-yellow-400/60 transition-all duration-300 cursor-pointer hover:shadow-lg group"
-                                                        onClick={() => {
-                                                            console.log('FOLDER CLICKED:', folder.id, folder.name);
-                                                            handleFolderClick(folder);
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200">
-                                                                <span className="text-xl">📁</span>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-semibold text-yellow-800 truncate group-hover:text-yellow-900">
-                                                                    {folder.name}
-                                                                </p>
-                                                                <p className="text-xs text-yellow-600">
-                                                                    Click to open
-                                                                </p>
-                                                            </div>
-                                                            <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center group-hover:bg-yellow-600 transition-colors duration-200">
-                                                                <span className="text-white text-sm">→</span>
+                                                {filteredAndSortedFolders.map((folder: Document, index: number) => {
+                                                    console.log(`Rendering folder ${index}:`, {
+                                                        id: folder.id,
+                                                        name: folder.name,
+                                                        is_folder: folder.is_folder,
+                                                        web_view_link: folder.web_view_link
+                                                    });
+                                                    
+                                                    return (
+                                                        <div 
+                                                            key={folder.id} 
+                                                            className="bg-white/60 backdrop-blur-xl rounded-xl p-4 border-2 border-yellow-300/40 hover:border-yellow-400/60 transition-all duration-300 cursor-pointer hover:shadow-lg group"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                console.log('🚀🚀🚀 FOLDER DIV CLICKED:', folder.id, folder.name);
+                                                                console.log('Event:', e);
+                                                                alert(`DIV CLICKED: ${folder.name}`);
+                                                                handleFolderClick(folder);
+                                                            }}
+                                                            onMouseDown={(e) => {
+                                                                console.log('FOLDER MOUSE DOWN:', folder.name);
+                                                            }}
+                                                            onMouseUp={(e) => {
+                                                                console.log('FOLDER MOUSE UP:', folder.name);
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200">
+                                                                    <span className="text-xl">📁</span>
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-semibold text-yellow-800 truncate group-hover:text-yellow-900">
+                                                                        {folder.name}
+                                                                    </p>
+                                                                    <p className="text-xs text-yellow-600">
+                                                                        Click to open all documents
+                                                                    </p>
+                                                                    <p className="text-xs text-red-600 font-bold">
+                                                                        DEBUG: ID={folder.id}
+                                                                    </p>
+                                                                </div>
+                                                                <div 
+                                                                    className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center group-hover:bg-yellow-600 transition-colors duration-200"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        console.log('🚀 ARROW CLICKED:', folder.id, folder.name);
+                                                                        alert(`ARROW CLICKED: ${folder.name}`);
+                                                                        handleFolderClick(folder);
+                                                                    }}
+                                                                >
+                                                                    <span className="text-white text-sm">→</span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}
                                     
-                                    {/* Documents Section - Completely Separate */}
+                                    {/* Documents Section - Show all documents (no folders) */}
                                     {filteredAndSortedDocuments.filter(doc => !doc.is_folder).length > 0 && (
                                         <div className="p-4 bg-gradient-to-r from-red-50/20 to-pink-50/20 rounded-2xl border-2 border-red-200/30">
                                             <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center">
                                                 <span className="text-2xl mr-2">📄</span>
-                                                Documents ({filteredAndSortedDocuments.filter(doc => !doc.is_folder).length})
+                                                {currentFolderId ? 'All Documents from Folder' : 'Documents'} ({filteredAndSortedDocuments.filter(doc => !doc.is_folder).length})
                                             </h3>
                                             <div className="space-y-3">
                                                 {filteredAndSortedDocuments.filter(doc => !doc.is_folder).map((doc: Document, index: number) => (
