@@ -29,22 +29,15 @@ interface KnowledgeBaseDocument {
   chunk_count: number;
 }
 
+// Folder interface - simplified for new system
 interface Folder {
   id: string;
   name: string;
+  mime_type?: string;
+  web_view_link?: string;
   parent_id?: string;
-  level?: number;
-  children?: Folder[];
   modified_time?: string;
   size?: string;
-}
-
-interface FolderHierarchy {
-  folders: Folder[];
-  documents: Document[];
-  folder_tree: Folder[];
-  documents_by_folder: { [key: string]: Document[] };
-  folder_map: { [key: string]: Folder };
 }
 
 interface User {
@@ -83,12 +76,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('modified');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-  const [folders, setFolders] = useState<Array<{id: string, name: string, parentId?: string}>>([]);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
-  const [folderHierarchy, setFolderHierarchy] = useState<FolderHierarchy | null>(null);
-  const [folderPath, setFolderPath] = useState<string[]>([]);
   const [chatAnimation, setChatAnimation] = useState<string>('');
   const [chatWindowAnimation, setChatWindowAnimation] = useState<string>('');
   const [showChatWindow, setShowChatWindow] = useState<boolean>(false);
@@ -96,6 +85,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [isLoadingFolder, setIsLoadingFolder] = useState<boolean>(false);
   const [showFolderInput, setShowFolderInput] = useState<boolean>(false);
   const [isShowingRecentFiles, setIsShowingRecentFiles] = useState<boolean>(false);
+  
+  // New simplified folder system
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [currentFolderName, setCurrentFolderName] = useState<string>('');
+  const [folderHistory, setFolderHistory] = useState<Array<{id: string, name: string}>>([]);
 
   // Real-time clock
   useEffect(() => {
@@ -245,49 +239,18 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     });
   };
 
-  // Organize documents by folders using real hierarchy
+  // New simplified content organization
   const organizedContent = useMemo(() => {
-    // If we're showing documents from a specific folder (no hierarchy), separate folders and documents
-    if (!folderHierarchy) {
-      const folders = documents.filter((doc: Document) => doc.is_folder);
-      const docs = documents.filter((doc: Document) => !doc.is_folder);
-      
-      // Debug logging
-      console.log('Documents from folder URL:', documents);
-      console.log('Folders found:', folders);
-      console.log('Documents found:', docs);
-      
-      // Check each document's properties
-      documents.forEach((doc, index) => {
-        console.log(`Document ${index}:`, {
-          name: doc.name,
-          mime_type: doc.mime_type,
-          mimeType: doc.mimeType,
-          is_folder: doc.is_folder,
-          file_extension: doc.file_extension
-        });
-        
-        // Special check for folders
-        if (doc.mime_type === 'application/vnd.google-apps.folder' || doc.is_folder === true) {
-          console.log(`FOLDER DETECTED: ${doc.name}, is_folder: ${doc.is_folder}, mime_type: ${doc.mime_type}`);
-        }
-      });
-      
-      return { folders: folders, documents: docs };
-    }
-
-    // Get current folder's children and documents
-    const currentFolderFolders = folderHierarchy.folders.filter((folder: Folder) => 
-      folder.parent_id === currentFolder
-    );
-
-    const currentFolderDocs = folderHierarchy.documents_by_folder[currentFolder || 'null'] || [];
-
-    return {
-      folders: currentFolderFolders,
-      documents: currentFolderDocs
-    };
-  }, [folderHierarchy, currentFolder, documents]);
+    // Separate folders and documents from the current documents array
+    const folders = documents.filter((doc: Document) => doc.is_folder);
+    const docs = documents.filter((doc: Document) => !doc.is_folder);
+    
+    console.log('Current documents:', documents);
+    console.log('Folders found:', folders);
+    console.log('Documents found:', docs);
+    
+    return { folders: folders, documents: docs };
+  }, [documents]);
 
   // Filter and sort documents
   const filteredAndSortedDocuments = organizedContent.documents
@@ -313,12 +276,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     console.log('WARNING: Folders found in documents array:', foldersInDocuments);
   }
 
-  // Filter and sort folders (always show folders first)
+  // Filter and sort folders
   const filteredAndSortedFolders = organizedContent.folders
-    .filter((folder: Folder) => 
+    .filter((folder: Document) => 
       folder.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    .sort((a: Folder, b: Folder) => {
+    .sort((a: Document, b: Document) => {
       switch (sortBy) {
         case 'name':
           return a.name.localeCompare(b.name);
@@ -377,10 +340,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       // Set documents from folder
       setDocuments(data || []);
       
-      // Clear folder hierarchy since we're showing specific folder content
-      setFolderHierarchy(null);
-      setCurrentFolder(null);
-      setFolderPath([]);
+      // Clear folder state
+      setCurrentFolderId(null);
+      setCurrentFolderName('');
+      setFolderHistory([]);
       
       if (data && data.length > 0) {
         if (isRecentFallback) {
@@ -439,10 +402,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       // Set documents (no folders)
       setDocuments(data || []);
       
-      // Clear folder hierarchy since we're showing documents only
-      setFolderHierarchy(null);
-      setCurrentFolder(null);
-      setFolderPath([]);
+      // Clear folder state
+      setCurrentFolderId(null);
+      setCurrentFolderName('');
+      setFolderHistory([]);
       setIsShowingRecentFiles(false);
       
       if (data && data.length > 0) {
@@ -459,63 +422,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     }
   };
 
-  // Fungsi untuk mengambil dokumen dengan hierarki folder (jika diperlukan)
-  const fetchDocumentsWithHierarchy = async () => {
-    if (!token) {
-      setMessage('Token tidak tersedia. Silakan login ulang.');
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    setMessage('');
-    
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/hierarchy`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Google-Token': token,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        
-        if (response.status === 401) {
-          setMessage('Sesi telah berakhir. Silakan login ulang.');
-        } else if (response.status === 403) {
-          setMessage('Tidak memiliki izin untuk mengakses Google Drive. Silakan cek pengaturan OAuth.');
-        } else {
-          setMessage(`Gagal memuat dokumen: ${response.status}`);
-        }
-        return;
-      }
-
-      const data = await response.json();
-      console.log('Documents hierarchy API response:', data);
-      
-      // Set folder hierarchy
-      setFolderHierarchy(data);
-      
-      // Set documents (all documents from hierarchy)
-      setDocuments(data.documents || []);
-      
-      // Only show success message if there are documents or folders
-      const totalItems = (data.documents?.length || 0) + (data.folders?.length || 0);
-      if (totalItems > 0) {
-        setMessage(`Berhasil dimuat. ${data.folders?.length || 0} folder dan ${data.documents?.length || 0} dokumen ditemukan.`);
-      } else {
-        setMessage('Tidak ada dokumen atau folder ditemukan di Google Drive Anda.');
-      }
-
-    } catch (error) {
-      console.error('Error fetching documents hierarchy:', error);
-      setMessage('Gagal memuat dokumen. Periksa koneksi internet dan coba lagi.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Fungsi untuk mengambil knowledge base
   const fetchKnowledgeBase = async () => {
@@ -590,88 +496,59 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     setLastSelectedIndex(index || null);
   };
 
-  // Handle folder navigation
-  const handleFolderClick = (folderId: string) => {
-    console.log('=== FOLDER CLICK DEBUG ===');
-    console.log('Folder clicked:', folderId);
-    console.log('Current documents:', documents);
-    console.log('Folder hierarchy:', folderHierarchy);
-    console.log('Is folderHierarchy null?', folderHierarchy === null);
+  // New simplified folder click handler
+  const handleFolderClick = (folder: Document) => {
+    console.log('=== FOLDER CLICK ===');
+    console.log('Folder clicked:', folder);
     
-    // If we're in folder URL mode (no hierarchy), fetch documents from the clicked folder
-    if (!folderHierarchy) {
-      console.log('In folder URL mode - looking for folder in documents');
-      // Find the folder in current documents
-      const folder = documents.find((doc: Document) => doc.id === folderId && doc.is_folder);
-      console.log('Found folder:', folder);
-      console.log('Folder web_view_link:', folder?.web_view_link);
-      console.log('Folder id:', folder?.id);
-      
-      if (folder) {
-        setSelectedDocs(new Set()); // Clear selection when navigating
-        // Fetch documents from the clicked folder
-        const folderUrl = folder.web_view_link || `https://drive.google.com/drive/folders/${folderId}`;
-        console.log('Fetching documents from folder URL:', folderUrl);
-        fetchDocumentsFromFolder(folderUrl);
-      } else {
-        console.log('ERROR: Folder not found in documents');
-        console.log('Available documents:', documents.map(d => ({ id: d.id, name: d.name, is_folder: d.is_folder })));
-      }
+    if (!folder.web_view_link) {
+      setMessage('Folder tidak memiliki link yang valid.');
       return;
     }
     
-    const folder = folderHierarchy.folder_map[folderId];
-    if (folder) {
-      setCurrentFolder(folderId);
-      setSelectedDocs(new Set()); // Clear selection when navigating
-      
-      // Update folder path - build path from root to current folder
-      const buildPath = (folderId: string): string[] => {
-        const folder = folderHierarchy.folder_map[folderId];
-        if (!folder || !folder.parent_id) {
-          return folder ? [folder.name] : [];
-        }
-        return [...buildPath(folder.parent_id), folder.name];
-      };
-      
-      setFolderPath(buildPath(folderId));
-    }
+    // Add to folder history
+    setFolderHistory(prev => [...prev, { id: folder.id, name: folder.name }]);
+    setCurrentFolderId(folder.id);
+    setCurrentFolderName(folder.name);
+    setSelectedDocs(new Set()); // Clear selection when navigating
+    
+    // Fetch documents from the clicked folder
+    console.log('Fetching documents from folder URL:', folder.web_view_link);
+    fetchDocumentsFromFolder(folder.web_view_link);
   };
 
-  // Handle back navigation
+  // New simplified back navigation
   const handleBackToParent = () => {
-    // If we're in folder URL mode (no hierarchy), go back to original folder URL
-    if (!folderHierarchy) {
-      if (folderUrl) {
-        setSelectedDocs(new Set()); // Clear selection when navigating
+    if (folderHistory.length > 0) {
+      // Go back to previous folder
+      const newHistory = [...folderHistory];
+      newHistory.pop(); // Remove current folder
+      
+      if (newHistory.length > 0) {
+        // Go to previous folder
+        const prevFolder = newHistory[newHistory.length - 1];
+        setFolderHistory(newHistory);
+        setCurrentFolderId(prevFolder.id);
+        setCurrentFolderName(prevFolder.name);
+        
+        // Fetch documents from previous folder
+        const folderUrl = `https://drive.google.com/drive/folders/${prevFolder.id}`;
         fetchDocumentsFromFolder(folderUrl);
+      } else {
+        // Go back to root
+        setFolderHistory([]);
+        setCurrentFolderId(null);
+        setCurrentFolderName('');
+        fetchDocuments(); // Load root documents
       }
-      return;
+    } else if (folderUrl) {
+      // Go back to original folder URL
+      fetchDocumentsFromFolder(folderUrl);
+    } else {
+      // Go back to root
+      fetchDocuments();
     }
     
-    if (currentFolder) {
-      const currentFolderData = folderHierarchy.folder_map[currentFolder];
-      if (currentFolderData && currentFolderData.parent_id) {
-        setCurrentFolder(currentFolderData.parent_id);
-        
-        // Update folder path - build path from root to parent folder
-        const buildPath = (folderId: string): string[] => {
-          const folder = folderHierarchy.folder_map[folderId];
-          if (!folder || !folder.parent_id) {
-            return folder ? [folder.name] : [];
-          }
-          return [...buildPath(folder.parent_id), folder.name];
-        };
-        
-        setFolderPath(buildPath(currentFolderData.parent_id));
-      } else {
-        setCurrentFolder(null);
-        setFolderPath([]);
-      }
-    } else {
-      setCurrentFolder(null);
-      setFolderPath([]);
-    }
     setSelectedDocs(new Set()); // Clear selection when navigating
   };
 
@@ -1405,8 +1282,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             <span>📄</span>
                                             <span>Dokumen Terbaru (Fallback)</span>
                                         </span>
-                                    ) : currentFolder ? (
-                                        `📁 ${folderPath.length > 0 ? folderPath.join(' / ') : 'Folder'}`
+                                    ) : currentFolderName ? (
+                                        `📁 ${currentFolderName}`
                                     ) : (
                                         'Kelola dokumen dari Google Drive Anda'
                                     )}
@@ -1433,7 +1310,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             >
                                 📁 Folder URL
                             </Button>
-                            {(currentFolder || folderPath.length > 0) && (
+                            {(currentFolderId || folderHistory.length > 0) && (
                                 <Button
                                     onClick={handleBackToParent}
                                     className="documents-button flex items-center space-x-2"
@@ -1546,11 +1423,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                     <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
                                         📄 {filteredAndSortedDocuments.length} dokumen
                                     </span>
-                                    {folderHierarchy && (
-                                        <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
-                                            📊 Total: {folderHierarchy.folders.length} folder, {folderHierarchy.documents.length} dokumen
-                                        </span>
-                                    )}
                                 </div>
                                 
                                 {selectedDocs.size > 0 && (
@@ -1606,14 +1478,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 </div>
                             ) : (filteredAndSortedFolders.length > 0 || filteredAndSortedDocuments.length > 0) ? (
                                 <div className="space-y-3">
-                                    {/* Breadcrumb Navigation */}
-                                    {(currentFolder || folderPath.length > 0) && (
+                                    {/* Breadcrumb Navigation - New System */}
+                                    {(currentFolderId || folderHistory.length > 0) && (
                                         <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
                                                     <Button
                                                         onClick={handleBackToParent}
-                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/30 flex items-center space-x-2"
+                                                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/30 flex items-center space-x-2"
                                                     >
                                                         <span>←</span>
                                                         <span>Kembali</span>
@@ -1621,18 +1493,18 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                     <div className="flex items-center space-x-2 text-gray-700">
                                                         <span className="text-lg">📁</span>
                                                         <div className="flex items-center space-x-1">
-                                                            {folderPath.length > 0 ? (
-                                                                <>
-                                                                    <span className="text-sm font-medium">Root</span>
-                                                                    {folderPath.map((folder, index) => (
-                                                                        <div key={index} className="flex items-center space-x-1">
-                                                                            <span className="text-gray-400">/</span>
-                                                                            <span className="text-sm font-medium text-gray-800">{folder}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </>
-                                                            ) : (
-                                                                <span className="text-sm font-medium">Root</span>
+                                                            <span className="text-sm font-medium">Root</span>
+                                                            {folderHistory.map((folder, index) => (
+                                                                <div key={index} className="flex items-center space-x-1">
+                                                                    <span className="text-gray-400">/</span>
+                                                                    <span className="text-sm font-medium text-gray-800">{folder.name}</span>
+                                                                </div>
+                                                            ))}
+                                                            {currentFolderName && (
+                                                                <div className="flex items-center space-x-1">
+                                                                    <span className="text-gray-400">/</span>
+                                                                    <span className="text-sm font-medium text-red-600">{currentFolderName}</span>
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>
@@ -1644,7 +1516,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         </div>
                                     )}
                                     
-                                    {/* Folders Section - Completely Separate */}
+                                    {/* Folders Section - New System */}
                                     {filteredAndSortedFolders.length > 0 && (
                                         <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50/20 to-orange-50/20 rounded-2xl border-2 border-yellow-200/30">
                                             <h3 className="text-lg font-bold text-yellow-800 mb-4 flex items-center">
@@ -1652,13 +1524,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                 Folders ({filteredAndSortedFolders.length})
                                             </h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {filteredAndSortedFolders.map((folder: Folder, index: number) => (
+                                                {filteredAndSortedFolders.map((folder: Document, index: number) => (
                                                     <div 
                                                         key={folder.id} 
                                                         className="bg-white/60 backdrop-blur-xl rounded-xl p-4 border-2 border-yellow-300/40 hover:border-yellow-400/60 transition-all duration-300 cursor-pointer hover:shadow-lg group"
                                                         onClick={() => {
                                                             console.log('FOLDER CLICKED:', folder.id, folder.name);
-                                                            handleFolderClick(folder.id);
+                                                            handleFolderClick(folder);
                                                         }}
                                                     >
                                                         <div className="flex items-center space-x-3">
