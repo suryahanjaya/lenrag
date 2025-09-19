@@ -1685,8 +1685,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                     
                                     {/* Documents Section - Completely Separate */}
                                     {filteredAndSortedDocuments.filter(doc => !doc.is_folder).length > 0 && (
-                                        <div className="p-4 bg-gradient-to-r from-blue-50/20 to-indigo-50/20 rounded-2xl border-2 border-blue-200/30">
-                                            <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center">
+                                        <div className="p-4 bg-gradient-to-r from-red-50/20 to-pink-50/20 rounded-2xl border-2 border-red-200/30">
+                                            <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center">
                                                 <span className="text-2xl mr-2">📄</span>
                                                 Documents ({filteredAndSortedDocuments.filter(doc => !doc.is_folder).length})
                                             </h3>
@@ -1696,8 +1696,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                         key={doc.id} 
                                                         className={`flex items-center space-x-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
                                                             selectedDocs.has(doc.id) 
-                                                                ? 'bg-blue-100/80 border-blue-400 shadow-md' 
-                                                                : 'bg-white/60 border-blue-200/40 hover:border-blue-300/60 hover:shadow-md'
+                                                                ? 'bg-red-100/80 border-red-400 shadow-md' 
+                                                                : 'bg-white/60 border-red-200/40 hover:border-red-300/60 hover:shadow-md'
                                                         }`}
                                                         onClick={(e: React.MouseEvent<HTMLDivElement>) => {
                                                             if (e.ctrlKey || e.metaKey) {
@@ -1710,27 +1710,27 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                             id={doc.id}
                                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectDoc(doc.id, filteredAndSortedFolders.length + index)}
                                                             checked={selectedDocs.has(doc.id)}
-                                                            className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                                                            className="h-5 w-5 text-red-600 rounded focus:ring-red-500"
                                                             onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
                                                         />
-                                                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                                                        <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
                                                             <span className="text-xl">{getFileIcon(doc.mime_type || doc.mimeType)}</span>
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <label htmlFor={doc.id} className="block text-sm font-semibold text-blue-800 truncate cursor-pointer">
+                                                            <label htmlFor={doc.id} className="block text-sm font-semibold text-red-800 truncate cursor-pointer">
                                                                 {doc.name}
                                                             </label>
-                                                            <div className="flex flex-wrap items-center gap-2 text-xs text-blue-600 mt-1">
-                                                                <span className="bg-blue-100/80 px-2 py-1 rounded-full border border-blue-200/50">
+                                                            <div className="flex flex-wrap items-center gap-2 text-xs text-red-600 mt-1">
+                                                                <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
                                                                     {getFileTypeName(doc.mime_type || doc.mimeType)}
                                                                 </span>
                                                                 {doc.size && (
-                                                                    <span className="bg-blue-100/80 px-2 py-1 rounded-full border border-blue-200/50">
+                                                                    <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
                                                                         {formatFileSize(doc.size)}
                                                                     </span>
                                                                 )}
                                                                 {doc.modified_time && (
-                                                                    <span className="bg-blue-100/80 px-2 py-1 rounded-full border border-blue-200/50">
+                                                                    <span className="bg-red-100/80 px-2 py-1 rounded-full border border-red-200/50">
                                                                         📅 {formatDate(doc.modified_time)}
                                                                     </span>
                                                                 )}

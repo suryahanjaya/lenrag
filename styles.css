@@ -2220,9 +2220,9 @@
 
 .document-section {
   padding: 1rem;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
   border-radius: 1rem;
-  border: 2px solid rgba(59, 130, 246, 0.3);
+  border: 2px solid rgba(239, 68, 68, 0.3);
 }
 
 /* Folder Grid Layout */
@@ -2253,7 +2253,7 @@
 .document-item {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
-  border: 2px solid rgba(59, 130, 246, 0.4);
+  border: 2px solid rgba(239, 68, 68, 0.4);
   border-radius: 0.75rem;
   padding: 1rem;
   transition: all 0.3s ease;
@@ -2261,8 +2261,8 @@
 }
 
 .document-item:hover {
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.2);
   transform: translateY(-2px);
 }
 
