@@ -798,9 +798,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         </div>
       </nav>
 
-      <div className="relative z-10 container mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
+      <div className="relative z-10 container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header Section - Compact */}
-        <div className={`backdrop-blur-2xl rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden ${
+        <div className={`backdrop-blur-2xl rounded-2xl shadow-xl p-4 sm:p-5 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden ${
           currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-pink-500/50 via-pink-400/40 to-pink-200/30' :
           currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-yellow-500/50 via-yellow-400/40 to-yellow-200/30' :
           currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-orange-500/50 via-orange-400/40 to-orange-200/30' :
@@ -819,18 +819,18 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="block sm:hidden">
             <div className="space-y-4">
               {/* Top Row: Greeting + Time */}
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <h1 className={`text-xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+              <div className="flex flex-col space-y-3">
+                <div className="w-full">
+                    <h1 className={`text-lg font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
                       {greeting.text}, {user.name || 'Pengguna'}!
                     </h1>
                 </div>
-                {/* Time - Moved to the right */}
-                <div className={`${getTimeBoxClass()} rounded-2xl p-3`}>
-                  <div className="text-center space-y-1">
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-6 h-6 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className={`text-sm ${
+                {/* Time - Full width on mobile */}
+                <div className={`${getTimeBoxClass()} rounded-2xl p-4 w-full`}>
+                  <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="w-8 h-8 bg-white/50 rounded-full flex items-center justify-center">
+                        <span className={`text-lg ${
                           currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
                           currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
                           currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
@@ -839,9 +839,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                           {greeting.emoji}
                         </span>
                       </div>
-                      <span className="text-lg font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                      <span className="text-xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-xs text-gray-700 font-medium bg-white/30 px-2 py-1 rounded-lg">
+                    <div className="text-sm text-gray-700 font-medium bg-white/30 px-3 py-2 rounded-lg">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
@@ -851,7 +851,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* Description */}
               <div className="text-center">
                 <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg">
-                  <p className="text-gray-800 text-lg font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
+                  <p className="text-gray-800 text-base font-semibold drop-shadow-sm leading-relaxed">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                 </div>
               </div>
             </div>
@@ -861,23 +861,19 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           <div className="hidden sm:block lg:hidden">
             <div className="space-y-6">
               {/* Top Row: Greeting + Time */}
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="space-y-3">
-                    <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
-                      {greeting.text}, {user.name || 'Pengguna'}!
-                    </h1>
-                    <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-4 border border-white/50 shadow-lg max-w-2xl">
-                      <p className="text-gray-800 text-xl font-semibold drop-shadow-sm">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
-                    </div>
-                  </div>
+              <div className="flex flex-col space-y-4">
+                <div className="w-full">
+                  <h1 className={`text-2xl font-bold ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight leading-tight`}>
+                    {greeting.text}, {user.name || 'Pengguna'}!
+                  </h1>
                 </div>
-                {/* Time - Moved to the right */}
-                <div className={`${getTimeBoxClass()} rounded-2xl p-4`}>
-                  <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center space-x-3">
-                      <div className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center">
-                        <span className={`text-xl ${
+                
+                {/* Time - Full width on tablet */}
+                <div className={`${getTimeBoxClass()} rounded-2xl p-5 w-full`}>
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center space-x-4">
+                      <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center">
+                        <span className={`text-2xl ${
                           currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'text-pink-400' :
                           currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'text-yellow-400' :
                           currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'text-orange-400' :
@@ -886,12 +882,17 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                           {greeting.emoji}
                         </span>
                       </div>
-                      <span className="text-2xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
+                      <span className="text-3xl font-mono font-bold text-gray-800">{formatTime(currentTime)}</span>
                     </div>
-                    <div className="text-sm text-gray-700 font-medium bg-white/30 px-4 py-2 rounded-xl">
+                    <div className="text-base text-gray-700 font-medium bg-white/30 px-4 py-2 rounded-xl">
                       {formatCurrentDate(currentTime)}
                     </div>
                   </div>
+                </div>
+                
+                {/* Description */}
+                <div className="bg-white/40 backdrop-blur-lg rounded-2xl p-5 border border-white/50 shadow-lg">
+                  <p className="text-gray-800 text-lg font-semibold drop-shadow-sm leading-relaxed text-center">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
                 </div>
               </div>
             </div>
