@@ -431,6 +431,41 @@ async def remove_document_from_knowledge_base(
         logger.error(f"Error removing document: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/documents/{document_id}/rechunk")
+async def rechunk_document(
+    document_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Re-chunk a document with current configuration"""
+    try:
+        # Get document content from Google Drive
+        access_token = await supabase_client.get_user_google_token(current_user['id'])
+        if not access_token:
+            raise HTTPException(status_code=401, detail="No Google access token found")
+        
+        # Get document content
+        doc_content = await google_docs_service.get_document_content(document_id, access_token)
+        if not doc_content:
+            raise HTTPException(status_code=404, detail="Document not found or empty")
+        
+        # Get document metadata
+        doc_metadata = await google_docs_service.get_document_metadata(document_id, access_token)
+        doc_name = doc_metadata.get('title', f'Document {document_id}')
+        
+        # Re-chunk the document
+        await rag_pipeline.rechunk_document(
+            current_user['id'], 
+            document_id, 
+            doc_content, 
+            doc_name, 
+            'application/pdf'
+        )
+        
+        return {"message": "Document re-chunked successfully"}
+    except Exception as e:
+        logger.error(f"Error re-chunking document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

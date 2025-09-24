@@ -54,60 +54,123 @@ class RAGPipeline:
             return []
         
         chunks = []
+        logger.info(f"Starting text splitting for {len(text)} characters")
         
-        # For legal documents, try to preserve structure by splitting on legal boundaries first
-        # Split by Pasal (Article) boundaries first
+        # For legal documents, try multiple splitting strategies
+        # Strategy 1: Split by Pasal (Article) boundaries if they exist
         pasal_sections = re.split(r'(?=Pasal\s+\d+)', text)
         
-        for section in pasal_sections:
-            if not section.strip():
-                continue
-                
-            if len(section) <= self.chunk_size:
-                if section.strip():
-                    chunks.append(section.strip())
-            else:
-                # Split long sections by paragraphs first
-                paragraphs = section.split('\n\n')
-                current_chunk = ""
-                
-                for paragraph in paragraphs:
-                    if len(current_chunk) + len(paragraph) <= self.chunk_size:
-                        current_chunk += paragraph + "\n\n"
-                    else:
-                        if current_chunk.strip():
-                            chunks.append(current_chunk.strip())
-                        # If single paragraph is too long, split by sentences
-                        if len(paragraph) > self.chunk_size:
-                            sentences = re.split(r'[.!?]+\s+', paragraph)
-                            temp_chunk = ""
-                            
-                            for sentence in sentences:
-                                if len(temp_chunk) + len(sentence) <= self.chunk_size:
-                                    temp_chunk += sentence + ". "
-                                else:
-                                    if temp_chunk.strip():
-                                        chunks.append(temp_chunk.strip())
-                                    temp_chunk = sentence + ". "
-                            
-                            if temp_chunk.strip():
-                                chunks.append(temp_chunk.strip())
-                        else:
-                            current_chunk = paragraph + "\n\n"
-                
-                if current_chunk.strip():
-                    chunks.append(current_chunk.strip())
+        # Strategy 1.5: For constitutional documents, also check for other patterns
+        # UUD 1945 uses different structure - check for "BAB", "Pasal", or numbered sections
+        constitutional_patterns = [
+            r'(?=BAB\s+\d+)',  # BAB I, BAB II, etc.
+            r'(?=Pasal\s+\d+)',  # Pasal 1, Pasal 2, etc.
+            r'(?=Pasal\s+\d+[A-Z])',  # Pasal 1A, Pasal 2B, etc.
+            r'(?=Pasal\s+\d+[a-z])',  # Pasal 1a, Pasal 2b, etc.
+        ]
         
-        # If no Pasal sections found, use original paragraph splitting
-        if not chunks:
-            paragraphs = text.split('\n\n')
-            
-            for paragraph in paragraphs:
-                if len(paragraph) <= self.chunk_size:
-                    if paragraph.strip():
-                        chunks.append(paragraph.strip())
+        logger.info(f"Found {len(pasal_sections)} Pasal sections")
+        
+        # Try constitutional patterns if no regular Pasal found
+        if len(pasal_sections) <= 1:
+            for pattern in constitutional_patterns:
+                sections = re.split(pattern, text)
+                if len(sections) > 1:
+                    pasal_sections = sections
+                    logger.info(f"Found {len(sections)} sections using pattern: {pattern}")
+                    break
+        
+        if len(pasal_sections) > 1:  # Only use Pasal splitting if we found multiple sections
+            logger.info("Using Pasal-based splitting strategy")
+            for section in pasal_sections:
+                if not section.strip():
+                    continue
+                    
+                if len(section) <= self.chunk_size:
+                    if section.strip():
+                        chunks.append(section.strip())
                 else:
-                    # Split long paragraphs by sentences
+                    # Split long sections by paragraphs first
+                    paragraphs = section.split('\n\n')
+                    current_chunk = ""
+                    
+                    for paragraph in paragraphs:
+                        if len(current_chunk) + len(paragraph) <= self.chunk_size:
+                            current_chunk += paragraph + "\n\n"
+                        else:
+                            if current_chunk.strip():
+                                chunks.append(current_chunk.strip())
+                            # If single paragraph is too long, split by sentences
+                            if len(paragraph) > self.chunk_size:
+                                sentences = re.split(r'[.!?]+\s+', paragraph)
+                                temp_chunk = ""
+                                
+                                for sentence in sentences:
+                                    if len(temp_chunk) + len(sentence) <= self.chunk_size:
+                                        temp_chunk += sentence + ". "
+                                    else:
+                                        if temp_chunk.strip():
+                                            chunks.append(temp_chunk.strip())
+                                        temp_chunk = sentence + ". "
+                                
+                                if temp_chunk.strip():
+                                    chunks.append(temp_chunk.strip())
+                            else:
+                                current_chunk = paragraph + "\n\n"
+                    
+                    if current_chunk.strip():
+                        chunks.append(current_chunk.strip())
+        
+        # Strategy 2: If no Pasal sections found or chunks are too few, use paragraph splitting
+        if not chunks or len(chunks) < 10:  # If we have very few chunks, use paragraph splitting
+            logger.info(f"Using paragraph-based splitting strategy (chunks so far: {len(chunks)})")
+            
+            # For constitutional documents, be more aggressive with splitting
+            # Split by multiple newlines first, then by single newlines
+            text_sections = re.split(r'\n\s*\n\s*\n', text)  # Triple newlines
+            if len(text_sections) <= 1:
+                text_sections = re.split(r'\n\s*\n', text)  # Double newlines
+            if len(text_sections) <= 1:
+                text_sections = [text]  # Use whole text if no clear sections
+            
+            for section in text_sections:
+                if not section.strip():
+                    continue
+                    
+                if len(section) <= self.chunk_size:
+                    if section.strip():
+                        chunks.append(section.strip())
+                else:
+                    # Split long sections by paragraphs
+                    paragraphs = section.split('\n\n')
+                    current_chunk = ""
+                    
+                    for paragraph in paragraphs:
+                        if len(current_chunk) + len(paragraph) <= self.chunk_size:
+                            current_chunk += paragraph + "\n\n"
+                        else:
+                            if current_chunk.strip():
+                                chunks.append(current_chunk.strip())
+                            # If single paragraph is too long, split by sentences
+                            if len(paragraph) > self.chunk_size:
+                                sentences = re.split(r'[.!?]+\s+', paragraph)
+                                temp_chunk = ""
+                                
+                                for sentence in sentences:
+                                    if len(temp_chunk) + len(sentence) <= self.chunk_size:
+                                        temp_chunk += sentence + ". "
+                                    else:
+                                        if temp_chunk.strip():
+                                            chunks.append(temp_chunk.strip())
+                                        temp_chunk = sentence + ". "
+                                
+                                if temp_chunk.strip():
+                                    chunks.append(temp_chunk.strip())
+                            else:
+                                current_chunk = paragraph + "\n\n"
+                    
+                    if current_chunk.strip():
+                        chunks.append(current_chunk.strip())
                     sentences = re.split(r'[.!?]+\s+', paragraph)
                     current_chunk = ""
                     
@@ -135,6 +198,7 @@ class RAGPipeline:
                     overlapped_chunks.append(overlap_text + " " + chunk)
             return overlapped_chunks
         
+        logger.info(f"Final chunk count: {len(chunks)}")
         return chunks
     
     async def add_document(self, user_id: str, document_id: str, content: str, document_name: str = None, mime_type: str = None):
@@ -203,6 +267,21 @@ class RAGPipeline:
             
         except Exception as e:
             logger.error(f"Error removing document {document_id}: {e}")
+            raise
+    
+    async def rechunk_document(self, user_id: str, document_id: str, content: str, document_name: str = None, mime_type: str = None):
+        """Re-chunk a document with current configuration"""
+        try:
+            # First remove existing chunks
+            await self.remove_document(user_id, document_id)
+            
+            # Then add with new chunking configuration
+            await self.add_document(user_id, document_id, content, document_name, mime_type)
+            
+            logger.info(f"Re-chunked document {document_id} with new configuration")
+            
+        except Exception as e:
+            logger.error(f"Error re-chunking document {document_id}: {e}")
             raise
     
     async def query(self, user_id: str, query: str, use_fallback: bool = False) -> Dict[str, Any]:
