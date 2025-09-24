@@ -18,7 +18,8 @@ export default function Home() {
     const storedToken = localStorage.getItem('access_token')
     
     if (storedUser) {
-      setUser(JSON.parse(storedUser))
+      const userData = JSON.parse(storedUser)
+      setUser(userData)
     }
     if (storedToken) {
       setToken(storedToken)
