@@ -870,29 +870,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="nav-actions">
               {/* User Profile Picture - Glass Effect */}
               <div className="nav-profile">
-                <div 
-                  className="nav-profile-avatar"
-                  style={{
-                    backgroundImage: user.picture ? `url(${user.picture})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    borderRadius: '50%',
-                    overflow: 'hidden'
-                  }}
-                >
+                <div className="nav-profile-avatar">
                   {user.picture ? (
                     <img 
                       src={user.picture} 
                       alt="Profile" 
-                      className="w-full h-full object-cover"
-                      style={{ 
-                        display: 'block',
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '50%'
-                      }}
+                      className="w-full h-full object-cover rounded-full"
                       loading="eager"
                       decoding="async"
                       onLoad={() => {
