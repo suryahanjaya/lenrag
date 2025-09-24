@@ -21,6 +21,18 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [chatMessage, setChatMessage] = useState('');
+
+  // Helper function for error messages
+  const setErrorMessage = (errorType: 'folder' | 'documents' | 'add' | 'remove' | 'general') => {
+    const messages = {
+      folder: 'Gagal memuat dokumen dari folder. Periksa URL folder dan coba lagi.',
+      documents: 'Gagal memuat dokumen. Periksa koneksi internet dan coba lagi.',
+      add: 'Gagal menambahkan dokumen. Periksa koneksi dan coba lagi.',
+      remove: 'Gagal menghapus dokumen. Periksa koneksi dan coba lagi.',
+      general: 'Terjadi kesalahan. Silakan coba lagi.'
+    };
+    setMessage(messages[errorType]);
+  };
   const [chatHistory, setChatHistory] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -259,7 +271,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Folder API Error:', response.status, errorText);
+        // Silent error handling
         
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
@@ -289,8 +301,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
 
     } catch (error) {
-      console.error('Error fetching all documents from folder:', error);
-      setMessage('Gagal memuat dokumen dari folder. Periksa URL folder dan coba lagi.');
+      // Silent error handling
+      setErrorMessage('folder');
     } finally {
       setIsLoadingFolder(false);
     }
@@ -320,7 +332,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Folder API Error:', response.status, errorText);
+        // Silent error handling
         
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
@@ -358,7 +370,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
     } catch (error) {
       console.error('Error fetching documents from folder:', error);
-      setMessage('Gagal memuat dokumen dari folder. Periksa URL folder dan coba lagi.');
+      setErrorMessage('folder');
     } finally {
       setIsLoadingFolder(false);
     }
@@ -385,7 +397,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
+        // Silent error handling
         
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
@@ -415,8 +427,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }
 
     } catch (error) {
-      console.error('Error fetching documents:', error);
-      setMessage('Gagal memuat dokumen. Periksa koneksi internet dan coba lagi.');
+      // Silent error handling
+      setErrorMessage('documents');
     } finally {
       setIsLoading(false);
     }
@@ -438,11 +450,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         const data = await response.json();
         setKnowledgeBase(data.documents || []);
       } else {
-        console.error('Failed to fetch knowledge base:', response.status);
+        // Silent error handling
         setKnowledgeBase([]);
       }
     } catch (error) {
-      console.error('Error fetching knowledge base:', error);
+      // Silent error handling
       setKnowledgeBase([]);
     }
   };
@@ -684,7 +696,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
           if (!response.ok) {
               const errorText = await response.text();
-              console.error('Add documents error:', response.status, errorText);
+              // Silent error handling
               throw new Error(`Failed to add documents: ${response.status}`);
           }
           
@@ -700,8 +712,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           }, 2000);
           
       } catch (error) {
-          console.error('Error adding documents:', error);
-          setMessage('Gagal menambahkan dokumen. Periksa koneksi dan coba lagi.');
+          // Silent error handling
+          setErrorMessage('add');
       } finally {
           setIsLoading(false);
       }
@@ -726,7 +738,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Remove document error:', response.status, errorText);
+                // Silent error handling
                 throw new Error(`Failed to remove document: ${response.status}`);
             }
             
@@ -737,8 +749,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             fetchKnowledgeBase();
             
         } catch (error) {
-            console.error('Error removing document:', error);
-            setMessage('Gagal menghapus dokumen. Periksa koneksi dan coba lagi.');
+            // Silent error handling
+            setErrorMessage('remove');
         }
     };
 
@@ -783,7 +795,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Chat error:', response.status, errorText);
+        // Silent error handling
         
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
@@ -804,7 +816,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       }]);
       
     } catch (error) {
-      console.error('Error sending message:', error);
+      // Silent error handling
       setChatHistory((prev: Array<{role: 'user' | 'assistant'; content: string; sources?: Array<string | {id: string; name: string; type: string; link?: string;}>; from_documents?: boolean;}>) => [...prev, { 
         role: 'assistant', 
         content: 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.' 
@@ -1745,7 +1757,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                         const data = await response.json();
                                         alert(`Debug Info:\nTotal chunks: ${data.document_count}\nUnique docs: ${data.unique_document_count}\nCollection: ${data.collection_name}`);
                                     } catch (error) {
-                                        console.error('Debug error:', error);
+                                        // Silent error handling
                                     }
                                 }}
                                 className="knowledge-button"

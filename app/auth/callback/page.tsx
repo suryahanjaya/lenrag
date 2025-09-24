@@ -58,7 +58,7 @@ export default function AuthCallback() {
         }, 1000)
 
       } catch (err) {
-        console.error('Auth callback error:', err)
+        // Silent error handling
         setStatus('error')
         setError('Failed to complete authentication')
         setTimeout(() => router.push('/'), 3000)

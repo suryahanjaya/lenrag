@@ -24,11 +24,7 @@ export function GoogleAuthButton({ onSuccess }: GoogleAuthButtonProps) {
       'https://www.googleapis.com/auth/documents.readonly'
     ].join(' ')
 
-    // Debug information
-    console.log('OAuth Configuration:')
-    console.log('Client ID:', clientId)
-    console.log('Redirect URI:', redirectUri)
-    console.log('Scopes:', scopes)
+    // OAuth Configuration
 
     if (!clientId) {
       alert('Google Client ID is not configured. Please check your .env.local file.')
@@ -44,7 +40,7 @@ export function GoogleAuthButton({ onSuccess }: GoogleAuthButtonProps) {
       `access_type=offline&` +
       `prompt=consent`
 
-    console.log('Generated OAuth URL:', authUrl)
+    // OAuth URL generated
 
     // Open Google OAuth in the same window
     window.location.href = authUrl
