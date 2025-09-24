@@ -61,7 +61,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             sentences[i].includes('Sumber:') ||
             sentences[i].includes('Pembukaan') ||
             sentences[i].includes('Perjuangan') ||
-            sentences[i].includes('Atas berkat')) {
+            sentences[i].includes('Atas berkat') ||
+            sentences[i].includes('Dan perjuangan') ||
+            sentences[i].includes('Maka disusunlah') ||
+            sentences[i].includes('Undang-Undang Dasar')) {
           newParagraphs.push(currentParagraph.join(' '));
           currentParagraph = [];
         }
@@ -102,9 +105,51 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     return formatted;
   };
 
+  // Helper function to detect incomplete responses and suggest better questions
+  const detectIncompleteResponse = (content: string) => {
+    const incompleteIndicators = [
+      'kurang lengkap',
+      'tidak lengkap', 
+      'sebagian',
+      'beberapa',
+      'sebagian besar',
+      'umumnya'
+    ];
+    
+    const hasIncompleteIndicator = incompleteIndicators.some(indicator => 
+      content.toLowerCase().includes(indicator)
+    );
+    
+    return hasIncompleteIndicator;
+  };
+
+  // Helper function to suggest better questions for incomplete responses
+  const getQuestionSuggestions = (content: string) => {
+    const suggestions = [];
+    
+    if (content.includes('Pembukaan UUD') || content.includes('UUD 1945')) {
+      suggestions.push(
+        "Coba tanyakan: 'Berikan pembukaan UUD 1945 secara lengkap dan utuh'",
+        "Atau: 'Tuliskan seluruh isi pembukaan UUD 1945 tanpa pengurangan'",
+        "Atau: 'Sebutkan pembukaan UUD 1945 dari awal sampai akhir'"
+      );
+    }
+    
+    if (content.includes('pasal') || content.includes('Pasal')) {
+      suggestions.push(
+        "Coba tanyakan: 'Berikan penjelasan lengkap tentang pasal tersebut'",
+        "Atau: 'Jelaskan secara detail isi pasal yang dimaksud'"
+      );
+    }
+    
+    return suggestions;
+  };
+
   // Component to render formatted chat message
   const renderFormattedMessage = (content: string) => {
     const paragraphs = content.split('\n\n');
+    const isIncomplete = detectIncompleteResponse(content);
+    const suggestions = isIncomplete ? getQuestionSuggestions(content) : [];
     
     return (
       <div className="formatted-message">
@@ -132,6 +177,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             </p>
           );
         })}
+        
+        {/* Show suggestions for incomplete responses */}
+        {isIncomplete && suggestions.length > 0 && (
+          <div className="suggestion-box">
+            <h4>Saran untuk mendapatkan jawaban yang lebih lengkap:</h4>
+            <ul>
+              {suggestions.map((suggestion, index) => (
+                <li key={index}>
+                  {suggestion}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   };
