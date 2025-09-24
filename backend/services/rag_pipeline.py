@@ -29,8 +29,8 @@ class RAGPipeline:
         ))
         
         # Text splitter configuration for chunking documents
-        self.chunk_size = 800  # Reduced for better context matching
-        self.chunk_overlap = 150  # Increased overlap for better continuity
+        self.chunk_size = 2000  # Increased for better context retention (was 800)
+        self.chunk_overlap = 300  # Increased overlap for better continuity (was 150)
         self.separators = ["\n\n", "\n", " ", ""]
     
     def _get_user_collection(self, user_id: str):
@@ -49,34 +49,78 @@ class RAGPipeline:
         return f"{document_id}_chunk_{chunk_index}"
     
     def _split_text(self, text: str) -> List[str]:
-        """Split text into chunks using simple text splitting logic"""
+        """Split text into chunks using intelligent text splitting logic for legal documents"""
         if not text or not text.strip():
             return []
         
         chunks = []
         
-        # First try to split by double newlines (paragraphs)
-        paragraphs = text.split('\n\n')
+        # For legal documents, try to preserve structure by splitting on legal boundaries first
+        # Split by Pasal (Article) boundaries first
+        pasal_sections = re.split(r'(?=Pasal\s+\d+)', text)
         
-        for paragraph in paragraphs:
-            if len(paragraph) <= self.chunk_size:
-                if paragraph.strip():
-                    chunks.append(paragraph.strip())
+        for section in pasal_sections:
+            if not section.strip():
+                continue
+                
+            if len(section) <= self.chunk_size:
+                if section.strip():
+                    chunks.append(section.strip())
             else:
-                # Split long paragraphs by sentences or lines
-                sentences = re.split(r'[.!?]+\s+', paragraph)
+                # Split long sections by paragraphs first
+                paragraphs = section.split('\n\n')
                 current_chunk = ""
                 
-                for sentence in sentences:
-                    if len(current_chunk) + len(sentence) <= self.chunk_size:
-                        current_chunk += sentence + ". "
+                for paragraph in paragraphs:
+                    if len(current_chunk) + len(paragraph) <= self.chunk_size:
+                        current_chunk += paragraph + "\n\n"
                     else:
                         if current_chunk.strip():
                             chunks.append(current_chunk.strip())
-                        current_chunk = sentence + ". "
+                        # If single paragraph is too long, split by sentences
+                        if len(paragraph) > self.chunk_size:
+                            sentences = re.split(r'[.!?]+\s+', paragraph)
+                            temp_chunk = ""
+                            
+                            for sentence in sentences:
+                                if len(temp_chunk) + len(sentence) <= self.chunk_size:
+                                    temp_chunk += sentence + ". "
+                                else:
+                                    if temp_chunk.strip():
+                                        chunks.append(temp_chunk.strip())
+                                    temp_chunk = sentence + ". "
+                            
+                            if temp_chunk.strip():
+                                chunks.append(temp_chunk.strip())
+                        else:
+                            current_chunk = paragraph + "\n\n"
                 
                 if current_chunk.strip():
                     chunks.append(current_chunk.strip())
+        
+        # If no Pasal sections found, use original paragraph splitting
+        if not chunks:
+            paragraphs = text.split('\n\n')
+            
+            for paragraph in paragraphs:
+                if len(paragraph) <= self.chunk_size:
+                    if paragraph.strip():
+                        chunks.append(paragraph.strip())
+                else:
+                    # Split long paragraphs by sentences
+                    sentences = re.split(r'[.!?]+\s+', paragraph)
+                    current_chunk = ""
+                    
+                    for sentence in sentences:
+                        if len(current_chunk) + len(sentence) <= self.chunk_size:
+                            current_chunk += sentence + ". "
+                        else:
+                            if current_chunk.strip():
+                                chunks.append(current_chunk.strip())
+                            current_chunk = sentence + ". "
+                    
+                    if current_chunk.strip():
+                        chunks.append(current_chunk.strip())
         
         # Apply overlap if we have multiple chunks
         if len(chunks) > 1 and self.chunk_overlap > 0:
@@ -187,7 +231,7 @@ class RAGPipeline:
             # Search for relevant chunks with expanded query
             results = collection.query(
                 query_texts=[expanded_query],
-                n_results=8  # Increased to get more context with expanded query
+                n_results=15  # Increased to get more context with expanded query (was 8)
             )
             
             documents = results['documents'][0] if results['documents'] else []
@@ -198,7 +242,7 @@ class RAGPipeline:
             logger.info(f"Distances: {distances}")
             
             # More lenient similarity threshold for expanded queries
-            if documents and distances and min(distances) < 0.8:
+            if documents and distances and min(distances) < 0.9:
                 # Create context from retrieved documents with document names and more context
                 context_parts = []
                 for i, (doc, meta) in enumerate(zip(documents, metadatas)):
@@ -210,25 +254,29 @@ class RAGPipeline:
                 # Add instruction to be more flexible in understanding
                 context += "\n\nPENTING: Jawab pertanyaan berdasarkan konteks di atas, bahkan jika ada variasi kata atau frasa dalam pertanyaan. Fokus pada makna dan inti pertanyaan, bukan pada kata-kata yang persis sama."
                 
-                # Generate answer using retrieved context
-                prompt = f"""Anda adalah asisten yang membantu menjawab pertanyaan berdasarkan dokumen pengguna. WAJIB MENGGUNAKAN BAHASA INDONESIA SAJA.
+                # Generate answer using retrieved context with enhanced intelligence
+                prompt = f"""Anda adalah asisten hukum yang sangat berpengalaman dan cerdas. WAJIB MENGGUNAKAN BAHASA INDONESIA SAJA.
 
 Konteks dari dokumen pengguna:
 {context}
 
 Pertanyaan: {query}
 
-Instruksi:
-- Berikan jawaban yang jelas dan terstruktur berdasarkan konteks di atas
-- Format respons dalam paragraf yang bersih tanpa menggunakan asterisk (*) atau bullet points
-- Jika menemukan informasi yang relevan, jelaskan dengan jelas dan menyeluruh
-- Jika konteks tidak mengandung informasi yang cukup, katakan dengan sopan
-- Tulis dengan gaya percakapan yang mudah dibaca
-- JANGAN gunakan format markdown atau karakter khusus
+INSTRUKSI KHUSUS UNTUK KECERDASAN TINGGI:
+- ANALISIS KONTEKS dengan cermat dan berikan jawaban yang LENGKAP dan AKURAT
+- Jika pertanyaan tentang "UU yang mengatur tentang warga negara", CARI dan SEBUTKAN undang-undang spesifik yang mengatur hal tersebut
+- JANGAN katakan "tidak ada informasi" jika ada pasal atau undang-undang yang relevan dalam konteks
+- BERIKAN jawaban yang SPESIFIK dengan menyebutkan:
+  * Nama undang-undang yang tepat
+  * Pasal dan ayat yang relevan
+  * Penjelasan lengkap tentang ketentuan tersebut
+- Jika menemukan informasi yang relevan, jelaskan dengan DETAIL dan MENYELURUH
+- Format respons dalam paragraf yang bersih dan mudah dibaca
+- Tulis dengan gaya percakapan yang profesional dan informatif
 - WAJIB menggunakan bahasa Indonesia dalam seluruh respons
-- JANGAN sebutkan "Dokumen 1, 2, 3" - sebutkan nama dokumen yang sebenarnya
-- BERSIFAT FLEKSIBEL dalam memahami variasi pertanyaan - fokus pada makna, bukan kata-kata yang persis sama
-- Jika pertanyaan memiliki variasi kata (seperti "Penyidik Pegawai Negeri Sipil" vs "Penyidik Pejabat Pegawai Negeri Sipil"), jawab berdasarkan konteks yang relevan
+- BERSIFAT CERDAS dalam memahami maksud pertanyaan - fokus pada inti pertanyaan
+- Jika ada variasi kata dalam pertanyaan, jawab berdasarkan konteks yang relevan
+- BERIKAN jawaban yang KONSTRUKTIF dan BERMANFAAT
 - Di akhir respons, sebutkan nama dokumen yang Anda gunakan sebagai sumber
 
 Jawaban:"""
@@ -244,9 +292,9 @@ Jawaban:"""
                 source_info = []
                 seen_docs = set()  # Track unique document IDs
                 
-                # Filter documents based on similarity score (balanced threshold)
-                relevant_threshold = 0.6  # Balanced threshold - include documents with similarity score < 0.6
-                max_sources = 3  # Maximum number of sources to show
+                # Filter documents based on similarity score (more lenient for better coverage)
+                relevant_threshold = 0.7  # More lenient threshold - include documents with similarity score < 0.7
+                max_sources = 5  # More sources for better context
                 logger.info(f"Relevant threshold: {relevant_threshold}")
                 logger.info(f"Max sources: {max_sources}")
                 logger.info(f"All distances: {distances}")
@@ -326,6 +374,9 @@ Jawaban:"""
         """Expand query with synonyms and related terms for better understanding"""
         # Common synonyms and expansions for legal/regulatory terms
         expansions = {
+            'warga negara': 'warga negara citizen kewarganegaraan penduduk',
+            'uu yang mengatur': 'undang-undang yang mengatur peraturan hukum ketentuan',
+            'mengatur tentang': 'mengatur tentang mengatur mengenai mengatur terkait',
             'penyidik': 'penyidik investigator penyelidik',
             'pegawai negeri sipil': 'pegawai negeri sipil pns aparatur sipil negara asn',
             'pemerintah daerah': 'pemerintah daerah pemda daerah otonom',
@@ -336,7 +387,9 @@ Jawaban:"""
             'ayat': 'ayat pasal butir',
             'berwenang': 'berwenang kewenangan wewenang hak tugas',
             'penyidik pejabat': 'penyidik pejabat penyidik pegawai negeri sipil',
-            'di lingkungan': 'di lingkungan dalam lingkungan pada lingkungan'
+            'di lingkungan': 'di lingkungan dalam lingkungan pada lingkungan',
+            'undang-undang': 'undang-undang uu peraturan hukum',
+            'hukum': 'hukum undang-undang peraturan ketentuan'
         }
         
         expanded_query = query.lower()
