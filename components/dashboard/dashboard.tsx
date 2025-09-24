@@ -607,29 +607,19 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     if (!token) return;
     
     try {
-      console.log('🔍 FETCHING KNOWLEDGE BASE...');
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/knowledge-base`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      console.log('📡 API Response status:', response.status);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 API Response data:', data);
-        console.log('📋 Documents count from API:', data.documents?.length || 0);
         setKnowledgeBase(data.documents || []);
-        console.log('✅ Knowledge Base updated with', data.documents?.length || 0, 'documents');
       } else {
-        console.log('❌ API Error:', response.status, response.statusText);
-        // Silent error handling
         setKnowledgeBase([]);
       }
     } catch (error) {
-      console.log('💥 Fetch error:', error);
-      // Silent error handling
       setKnowledgeBase([]);
     }
   };
@@ -911,7 +901,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     setBulkUploadStatus('Memindai folder...');
     
     try {
-      // Get documents directly from folder without affecting the main documents state
+      // Get documents directly from folder
       const requestBody = { folder_url: folderUrl.trim() };
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
@@ -923,7 +913,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         },
         body: JSON.stringify(requestBody),
       });
-
+  
       if (!response.ok) {
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
@@ -935,7 +925,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         setIsBulkUploading(false);
         return;
       }
-
+  
       const allDocuments = await response.json();
       
       if (!allDocuments || allDocuments.length === 0) {
@@ -959,18 +949,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       setBulkUploadStatus(`Ditemukan ${supportedFiles.length} file yang didukung. Memulai upload...`);
       setBulkUploadProgress({ current: 0, total: supportedFiles.length, percentage: 0 });
       
-      // Process in batches of 100
-      const batchSize = 100;
-      const batches = [];
-      for (let i = 0; i < supportedFiles.length; i += batchSize) {
-        batches.push(supportedFiles.slice(i, i + batchSize));
-      }
+      // Process files one by one for better progress tracking
+      let processedCount = 0;
       
-      let totalProcessed = 0;
-      
-      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-        const batch = batches[batchIndex];
-        setBulkUploadStatus(`Memproses batch ${batchIndex + 1}/${batches.length} (${batch.length} file)...`);
+      for (let i = 0; i < supportedFiles.length; i++) {
+        const file = supportedFiles[i];
+        setBulkUploadStatus(`Memproses file ${i + 1}/${supportedFiles.length}: ${file.name}`);
         
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
@@ -980,38 +964,31 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               'X-Google-Token': token,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ document_ids: batch.map((doc: any) => doc.id) }),
+            body: JSON.stringify({ document_ids: [file.id] }),
           });
           
-          if (!response.ok) {
-            throw new Error(`Batch ${batchIndex + 1} failed: ${response.status}`);
+          if (response.ok) {
+            processedCount++;
           }
           
-          const result = await response.json();
-          totalProcessed += result.processed_count || batch.length;
-          
           // Update progress
-          const currentProgress = totalProcessed;
-          const percentage = Math.round((currentProgress / supportedFiles.length) * 100);
+          const percentage = Math.round(((i + 1) / supportedFiles.length) * 100);
           setBulkUploadProgress({ 
-            current: currentProgress, 
+            current: i + 1, 
             total: supportedFiles.length, 
             percentage 
           });
           
-          // Small delay between batches to prevent overwhelming the server
-          if (batchIndex < batches.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
+          // Small delay between files to prevent overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 500));
           
         } catch (error) {
-          console.error(`Error processing batch ${batchIndex + 1}:`, error);
-          setBulkUploadStatus(`Error pada batch ${batchIndex + 1}, melanjutkan...`);
+          console.error(`Error processing file ${file.name}:`, error);
         }
       }
       
       setBulkUploadStatus('Upload selesai! Memuat ulang data...');
-      setMessage(`Bulk upload selesai! ${totalProcessed} dari ${supportedFiles.length} dokumen berhasil diupload.`);
+      setMessage(`Bulk upload selesai! ${processedCount} dari ${supportedFiles.length} dokumen berhasil diupload.`);
       
       // Refresh data
       fetchDocuments();
@@ -1030,29 +1007,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Clear all documents from knowledge base
   const handleClearAllDocuments = async () => {
-    console.log('🔄 CLEAR ALL FUNCTION CALLED');
-    console.log('🔑 Token available:', !!token);
-    console.log('📊 Knowledge Base length:', knowledgeBase.length);
-    
     if (!token) {
-      console.log('❌ No token available');
       setMessage('Token tidak tersedia. Silakan login ulang.');
       return;
     }
     
     if (knowledgeBase.length === 0) {
-      console.log('❌ Knowledge base already empty');
       setMessage('Knowledge base sudah kosong.');
       return;
     }
     
     // Confirm before clearing
-    console.log('❓ Showing confirmation dialog');
     const confirmed = confirm(`Apakah Anda yakin ingin RESET LLM DATA? Ini akan menghapus semua ${knowledgeBase.length} dokumen dan LLM tidak akan bisa menjawab pertanyaan apapun. Tindakan ini tidak dapat dibatalkan.`);
-    console.log('✅ Confirmation result:', confirmed);
     
     if (!confirmed) {
-      console.log('❌ User cancelled clear operation');
       return;
     }
     
@@ -1066,13 +1034,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     setKnowledgeBase([]);
     
     try {
-      console.log('🚀 ENTERING TRY BLOCK - SENDING CLEAR ALL REQUEST TO BACKEND...');
-      console.log('🔗 BACKEND URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-      console.log('🔗 FULL URL:', `${process.env.NEXT_PUBLIC_BACKEND_URL}/clear-all-documents`);
-      console.log('🔑 Token:', token ? 'Present' : 'Missing');
-      console.log('🔑 Token length:', token ? token.length : 0);
-      console.log('🔑 Token preview:', token ? token.substring(0, 20) + '...' : 'None');
-      
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/clear-all-documents`, {
         method: 'DELETE',
         headers: {
@@ -1081,78 +1042,20 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           'Content-Type': 'application/json',
         },
       });
-      
-      console.log('📡 CLEAR ALL RESPONSE STATUS:', response.status);
-      console.log('📡 CLEAR ALL RESPONSE OK:', response.ok);
-      console.log('📡 CLEAR ALL RESPONSE HEADERS:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ RESPONSE ERROR TEXT:', errorText);
-        throw new Error(`Failed to clear documents: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to clear documents: ${response.status}`);
       }
       
       const result = await response.json();
-      console.log('📊 CLEAR ALL RESPONSE DATA:', result);
-      console.log('📊 CLEARED COUNT:', result.cleared_count);
-      console.log('📊 TOTAL CHUNKS REMOVED:', result.total_chunks_removed);
-      console.log('📊 LLM STATUS:', result.llm_status);
-      
       setMessage(`LLM data berhasil direset! ${result.cleared_count || documentsCount} dokumen dihapus. LLM sekarang tidak bisa menjawab pertanyaan apapun.`);
       
-      // Debug: Check what's happening with refresh
-      console.log('Before refresh - Knowledge Base length:', knowledgeBase.length);
-      
-      // Force refresh all data
+      // Clear display and refresh data
+      setKnowledgeBase([]);
       fetchDocuments();
       fetchKnowledgeBase();
       
-      // Debug: Check after immediate refresh
-      setTimeout(() => {
-        console.log('After immediate refresh - Knowledge Base length:', knowledgeBase.length);
-      }, 500);
-      
-      // Force clear display and prevent refresh for 10 seconds
-      setKnowledgeBase([]);
-      
-      // Multiple refresh attempts with increasing delays
-      setTimeout(() => {
-        console.log('FIRST REFRESH - Before:', knowledgeBase.length);
-        setKnowledgeBase([]);
-        fetchKnowledgeBase();
-        fetchDocuments();
-        console.log('FIRST REFRESH - Force cleared display');
-      }, 2000);
-      
-      setTimeout(() => {
-        console.log('SECOND REFRESH - Before:', knowledgeBase.length);
-        setKnowledgeBase([]);
-        fetchKnowledgeBase();
-        fetchDocuments();
-        console.log('SECOND REFRESH - Force cleared display');
-      }, 5000);
-      
-      setTimeout(() => {
-        console.log('FINAL REFRESH - Before:', knowledgeBase.length);
-        setKnowledgeBase([]);
-        fetchKnowledgeBase();
-        fetchDocuments();
-        console.log('FINAL REFRESH - Force cleared display');
-        
-        // Final check and force clear if needed
-        setTimeout(() => {
-          console.log('FINAL CHECK - Knowledge Base length:', knowledgeBase.length);
-          console.log('FINAL CHECK - Force clearing display regardless of state');
-          setKnowledgeBase([]);
-          console.log('FINAL CHECK - Knowledge Base display cleared');
-        }, 1000);
-      }, 8000);
-      
     } catch (error) {
-      console.error('💥 CLEAR ALL ERROR:', error);
-      console.error('💥 ERROR TYPE:', typeof error);
-      console.error('💥 ERROR MESSAGE:', error instanceof Error ? error.message : String(error));
-      console.error('💥 ERROR STACK:', error instanceof Error ? error.stack : 'No stack trace');
       setMessage(`Gagal menghapus dokumen: ${error instanceof Error ? error.message : String(error)}. Periksa koneksi dan coba lagi.`);
     } finally {
       setIsLoading(false);
@@ -1886,13 +1789,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                 {isLoadingFolder ? '⏳ Loading...' : '🔍 Buka Folder'}
                                             </Button>
                                             
-                                            <Button
-                                                onClick={handleBulkUploadFromFolder}
-                                                disabled={isBulkUploading || !folderUrl.trim()}
-                                                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                                            >
-                                                {isBulkUploading ? '⏳ Uploading...' : '📁 Upload Semua File'}
-                                            </Button>
+                            <Button
+                                onClick={handleBulkUploadFromFolder}
+                                disabled={isBulkUploading || !folderUrl.trim()}
+                                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                            >
+                                {isBulkUploading ? '⏳ Uploading...' : '📁 Upload Semua File'}
+                            </Button>
                                         </div>
                                     </div>
                                     
@@ -1914,28 +1817,28 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                     {/* Bulk Upload Progress */}
                     {isBulkUploading && (
                         <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 mb-4 border border-white/50 shadow-lg">
-                            <div className="space-y-4">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center">
-                                        <span className="text-white text-lg">📁</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-green-800">Bulk Upload Progress</h3>
-                                        <p className="text-sm text-green-600">{bulkUploadStatus}</p>
-                                    </div>
-                                </div>
+                    <div className="space-y-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
+                                <span className="text-white text-lg">📁</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-red-800">Bulk Upload Progress</h3>
+                                <p className="text-sm text-red-600">{bulkUploadStatus}</p>
+                            </div>
+                        </div>
                                 
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm text-gray-700">
                                         <span>Progress: {bulkUploadProgress.current} / {bulkUploadProgress.total}</span>
                                         <span>{bulkUploadProgress.percentage}%</span>
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-3">
-                                        <div 
-                                            className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-300"
-                                            style={{ width: `${bulkUploadProgress.percentage}%` }}
-                                        ></div>
-                                    </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div 
+                                className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-300"
+                                style={{ width: `${bulkUploadProgress.percentage}%` }}
+                            ></div>
+                        </div>
                                 </div>
                             </div>
                         </div>
@@ -2103,7 +2006,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                                                         Click to open all documents
                                                                     </p>
                                                                     <p className="text-xs text-red-600 font-bold">
-                                                                        DEBUG: ID={folder.id}
                                                                     </p>
                                                                 </div>
                                                                 <div 
@@ -2232,55 +2134,15 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                         </div>
                         <div className="knowledge-actions">
                             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                                <Button
-                                    onClick={async () => {
-                                        if (!token) return;
-                                        try {
-                                            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/debug/knowledge-base`, {
-                                                headers: { 'Authorization': `Bearer ${token}` }
-                                            });
-                                            const data = await response.json();
-                                            alert(`Debug Info:\nTotal chunks: ${data.document_count}\nUnique docs: ${data.unique_document_count}\nCollection: ${data.collection_name}`);
-                                        } catch (error) {
-                                            // Silent error handling
-                                        }
-                                    }}
-                                    className="knowledge-button"
-                                >
-                                    🔍 Debug
-                                </Button>
                                 
                                 <Button
-                                    onClick={() => {
-                                        console.log('🖱️ RESET BUTTON CLICKED');
-                                        console.log('🖱️ Button disabled:', knowledgeBase.length === 0 || isLoading);
-                                        console.log('🖱️ Knowledge Base length:', knowledgeBase.length);
-                                        console.log('🖱️ Is Loading:', isLoading);
-                                        handleClearAllDocuments();
-                                    }}
+                                    onClick={handleClearAllDocuments}
                                     disabled={knowledgeBase.length === 0 || isLoading}
                                     className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
                                 >
                                     {isLoading ? '⏳ Resetting...' : '🔄 Reset LLM Data'}
                                 </Button>
                                 
-                                <Button
-                                    onClick={async () => {
-                                        if (!token) return;
-                                        try {
-                                            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/debug/clear-status`, {
-                                                headers: { 'Authorization': `Bearer ${token}` }
-                                            });
-                                            const data = await response.json();
-                                            alert(`Clear Status:\nTotal chunks: ${data.total_chunks}\nUnique docs: ${data.unique_documents}\nIs empty: ${data.is_empty}\nSample IDs: ${data.sample_chunk_ids.join(', ')}`);
-                                        } catch (error) {
-                                            alert('Error checking clear status');
-                                        }
-                                    }}
-                                    className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                >
-                                    🔍 Check
-                                </Button>
                             </div>
                             
                             <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">

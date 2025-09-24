@@ -644,37 +644,6 @@ async def get_database_stats(current_user = Depends(get_current_user)):
         logger.error(f"Error getting database stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/debug/clear-status")
-async def debug_clear_status(current_user = Depends(get_current_user)):
-    """Debug endpoint to check if clear operation worked"""
-    try:
-        collection = rag_pipeline._get_user_collection(current_user['id'])
-        all_docs = collection.get()
-        
-        # Count unique documents
-        unique_docs = set()
-        if all_docs['metadatas']:
-            for meta in all_docs['metadatas']:
-                if 'document_id' in meta:
-                    unique_docs.add(meta['document_id'])
-        
-        return {
-            "user_id": current_user['id'],
-            "total_chunks": len(all_docs.get('ids', [])),
-            "unique_documents": len(unique_docs),
-            "is_empty": len(all_docs.get('ids', [])) == 0,
-            "sample_chunk_ids": all_docs.get('ids', [])[:5],
-            "collection_name": f"user_{current_user['id']}",
-            "status": "empty" if len(all_docs.get('ids', [])) == 0 else "not_empty"
-        }
-    except Exception as e:
-        logger.error(f"Error checking clear status: {e}")
-        return {"error": str(e)}
-
-@app.get("/debug/test")
-async def debug_test():
-    """Simple test endpoint to check if backend is running"""
-    return {"message": "Backend is running!", "timestamp": "2024-01-01T00:00:00Z"}
 
 
 @app.get("/auth-status")
@@ -869,51 +838,6 @@ async def test_drive_api_direct(
         logger.error(f"Drive API test error: {e}")
         return {"error": str(e)}
 
-@app.get("/debug/knowledge-base")
-async def debug_knowledge_base(current_user = Depends(get_current_user)):
-    """Debug endpoint to check what's in the knowledge base"""
-    try:
-        user_id = current_user['id']
-        collection = rag_pipeline._get_user_collection(user_id)
-        
-        # Get basic collection info
-        count = collection.count()
-        
-        result = {
-            "user_id": user_id,
-            "document_count": count,
-            "collection_name": f"user_{user_id}"
-        }
-        
-        # If there are documents, get some sample data
-        if count > 0:
-            # Get all documents (up to 10 for debugging)
-            all_docs = collection.get(limit=10)
-            result["sample_documents"] = {
-                "ids": all_docs.get('ids', [])[:5],  # First 5 IDs
-                "metadatas": all_docs.get('metadatas', [])[:5],  # First 5 metadata
-                "documents_preview": [doc[:100] + "..." if len(doc) > 100 else doc 
-                                    for doc in (all_docs.get('documents', [])[:3])]  # First 3 doc previews
-            }
-            
-            # Get unique document IDs from ALL documents, not just limited ones
-            all_docs_full = collection.get()
-            unique_doc_ids = set()
-            for metadata in all_docs_full.get('metadatas', []):
-                if metadata and 'document_id' in metadata:
-                    unique_doc_ids.add(metadata['document_id'])
-            
-            result["unique_document_ids"] = list(unique_doc_ids)
-            result["unique_document_count"] = len(unique_doc_ids)
-        else:
-            result["unique_document_ids"] = []
-            result["unique_document_count"] = 0
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Debug knowledge base error: {e}")
-        return {"error": str(e)}
 
 @app.get("/knowledge-base")
 async def get_knowledge_base_documents(current_user = Depends(get_current_user)):
