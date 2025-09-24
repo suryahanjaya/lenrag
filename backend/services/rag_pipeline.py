@@ -290,20 +290,6 @@ class RAGPipeline:
             logger.error(f"Error removing document {document_id}: {e}")
             raise
     
-    async def rechunk_document(self, user_id: str, document_id: str, content: str, document_name: str = None, mime_type: str = None):
-        """Re-chunk a document with current configuration"""
-        try:
-            # First remove existing chunks
-            await self.remove_document(user_id, document_id)
-            
-            # Then add with new chunking configuration
-            await self.add_document(user_id, document_id, content, document_name, mime_type)
-            
-            logger.info(f"Re-chunked document {document_id} with new configuration")
-            
-        except Exception as e:
-            logger.error(f"Error re-chunking document {document_id}: {e}")
-            raise
     
     async def query(self, user_id: str, query: str, use_fallback: bool = False) -> Dict[str, Any]:
         """Query the RAG system"""

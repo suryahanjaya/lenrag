@@ -23,7 +23,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [chatMessage, setChatMessage] = useState('');
   
   // Bulk upload states
-  const [isBulkUploadMode, setIsBulkUploadMode] = useState(false);
   const [bulkUploadProgress, setBulkUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkUploadStatus, setBulkUploadStatus] = useState('');
@@ -951,6 +950,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       // Process files one by one for better progress tracking
       let processedCount = 0;
+      let failedFiles = [];
       
       for (let i = 0; i < supportedFiles.length; i++) {
         const file = supportedFiles[i];
@@ -968,7 +968,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           });
           
           if (response.ok) {
+            const result = await response.json();
+            console.log(`✅ File ${file.name} uploaded successfully:`, result);
             processedCount++;
+          } else {
+            const errorText = await response.text();
+            console.error(`❌ File ${file.name} failed:`, response.status, errorText);
+            failedFiles.push({ name: file.name, error: `${response.status}: ${errorText}` });
           }
           
           // Update progress
@@ -983,8 +989,15 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           await new Promise(resolve => setTimeout(resolve, 500));
           
         } catch (error) {
-          console.error(`Error processing file ${file.name}:`, error);
+          console.error(`💥 Error processing file ${file.name}:`, error);
+          failedFiles.push({ name: file.name, error: error instanceof Error ? error.message : String(error) });
         }
+      }
+      
+      // Log failed files
+      if (failedFiles.length > 0) {
+        console.error('❌ Failed files:', failedFiles);
+        setMessage(`Bulk upload selesai! ${processedCount} berhasil, ${failedFiles.length} gagal. File yang gagal: ${failedFiles.map(f => f.name).join(', ')}`);
       }
       
       setBulkUploadStatus('Upload selesai! Memuat ulang data...');

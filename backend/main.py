@@ -264,59 +264,6 @@ async def get_all_documents_from_folder(
         logger.error(f"Error details: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-@app.get("/documents/hierarchy")
-async def get_documents_hierarchy(
-    x_google_token: Optional[str] = Header(None),
-    current_user = Depends(get_current_user)
-):
-    """Fetch Google Drive documents and folders with hierarchy structure"""
-    try:
-        # Try to get access token from Supabase first
-        access_token = await supabase_client.get_user_google_token(current_user['id'])
-        
-        # If no token in Supabase (development mode), use token from header
-        if not access_token:
-            access_token = x_google_token
-            
-        if not access_token:
-            raise HTTPException(
-                status_code=400, 
-                detail="Google access token not found. Please ensure you're properly authenticated with Google."
-            )
-        
-        logger.info(f"Attempting to fetch folder hierarchy with token: {access_token[:20]}...")
-        
-        # Fetch folder hierarchy from Google Drive
-        try:
-            hierarchy = await google_docs_service.get_folder_hierarchy(access_token)
-            logger.info(f"Successfully fetched hierarchy: {len(hierarchy['folders'])} folders, {len(hierarchy['documents'])} documents")
-            return hierarchy
-        except Exception as api_error:
-            logger.error(f"Google API error: {api_error}")
-            
-            # If it's an auth error, provide clear instructions
-            if "401" in str(api_error) or "invalid" in str(api_error).lower():
-                raise HTTPException(
-                    status_code=401,
-                    detail="Google access token is invalid or expired. Please sign out and sign in again with Google."
-                )
-            elif "403" in str(api_error) or "permission" in str(api_error).lower():
-                raise HTTPException(
-                    status_code=403,
-                    detail="Insufficient permissions. Please re-authenticate and grant access to Google Drive."
-                )
-            else:
-                # For other errors, return the actual error to help debug
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to fetch Google Drive hierarchy: {str(api_error)}"
-                )
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error fetching folder hierarchy: {e}")
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.post("/documents/add")
 async def add_documents_to_knowledge_base(
@@ -338,25 +285,33 @@ async def add_documents_to_knowledge_base(
         
         # Process documents and add to vector store
         processed_count = 0
+        failed_documents = []
+        
+        logger.info(f"📁 BULK UPLOAD: Processing {len(request.document_ids)} documents for user {current_user['id']}")
+        
         for doc_id in request.document_ids:
             try:
-                logger.info(f"Processing document {doc_id}")
+                logger.info(f"📄 Processing document {doc_id}")
                 
                 # Get document metadata first
                 documents = await google_docs_service.list_documents(access_token)
                 doc_metadata = next((doc for doc in documents if doc['id'] == doc_id), None)
                 
                 if not doc_metadata:
-                    logger.warning(f"Document {doc_id} not found in user's documents")
+                    logger.warning(f"⚠️ Document {doc_id} not found in user's documents")
+                    failed_documents.append({id: doc_id, error: "Not found in user's documents"})
                     continue
+                
+                logger.info(f"📄 Document {doc_id}: {doc_metadata.get('name', 'Unknown')}")
                 
                 # Get document content (this will automatically detect the MIME type)
                 content = await google_docs_service.get_document_content(access_token, doc_id)
                 
-                logger.info(f"Extracted content length: {len(content)} characters")
+                logger.info(f"📄 Extracted content length: {len(content)} characters")
                 
                 if not content or len(content.strip()) < 10:
-                    logger.warning(f"Document {doc_id} has very little content: '{content[:50]}...'")
+                    logger.warning(f"⚠️ Document {doc_id} has very little content: '{content[:50]}...'")
+                    failed_documents.append({id: doc_id, error: "Very little content"})
                     continue
                 
                 # Add to RAG pipeline with metadata
@@ -368,15 +323,21 @@ async def add_documents_to_knowledge_base(
                     mime_type=doc_metadata.get('mime_type', 'unknown')
                 )
                 
-                logger.info(f"Successfully added document {doc_id} to knowledge base")
+                logger.info(f"✅ Successfully added document {doc_id} to knowledge base")
                 processed_count += 1
             except Exception as e:
-                logger.error(f"Failed to process document {doc_id}: {e}", exc_info=True)
+                logger.error(f"❌ Failed to process document {doc_id}: {e}", exc_info=True)
+                failed_documents.append({id: doc_id, error: str(e)})
+        
+        logger.info(f"📊 BULK UPLOAD RESULT: {processed_count} successful, {len(failed_documents)} failed")
+        if failed_documents:
+            logger.error(f"❌ Failed documents: {failed_documents}")
         
         return {
             "message": f"Successfully added {processed_count} documents to knowledge base",
             "processed_count": processed_count,
-            "total_requested": len(request.document_ids)
+            "total_requested": len(request.document_ids),
+            "failed_documents": failed_documents
         }
     
     except Exception as e:
@@ -579,40 +540,6 @@ async def clear_all_documents(
         print(f"💥 ERROR STRING: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/documents/{document_id}/rechunk")
-async def rechunk_document(
-    document_id: str,
-    current_user = Depends(get_current_user)
-):
-    """Re-chunk a document with current configuration"""
-    try:
-        # Get document content from Google Drive
-        access_token = await supabase_client.get_user_google_token(current_user['id'])
-        if not access_token:
-            raise HTTPException(status_code=401, detail="No Google access token found")
-        
-        # Get document content
-        doc_content = await google_docs_service.get_document_content(document_id, access_token)
-        if not doc_content:
-            raise HTTPException(status_code=404, detail="Document not found or empty")
-        
-        # Get document metadata
-        doc_metadata = await google_docs_service.get_document_metadata(document_id, access_token)
-        doc_name = doc_metadata.get('title', f'Document {document_id}')
-        
-        # Re-chunk the document
-        await rag_pipeline.rechunk_document(
-            current_user['id'], 
-            document_id, 
-            doc_content, 
-            doc_name, 
-            'application/pdf'
-        )
-        
-        return {"message": "Document re-chunked successfully"}
-    except Exception as e:
-        logger.error(f"Error re-chunking document: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():
