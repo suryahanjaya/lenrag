@@ -437,13 +437,12 @@ async def clear_all_documents(
 ):
     """Clear all documents from the user's knowledge base"""
     try:
-        # Get all documents in the knowledge base
-        collection = rag_pipeline._get_user_collection(current_user['id'])
+        user_id = current_user['id']
+        collection_name = f"user_{user_id}"
         
-        # Get all document IDs
+        # Count documents before clearing
+        collection = rag_pipeline._get_user_collection(user_id)
         all_docs = collection.get()
-        logger.info(f"Before clear - Total chunks: {len(all_docs.get('ids', []))}")
-        logger.info(f"Before clear - Sample IDs: {all_docs.get('ids', [])[:5]}")
         
         if not all_docs['ids']:
             return {"message": "Knowledge base is already empty", "cleared_count": 0}
@@ -455,18 +454,32 @@ async def clear_all_documents(
                 if 'document_id' in meta:
                     unique_docs.add(meta['document_id'])
         
-        logger.info(f"Before clear - Unique documents: {len(unique_docs)}")
-        logger.info(f"Before clear - Document IDs: {list(unique_docs)}")
+        logger.info(f"Clearing {len(unique_docs)} unique documents for user {user_id}")
         
-        # Clear the entire collection by deleting all IDs (same approach as remove_document)
-        collection.delete(ids=all_docs['ids'])
+        # Method: Delete entire collection and recreate (most reliable)
+        try:
+            # Delete the entire collection
+            rag_pipeline.chroma_client.delete_collection(collection_name)
+            logger.info(f"Deleted collection: {collection_name}")
+            
+            # Recreate empty collection
+            rag_pipeline.chroma_client.create_collection(
+                collection_name,
+                metadata={"hnsw:space": "cosine"}
+            )
+            logger.info(f"Recreated empty collection: {collection_name}")
+            
+        except Exception as e:
+            logger.error(f"Error deleting/recreating collection: {e}")
+            # Fallback: try to delete all documents by ID
+            try:
+                collection.delete(ids=all_docs['ids'])
+                logger.info(f"Fallback: Deleted {len(all_docs['ids'])} chunks by ID")
+            except Exception as fallback_error:
+                logger.error(f"Fallback deletion failed: {fallback_error}")
+                raise HTTPException(status_code=500, detail="Failed to clear documents")
         
-        # Verify deletion
-        verify_docs = collection.get()
-        logger.info(f"After clear - Total chunks: {len(verify_docs.get('ids', []))}")
-        logger.info(f"After clear - Sample IDs: {verify_docs.get('ids', [])[:5]}")
-        
-        logger.info(f"Cleared all documents for user {current_user['id']}. Removed {len(unique_docs)} unique documents and {len(all_docs['ids'])} total chunks.")
+        logger.info(f"Successfully cleared all documents for user {user_id}")
         
         return {
             "message": f"Successfully cleared all documents from knowledge base",
@@ -541,6 +554,7 @@ async def get_database_stats(current_user = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Error getting database stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/auth-status")
 async def check_auth_status():
