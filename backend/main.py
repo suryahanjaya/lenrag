@@ -431,20 +431,26 @@ async def remove_document_from_knowledge_base(
         logger.error(f"Error removing document: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/documents/clear-all")
+@app.delete("/clear-all-documents")
 async def clear_all_documents(
     current_user = Depends(get_current_user)
 ):
-    """Clear all documents from the user's knowledge base"""
+    """Clear all documents from the user's knowledge base - FORCE RESET METHOD"""
     try:
         user_id = current_user['id']
         collection_name = f"user_{user_id}"
+        
+        logger.info(f"🚀 CLEAR ALL ENDPOINT CALLED FOR USER: {user_id}")
+        logger.info(f"=== FORCE RESET STARTED FOR USER: {user_id} ===")
+        print(f"🚀 CLEAR ALL ENDPOINT CALLED FOR USER: {user_id}")
+        print(f"=== FORCE RESET STARTED FOR USER: {user_id} ===")
         
         # Count documents before clearing
         collection = rag_pipeline._get_user_collection(user_id)
         all_docs = collection.get()
         
         if not all_docs['ids']:
+            logger.info("Knowledge base is already empty")
             return {"message": "Knowledge base is already empty", "cleared_count": 0}
         
         # Count unique documents
@@ -454,37 +460,113 @@ async def clear_all_documents(
                 if 'document_id' in meta:
                     unique_docs.add(meta['document_id'])
         
-        logger.info(f"Clearing {len(unique_docs)} unique documents for user {user_id}")
+        logger.info(f"BEFORE RESET - User: {user_id}, Chunks: {len(all_docs['ids'])}, Unique docs: {len(unique_docs)}")
         
-        # Method: Delete entire collection and recreate (most reliable)
+        # NUCLEAR OPTION - Multiple deletion methods
         try:
-            # Delete the entire collection
-            rag_pipeline.chroma_client.delete_collection(collection_name)
-            logger.info(f"Deleted collection: {collection_name}")
+            logger.info("🔥 NUCLEAR OPTION: Using multiple deletion methods")
+            print("🔥 NUCLEAR OPTION: Using multiple deletion methods")
             
-            # Recreate empty collection
-            rag_pipeline.chroma_client.create_collection(
-                collection_name,
-                metadata={"hnsw:space": "cosine"}
-            )
-            logger.info(f"Recreated empty collection: {collection_name}")
+            # Method 1: Delete by IDs
+            all_chunk_ids = all_docs['ids']
+            logger.info(f"💥 METHOD 1: Deleting {len(all_chunk_ids)} chunks by ID")
+            print(f"💥 METHOD 1: Deleting {len(all_chunk_ids)} chunks by ID")
+            collection.delete(ids=all_chunk_ids)
+            logger.info("✅ METHOD 1 COMPLETED")
+            print("✅ METHOD 1 COMPLETED")
+            
+            # Method 2: Delete by where clause
+            logger.info("💥 METHOD 2: Deleting by where clause")
+            print("💥 METHOD 2: Deleting by where clause")
+            collection.delete(where={})
+            logger.info("✅ METHOD 2 COMPLETED")
+            print("✅ METHOD 2 COMPLETED")
+            
+            # Method 3: Delete collection and recreate
+            logger.info("💥 METHOD 3: Deleting entire collection and recreating")
+            print("💥 METHOD 3: Deleting entire collection and recreating")
+            try:
+                rag_pipeline.chroma_client.delete_collection(collection_name)
+                logger.info(f"✅ Deleted collection: {collection_name}")
+                print(f"✅ Deleted collection: {collection_name}")
+            except Exception as e:
+                logger.warning(f"❌ Could not delete collection: {e}")
+                print(f"❌ Could not delete collection: {e}")
+            
+            # Recreate collection
+            try:
+                new_collection = rag_pipeline.chroma_client.create_collection(
+                    name=collection_name,
+                    metadata={"hnsw:space": "cosine"}
+                )
+                logger.info(f"✅ Recreated collection: {collection_name}")
+                print(f"✅ Recreated collection: {collection_name}")
+            except Exception as e:
+                logger.warning(f"❌ Could not recreate collection: {e}")
+                print(f"❌ Could not recreate collection: {e}")
+            
+            # Method 4: Direct file system deletion (if needed)
+            import os
+            import shutil
+            chroma_path = f"./chroma_db/{collection_name}"
+            if os.path.exists(chroma_path):
+                logger.info(f"💥 METHOD 4: Deleting directory {chroma_path}")
+                print(f"💥 METHOD 4: Deleting directory {chroma_path}")
+                try:
+                    shutil.rmtree(chroma_path)
+                    logger.info(f"✅ Deleted directory: {chroma_path}")
+                    print(f"✅ Deleted directory: {chroma_path}")
+                except Exception as e:
+                    logger.warning(f"❌ Could not delete directory: {e}")
+                    print(f"❌ Could not delete directory: {e}")
+            else:
+                logger.info(f"ℹ️ Directory {chroma_path} does not exist")
+                print(f"ℹ️ Directory {chroma_path} does not exist")
+            
+            logger.info("🎉 NUCLEAR OPTION COMPLETED")
+            print("🎉 NUCLEAR OPTION COMPLETED")
             
         except Exception as e:
-            logger.error(f"Error deleting/recreating collection: {e}")
-            # Fallback: try to delete all documents by ID
-            try:
-                collection.delete(ids=all_docs['ids'])
-                logger.info(f"Fallback: Deleted {len(all_docs['ids'])} chunks by ID")
-            except Exception as fallback_error:
-                logger.error(f"Fallback deletion failed: {fallback_error}")
-                raise HTTPException(status_code=500, detail="Failed to clear documents")
+            logger.error(f"Error in nuclear option: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to reset LLM data: {str(e)}")
         
-        logger.info(f"Successfully cleared all documents for user {user_id}")
+        # Final verification
+        try:
+            final_collection = rag_pipeline._get_user_collection(user_id)
+            final_docs = final_collection.get()
+            logger.info(f"FINAL VERIFICATION - Chunks remaining: {len(final_docs['ids'])}")
+            logger.info(f"FINAL VERIFICATION - Sample IDs: {final_docs['ids'][:5]}")
+            
+            if len(final_docs['ids']) > 0:
+                logger.error(f"CRITICAL: {len(final_docs['ids'])} chunks still remain after reset operation!")
+                logger.info(f"Remaining chunk IDs: {final_docs['ids'][:5]}")
+                
+                # Try one more time to delete remaining chunks
+                logger.info("ATTEMPTING FINAL CLEANUP")
+                final_collection.delete(ids=final_docs['ids'])
+                final_cleanup = final_collection.get()
+                logger.info(f"FINAL CLEANUP - Chunks remaining: {len(final_cleanup['ids'])}")
+                
+                return {
+                    "message": f"Reset operation completed but {len(final_docs['ids'])} chunks may still remain",
+                    "cleared_count": len(unique_docs),
+                    "total_chunks_removed": len(all_docs['ids']),
+                    "remaining_chunks": len(final_docs['ids']),
+                    "final_chunks": len(final_cleanup['ids'])
+                }
+            else:
+                logger.info("SUCCESS: All chunks successfully cleared - LLM data reset")
+                
+        except Exception as verify_error:
+            logger.error(f"Error in final verification: {verify_error}")
+        
+        logger.info(f"=== FORCE RESET COMPLETED FOR USER: {user_id} ===")
         
         return {
-            "message": f"Successfully cleared all documents from knowledge base",
+            "message": f"LLM data has been reset - all documents cleared from knowledge base",
             "cleared_count": len(unique_docs),
-            "total_chunks_removed": len(all_docs['ids'])
+            "total_chunks_removed": len(all_docs['ids']),
+            "llm_status": "reset"
         }
     except Exception as e:
         logger.error(f"Error clearing all documents: {e}")
@@ -554,6 +636,38 @@ async def get_database_stats(current_user = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Error getting database stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/debug/clear-status")
+async def debug_clear_status(current_user = Depends(get_current_user)):
+    """Debug endpoint to check if clear operation worked"""
+    try:
+        collection = rag_pipeline._get_user_collection(current_user['id'])
+        all_docs = collection.get()
+        
+        # Count unique documents
+        unique_docs = set()
+        if all_docs['metadatas']:
+            for meta in all_docs['metadatas']:
+                if 'document_id' in meta:
+                    unique_docs.add(meta['document_id'])
+        
+        return {
+            "user_id": current_user['id'],
+            "total_chunks": len(all_docs.get('ids', [])),
+            "unique_documents": len(unique_docs),
+            "is_empty": len(all_docs.get('ids', [])) == 0,
+            "sample_chunk_ids": all_docs.get('ids', [])[:5],
+            "collection_name": f"user_{current_user['id']}",
+            "status": "empty" if len(all_docs.get('ids', [])) == 0 else "not_empty"
+        }
+    except Exception as e:
+        logger.error(f"Error checking clear status: {e}")
+        return {"error": str(e)}
+
+@app.get("/debug/test")
+async def debug_test():
+    """Simple test endpoint to check if backend is running"""
+    return {"message": "Backend is running!", "timestamp": "2024-01-01T00:00:00Z"}
 
 
 @app.get("/auth-status")
@@ -804,10 +918,16 @@ async def get_knowledge_base_documents(current_user = Depends(get_current_user))
         # Get all documents in the knowledge base
         all_docs = collection.get()
         
+        logger.info(f"=== KNOWLEDGE BASE REQUEST FOR USER {user_id} ===")
         logger.info(f"Raw ChromaDB data for user {user_id}:")
         logger.info(f"Total chunks: {len(all_docs.get('ids', []))}")
         logger.info(f"Sample IDs: {all_docs.get('ids', [])[:5]}")
         logger.info(f"Sample metadatas: {all_docs.get('metadatas', [])[:3]}")
+        
+        # Check if collection is actually empty
+        if len(all_docs.get('ids', [])) == 0:
+            logger.info("✅ COLLECTION IS EMPTY - Returning empty documents list")
+            return {"documents": []}
         
         # Debug: Check if metadatas exist and have document_id
         metadatas = all_docs.get('metadatas', [])

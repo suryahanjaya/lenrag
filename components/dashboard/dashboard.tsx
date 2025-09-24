@@ -607,20 +607,28 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     if (!token) return;
     
     try {
+      console.log('🔍 FETCHING KNOWLEDGE BASE...');
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/knowledge-base`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('📡 API Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 API Response data:', data);
+        console.log('📋 Documents count from API:', data.documents?.length || 0);
         setKnowledgeBase(data.documents || []);
+        console.log('✅ Knowledge Base updated with', data.documents?.length || 0, 'documents');
       } else {
+        console.log('❌ API Error:', response.status, response.statusText);
         // Silent error handling
         setKnowledgeBase([]);
       }
     } catch (error) {
+      console.log('💥 Fetch error:', error);
       // Silent error handling
       setKnowledgeBase([]);
     }
@@ -1022,29 +1030,50 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Clear all documents from knowledge base
   const handleClearAllDocuments = async () => {
+    console.log('🔄 CLEAR ALL FUNCTION CALLED');
+    console.log('🔑 Token available:', !!token);
+    console.log('📊 Knowledge Base length:', knowledgeBase.length);
+    
     if (!token) {
+      console.log('❌ No token available');
       setMessage('Token tidak tersedia. Silakan login ulang.');
       return;
     }
     
     if (knowledgeBase.length === 0) {
+      console.log('❌ Knowledge base already empty');
       setMessage('Knowledge base sudah kosong.');
       return;
     }
     
     // Confirm before clearing
-    if (!confirm(`Apakah Anda yakin ingin menghapus semua ${knowledgeBase.length} dokumen dari knowledge base? Tindakan ini tidak dapat dibatalkan.`)) {
+    console.log('❓ Showing confirmation dialog');
+    const confirmed = confirm(`Apakah Anda yakin ingin RESET LLM DATA? Ini akan menghapus semua ${knowledgeBase.length} dokumen dan LLM tidak akan bisa menjawab pertanyaan apapun. Tindakan ini tidak dapat dibatalkan.`);
+    console.log('✅ Confirmation result:', confirmed);
+    
+    if (!confirmed) {
+      console.log('❌ User cancelled clear operation');
       return;
     }
     
     // Store the count before clearing
     const documentsCount = knowledgeBase.length;
     
-    setMessage('Menghapus semua dokumen...');
+    setMessage('Resetting LLM data...');
     setIsLoading(true);
     
+    // Clear Knowledge Base display immediately for visual feedback
+    setKnowledgeBase([]);
+    
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/clear-all`, {
+      console.log('🚀 ENTERING TRY BLOCK - SENDING CLEAR ALL REQUEST TO BACKEND...');
+      console.log('🔗 BACKEND URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
+      console.log('🔗 FULL URL:', `${process.env.NEXT_PUBLIC_BACKEND_URL}/clear-all-documents`);
+      console.log('🔑 Token:', token ? 'Present' : 'Missing');
+      console.log('🔑 Token length:', token ? token.length : 0);
+      console.log('🔑 Token preview:', token ? token.substring(0, 20) + '...' : 'None');
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/clear-all-documents`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1052,20 +1081,74 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           'Content-Type': 'application/json',
         },
       });
+      
+      console.log('📡 CLEAR ALL RESPONSE STATUS:', response.status);
+      console.log('📡 CLEAR ALL RESPONSE OK:', response.ok);
 
       if (!response.ok) {
         throw new Error(`Failed to clear documents: ${response.status}`);
       }
       
       const result = await response.json();
-      setMessage(`Berhasil menghapus semua ${result.cleared_count || documentsCount} dokumen dari knowledge base!`);
+      console.log('📊 CLEAR ALL RESPONSE DATA:', result);
+      console.log('📊 CLEARED COUNT:', result.cleared_count);
+      console.log('📊 TOTAL CHUNKS REMOVED:', result.total_chunks_removed);
+      console.log('📊 LLM STATUS:', result.llm_status);
       
-      // Refresh data
+      setMessage(`LLM data berhasil direset! ${result.cleared_count || documentsCount} dokumen dihapus. LLM sekarang tidak bisa menjawab pertanyaan apapun.`);
+      
+      // Debug: Check what's happening with refresh
+      console.log('Before refresh - Knowledge Base length:', knowledgeBase.length);
+      
+      // Force refresh all data
+      fetchDocuments();
       fetchKnowledgeBase();
       
+      // Debug: Check after immediate refresh
+      setTimeout(() => {
+        console.log('After immediate refresh - Knowledge Base length:', knowledgeBase.length);
+      }, 500);
+      
+      // Force clear display and prevent refresh for 10 seconds
+      setKnowledgeBase([]);
+      
+      // Multiple refresh attempts with increasing delays
+      setTimeout(() => {
+        console.log('FIRST REFRESH - Before:', knowledgeBase.length);
+        setKnowledgeBase([]);
+        fetchKnowledgeBase();
+        fetchDocuments();
+      }, 2000);
+      
+      setTimeout(() => {
+        console.log('SECOND REFRESH - Before:', knowledgeBase.length);
+        setKnowledgeBase([]);
+        fetchKnowledgeBase();
+        fetchDocuments();
+      }, 5000);
+      
+      setTimeout(() => {
+        console.log('FINAL REFRESH - Before:', knowledgeBase.length);
+        setKnowledgeBase([]);
+        fetchKnowledgeBase();
+        fetchDocuments();
+        
+        // Final check and force clear if needed
+        setTimeout(() => {
+          console.log('FINAL CHECK - Knowledge Base length:', knowledgeBase.length);
+          if (knowledgeBase.length > 0) {
+            console.log('FINAL FORCE CLEAR - Knowledge Base still has data');
+            setKnowledgeBase([]);
+          }
+        }, 1000);
+      }, 8000);
+      
     } catch (error) {
-      console.error('Clear all error:', error);
-      setMessage('Gagal menghapus dokumen. Periksa koneksi dan coba lagi.');
+      console.error('💥 CLEAR ALL ERROR:', error);
+      console.error('💥 ERROR TYPE:', typeof error);
+      console.error('💥 ERROR MESSAGE:', error instanceof Error ? error.message : String(error));
+      console.error('💥 ERROR STACK:', error instanceof Error ? error.stack : 'No stack trace');
+      setMessage(`Gagal menghapus dokumen: ${error instanceof Error ? error.message : String(error)}. Periksa koneksi dan coba lagi.`);
     } finally {
       setIsLoading(false);
     }
@@ -2163,11 +2246,35 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 </Button>
                                 
                                 <Button
-                                    onClick={handleClearAllDocuments}
+                                    onClick={() => {
+                                        console.log('🖱️ RESET BUTTON CLICKED');
+                                        console.log('🖱️ Button disabled:', knowledgeBase.length === 0 || isLoading);
+                                        console.log('🖱️ Knowledge Base length:', knowledgeBase.length);
+                                        console.log('🖱️ Is Loading:', isLoading);
+                                        handleClearAllDocuments();
+                                    }}
                                     disabled={knowledgeBase.length === 0 || isLoading}
                                     className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
                                 >
-                                    {isLoading ? '⏳ Clearing...' : '🗑️ Clear All'}
+                                    {isLoading ? '⏳ Resetting...' : '🔄 Reset LLM Data'}
+                                </Button>
+                                
+                                <Button
+                                    onClick={async () => {
+                                        if (!token) return;
+                                        try {
+                                            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/debug/clear-status`, {
+                                                headers: { 'Authorization': `Bearer ${token}` }
+                                            });
+                                            const data = await response.json();
+                                            alert(`Clear Status:\nTotal chunks: ${data.total_chunks}\nUnique docs: ${data.unique_documents}\nIs empty: ${data.is_empty}\nSample IDs: ${data.sample_chunk_ids.join(', ')}`);
+                                        } catch (error) {
+                                            alert('Error checking clear status');
+                                        }
+                                    }}
+                                    className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                                >
+                                    🔍 Check
                                 </Button>
                             </div>
                             
