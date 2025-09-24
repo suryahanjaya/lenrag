@@ -371,6 +371,55 @@
   display: block;
 }
 
+/* Formatted AI Response Styling */
+.formatted-message {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  max-width: 100%;
+}
+
+.formatted-message p {
+  margin-bottom: 1.25rem;
+  color: #374151;
+  text-align: justify;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.formatted-message p:last-child {
+  margin-bottom: 0;
+}
+
+.formatted-message ul {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.formatted-message li {
+  margin-bottom: 0.5rem;
+  color: #374151;
+  line-height: 1.6;
+  text-align: justify;
+  word-wrap: break-word;
+}
+
+.formatted-message li:last-child {
+  margin-bottom: 0;
+}
+
+/* Better paragraph spacing for long text */
+.formatted-message p + p {
+  margin-top: 0.75rem;
+}
+
+/* Source reference styling */
+.formatted-message .source-ref {
+  font-style: italic;
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
 .nav-profile-fallback {
   width: 100%;
   height: 100%;

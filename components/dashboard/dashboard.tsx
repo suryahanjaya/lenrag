@@ -33,6 +33,108 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     };
     setMessage(messages[errorType]);
   };
+
+  // Helper function to format AI response with better structure
+  const formatAIResponse = (content: string) => {
+    // First, try to split by existing paragraph breaks
+    let paragraphs = content.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
+    
+    // If no paragraph breaks exist, try to create them based on sentence patterns
+    if (paragraphs.length === 1 && paragraphs[0].length > 200) {
+      const text = paragraphs[0];
+      
+      // Split by sentences that end with periods followed by capital letters
+      const sentences = text.split(/(?<=\.)\s+(?=[A-Z])/);
+      
+      // Group sentences into paragraphs (3-4 sentences per paragraph)
+      const newParagraphs = [];
+      let currentParagraph = [];
+      
+      for (let i = 0; i < sentences.length; i++) {
+        currentParagraph.push(sentences[i]);
+        
+        // Create new paragraph every 3-4 sentences or at key phrases
+        if (currentParagraph.length >= 3 || 
+            sentences[i].includes('Selain itu') || 
+            sentences[i].includes('Dalam') ||
+            sentences[i].includes('Atas') ||
+            sentences[i].includes('Sumber:') ||
+            sentences[i].includes('Pembukaan') ||
+            sentences[i].includes('Perjuangan') ||
+            sentences[i].includes('Atas berkat')) {
+          newParagraphs.push(currentParagraph.join(' '));
+          currentParagraph = [];
+        }
+      }
+      
+      // Add remaining sentences
+      if (currentParagraph.length > 0) {
+        newParagraphs.push(currentParagraph.join(' '));
+      }
+      
+      paragraphs = newParagraphs;
+    }
+    
+    // Format each paragraph
+    let formatted = paragraphs.map(paragraph => {
+      // Check if paragraph contains bullet points or numbered lists
+      if (paragraph.includes('•') || paragraph.includes('-') || paragraph.includes('*') || /^\d+\./.test(paragraph)) {
+        // Format as list
+        const lines = paragraph.split('\n').filter(line => line.trim());
+        const listItems = lines.map(line => {
+          // Clean up bullet points
+          const cleaned = line
+            .replace(/^[•\-\*]\s*/, '• ')
+            .replace(/^\d+\.\s*/, '• ')
+            .trim();
+          return cleaned;
+        });
+        return listItems.join('\n');
+      }
+      return paragraph;
+    }).join('\n\n');
+
+    // Add proper spacing and formatting
+    formatted = formatted
+      .replace(/\n\n+/g, '\n\n') // Remove excessive line breaks
+      .replace(/^\s+|\s+$/g, ''); // Trim whitespace
+
+    return formatted;
+  };
+
+  // Component to render formatted chat message
+  const renderFormattedMessage = (content: string) => {
+    const paragraphs = content.split('\n\n');
+    
+    return (
+      <div className="formatted-message">
+        {paragraphs.map((paragraph, index) => {
+          // Check if paragraph contains bullet points
+          if (paragraph.includes('•') || paragraph.includes('-') || paragraph.includes('*')) {
+            const lines = paragraph.split('\n').filter(line => line.trim());
+            return (
+              <div key={index} className="mb-4">
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  {lines.map((line, lineIndex) => (
+                    <li key={lineIndex} className="text-gray-700 leading-relaxed">
+                      {line.replace(/^[•\-\*]\s*/, '').trim()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          }
+          
+          // Regular paragraph with better spacing
+          return (
+            <p key={index} className="mb-4 text-gray-700 leading-relaxed text-sm">
+              {paragraph}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
   const [chatHistory, setChatHistory] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -531,7 +633,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           };
           localStorage.setItem(base64CacheKey, JSON.stringify(cacheData));
         } else {
-          setCachedProfilePicture(user.picture);
+          setCachedProfilePicture(user.picture || null);
           setProfilePictureError(false);
         }
       });
@@ -810,7 +912,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       // Add assistant response to chat history
       setChatHistory((prev: Array<{role: 'user' | 'assistant'; content: string; sources?: Array<string | {id: string; name: string; type: string; link?: string;}>; from_documents?: boolean;}>) => [...prev, { 
         role: 'assistant', 
-        content: data.message || 'Tidak ada respons dari AI.',
+        content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
         sources: data.sources || [],
         from_documents: data.from_documents || false
       }]);
@@ -1220,7 +1322,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 {msg.role === 'user' ? '👤' : '🤖'}
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                                {msg.role === 'assistant' ? (
+                                  renderFormattedMessage(msg.content)
+                                ) : (
+                                  <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                                )}
                                 {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
                                   <div className="mt-3 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200">
                                     <p className="font-medium text-gray-800 mb-2">
