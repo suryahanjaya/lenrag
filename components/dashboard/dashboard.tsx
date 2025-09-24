@@ -21,6 +21,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [chatMessage, setChatMessage] = useState('');
+  
+  // Bulk upload states
+  const [isBulkUploadMode, setIsBulkUploadMode] = useState(false);
+  const [bulkUploadProgress, setBulkUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [bulkUploadStatus, setBulkUploadStatus] = useState('');
 
   // Helper function for error messages
   const setErrorMessage = (errorType: 'folder' | 'documents' | 'add' | 'remove' | 'general') => {
@@ -879,6 +885,187 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
           setIsLoading(false);
       }
   };
+
+  // Bulk upload function for folder scanning and batch processing
+  const handleBulkUploadFromFolder = async () => {
+    if (!folderUrl.trim()) {
+      setMessage('Masukkan URL folder terlebih dahulu.');
+      return;
+    }
+    
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      return;
+    }
+    
+    setIsBulkUploading(true);
+    setBulkUploadProgress({ current: 0, total: 0, percentage: 0 });
+    setBulkUploadStatus('Memindai folder...');
+    
+    try {
+      // Get documents directly from folder without affecting the main documents state
+      const requestBody = { folder_url: folderUrl.trim() };
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Google-Token': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setMessage('Sesi telah berakhir. Silakan login ulang.');
+        } else if (response.status === 403) {
+          setMessage('Folder tidak dapat diakses. Pastikan folder sudah di-set public.');
+        } else {
+          setMessage(`Gagal memuat dokumen dari folder: ${response.status}`);
+        }
+        setIsBulkUploading(false);
+        return;
+      }
+
+      const allDocuments = await response.json();
+      
+      if (!allDocuments || allDocuments.length === 0) {
+        setMessage('Tidak ada dokumen yang ditemukan di folder.');
+        setIsBulkUploading(false);
+        return;
+      }
+      
+      // Filter only PDF, DOC, DOCX files
+      const supportedFiles = allDocuments.filter((doc: any) => {
+        const fileName = doc.name.toLowerCase();
+        return fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx');
+      });
+      
+      if (supportedFiles.length === 0) {
+        setMessage('Tidak ada file PDF, DOC, atau DOCX yang ditemukan di folder.');
+        setIsBulkUploading(false);
+        return;
+      }
+      
+      setBulkUploadStatus(`Ditemukan ${supportedFiles.length} file yang didukung. Memulai upload...`);
+      setBulkUploadProgress({ current: 0, total: supportedFiles.length, percentage: 0 });
+      
+      // Process in batches of 100
+      const batchSize = 100;
+      const batches = [];
+      for (let i = 0; i < supportedFiles.length; i += batchSize) {
+        batches.push(supportedFiles.slice(i, i + batchSize));
+      }
+      
+      let totalProcessed = 0;
+      
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        setBulkUploadStatus(`Memproses batch ${batchIndex + 1}/${batches.length} (${batch.length} file)...`);
+        
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'X-Google-Token': token,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ document_ids: batch.map((doc: any) => doc.id) }),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Batch ${batchIndex + 1} failed: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          totalProcessed += result.processed_count || batch.length;
+          
+          // Update progress
+          const currentProgress = totalProcessed;
+          const percentage = Math.round((currentProgress / supportedFiles.length) * 100);
+          setBulkUploadProgress({ 
+            current: currentProgress, 
+            total: supportedFiles.length, 
+            percentage 
+          });
+          
+          // Small delay between batches to prevent overwhelming the server
+          if (batchIndex < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          
+        } catch (error) {
+          console.error(`Error processing batch ${batchIndex + 1}:`, error);
+          setBulkUploadStatus(`Error pada batch ${batchIndex + 1}, melanjutkan...`);
+        }
+      }
+      
+      setBulkUploadStatus('Upload selesai! Memuat ulang data...');
+      setMessage(`Bulk upload selesai! ${totalProcessed} dari ${supportedFiles.length} dokumen berhasil diupload.`);
+      
+      // Refresh data
+      fetchDocuments();
+      setTimeout(() => {
+        fetchKnowledgeBase();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Bulk upload error:', error);
+      setMessage('Gagal melakukan bulk upload. Periksa koneksi dan coba lagi.');
+    } finally {
+      setIsBulkUploading(false);
+      setBulkUploadStatus('');
+    }
+  };
+
+  // Clear all documents from knowledge base
+  const handleClearAllDocuments = async () => {
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      return;
+    }
+    
+    if (knowledgeBase.length === 0) {
+      setMessage('Knowledge base sudah kosong.');
+      return;
+    }
+    
+    // Confirm before clearing
+    if (!confirm(`Apakah Anda yakin ingin menghapus semua ${knowledgeBase.length} dokumen dari knowledge base? Tindakan ini tidak dapat dibatalkan.`)) {
+      return;
+    }
+    
+    setMessage('Menghapus semua dokumen...');
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/clear-all`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Google-Token': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear documents: ${response.status}`);
+      }
+      
+      setMessage(`Berhasil menghapus semua ${knowledgeBase.length} dokumen dari knowledge base!`);
+      
+      // Refresh data
+      fetchKnowledgeBase();
+      
+    } catch (error) {
+      console.error('Clear all error:', error);
+      setMessage('Gagal menghapus dokumen. Periksa koneksi dan coba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
     // Fungsi untuk menghapus dokumen dari knowledge base
     const handleRemoveFromKnowledgeBase = async (docId: string) => {
@@ -1592,19 +1779,29 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             onChange={(e) => setFolderUrl(e.target.value)}
                                             className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg"
                                         />
-                                        <Button
-                                            onClick={() => {
-                                                if (folderUrl.trim()) {
-                                                    fetchAllDocumentsFromFolder(folderUrl.trim());
-                                                } else {
-                                                    setMessage('Masukkan URL folder terlebih dahulu.');
-                                                }
-                                            }}
-                                            disabled={isLoadingFolder || !folderUrl.trim()}
-                                            className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                                        >
-                                            {isLoadingFolder ? '⏳ Loading...' : '🔍 Buka Folder'}
-                                        </Button>
+                                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                                            <Button
+                                                onClick={() => {
+                                                    if (folderUrl.trim()) {
+                                                        fetchAllDocumentsFromFolder(folderUrl.trim());
+                                                    } else {
+                                                        setMessage('Masukkan URL folder terlebih dahulu.');
+                                                    }
+                                                }}
+                                                disabled={isLoadingFolder || !folderUrl.trim()}
+                                                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                                            >
+                                                {isLoadingFolder ? '⏳ Loading...' : '🔍 Buka Folder'}
+                                            </Button>
+                                            
+                                            <Button
+                                                onClick={handleBulkUploadFromFolder}
+                                                disabled={isBulkUploading || !folderUrl.trim()}
+                                                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                                            >
+                                                {isBulkUploading ? '⏳ Uploading...' : '📁 Upload Semua File'}
+                                            </Button>
+                                        </div>
                                     </div>
                                     
                                     <div className="text-xs text-gray-600 bg-red-50/80 p-3 rounded-xl border border-red-200/50">
@@ -1616,6 +1813,36 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                                             <li>Set sharing ke "Anyone with the link can view"</li>
                                             <li>Copy URL yang muncul</li>
                                         </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Bulk Upload Progress */}
+                    {isBulkUploading && (
+                        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 mb-4 border border-white/50 shadow-lg">
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center">
+                                        <span className="text-white text-lg">📁</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-green-800">Bulk Upload Progress</h3>
+                                        <p className="text-sm text-green-600">{bulkUploadStatus}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm text-gray-700">
+                                        <span>Progress: {bulkUploadProgress.current} / {bulkUploadProgress.total}</span>
+                                        <span>{bulkUploadProgress.percentage}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-3">
+                                        <div 
+                                            className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-300"
+                                            style={{ width: `${bulkUploadProgress.percentage}%` }}
+                                        ></div>
                                     </div>
                                 </div>
                             </div>
@@ -1912,23 +2139,34 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                             </div>
                         </div>
                         <div className="knowledge-actions">
-                            <Button
-                                onClick={async () => {
-                                    if (!token) return;
-                                    try {
-                                        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/debug/knowledge-base`, {
-                                            headers: { 'Authorization': `Bearer ${token}` }
-                                        });
-                                        const data = await response.json();
-                                        alert(`Debug Info:\nTotal chunks: ${data.document_count}\nUnique docs: ${data.unique_document_count}\nCollection: ${data.collection_name}`);
-                                    } catch (error) {
-                                        // Silent error handling
-                                    }
-                                }}
-                                className="knowledge-button"
-                            >
-                                🔍 Debug
-                            </Button>
+                            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                                <Button
+                                    onClick={async () => {
+                                        if (!token) return;
+                                        try {
+                                            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/debug/knowledge-base`, {
+                                                headers: { 'Authorization': `Bearer ${token}` }
+                                            });
+                                            const data = await response.json();
+                                            alert(`Debug Info:\nTotal chunks: ${data.document_count}\nUnique docs: ${data.unique_document_count}\nCollection: ${data.collection_name}`);
+                                        } catch (error) {
+                                            // Silent error handling
+                                        }
+                                    }}
+                                    className="knowledge-button"
+                                >
+                                    🔍 Debug
+                                </Button>
+                                
+                                <Button
+                                    onClick={handleClearAllDocuments}
+                                    disabled={knowledgeBase.length === 0 || isLoading}
+                                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                                >
+                                    {isLoading ? '⏳ Clearing...' : '🗑️ Clear All'}
+                                </Button>
+                            </div>
+                            
                             <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">
                                 <span className="text-sm text-white font-semibold">
                                     {knowledgeBase.length} dokumen

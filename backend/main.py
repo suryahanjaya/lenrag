@@ -431,6 +431,41 @@ async def remove_document_from_knowledge_base(
         logger.error(f"Error removing document: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/documents/clear-all")
+async def clear_all_documents(
+    current_user = Depends(get_current_user)
+):
+    """Clear all documents from the user's knowledge base"""
+    try:
+        # Get all documents in the knowledge base
+        collection = rag_pipeline._get_user_collection(current_user['id'])
+        
+        # Get all document IDs
+        all_docs = collection.get()
+        if not all_docs['ids']:
+            return {"message": "Knowledge base is already empty", "cleared_count": 0}
+        
+        # Count unique documents
+        unique_docs = set()
+        if all_docs['metadatas']:
+            for meta in all_docs['metadatas']:
+                if 'document_id' in meta:
+                    unique_docs.add(meta['document_id'])
+        
+        # Clear the entire collection
+        collection.delete(where={})
+        
+        logger.info(f"Cleared all documents for user {current_user['id']}. Removed {len(unique_docs)} unique documents.")
+        
+        return {
+            "message": f"Successfully cleared all documents from knowledge base",
+            "cleared_count": len(unique_docs),
+            "total_chunks_removed": len(all_docs['ids'])
+        }
+    except Exception as e:
+        logger.error(f"Error clearing all documents: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/documents/{document_id}/rechunk")
 async def rechunk_document(
     document_id: str,
