@@ -475,35 +475,32 @@ async def clear_all_documents(
             logger.info("✅ METHOD 1 COMPLETED")
             print("✅ METHOD 1 COMPLETED")
             
-            # Method 2: Delete by where clause
-            logger.info("💥 METHOD 2: Deleting by where clause")
-            print("💥 METHOD 2: Deleting by where clause")
-            collection.delete(where={})
-            logger.info("✅ METHOD 2 COMPLETED")
-            print("✅ METHOD 2 COMPLETED")
+            # Method 2: Skip problematic where clause delete
+            logger.info("💥 METHOD 2: Skipping where clause delete (ChromaDB doesn't allow empty where)")
+            print("💥 METHOD 2: Skipping where clause delete (ChromaDB doesn't allow empty where)")
+            logger.info("✅ METHOD 2 SKIPPED")
+            print("✅ METHOD 2 SKIPPED")
             
-            # Method 3: Delete collection and recreate
+            # Method 3: Delete collection and recreate (with better error handling)
             logger.info("💥 METHOD 3: Deleting entire collection and recreating")
             print("💥 METHOD 3: Deleting entire collection and recreating")
             try:
                 rag_pipeline.chroma_client.delete_collection(collection_name)
                 logger.info(f"✅ Deleted collection: {collection_name}")
                 print(f"✅ Deleted collection: {collection_name}")
-            except Exception as e:
-                logger.warning(f"❌ Could not delete collection: {e}")
-                print(f"❌ Could not delete collection: {e}")
-            
-            # Recreate collection
-            try:
+                
+                # Recreate collection immediately after deletion
                 new_collection = rag_pipeline.chroma_client.create_collection(
                     name=collection_name,
                     metadata={"hnsw:space": "cosine"}
                 )
                 logger.info(f"✅ Recreated collection: {collection_name}")
                 print(f"✅ Recreated collection: {collection_name}")
+                
             except Exception as e:
-                logger.warning(f"❌ Could not recreate collection: {e}")
-                print(f"❌ Could not recreate collection: {e}")
+                logger.warning(f"❌ Could not delete/recreate collection: {e}")
+                print(f"❌ Could not delete/recreate collection: {e}")
+                # Continue with other methods even if this fails
             
             # Method 4: Direct file system deletion (if needed)
             import os
@@ -562,14 +559,24 @@ async def clear_all_documents(
         
         logger.info(f"=== FORCE RESET COMPLETED FOR USER: {user_id} ===")
         
-        return {
+        response_data = {
             "message": f"LLM data has been reset - all documents cleared from knowledge base",
             "cleared_count": len(unique_docs),
             "total_chunks_removed": len(all_docs['ids']),
             "llm_status": "reset"
         }
+        
+        logger.info(f"RETURNING RESPONSE: {response_data}")
+        print(f"RETURNING RESPONSE: {response_data}")
+        
+        return response_data
     except Exception as e:
-        logger.error(f"Error clearing all documents: {e}")
+        logger.error(f"💥 ERROR CLEARING ALL DOCUMENTS: {e}")
+        logger.error(f"💥 ERROR TYPE: {type(e)}")
+        logger.error(f"💥 ERROR STRING: {str(e)}")
+        print(f"💥 ERROR CLEARING ALL DOCUMENTS: {e}")
+        print(f"💥 ERROR TYPE: {type(e)}")
+        print(f"💥 ERROR STRING: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/documents/{document_id}/rechunk")

@@ -1084,9 +1084,12 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       
       console.log('📡 CLEAR ALL RESPONSE STATUS:', response.status);
       console.log('📡 CLEAR ALL RESPONSE OK:', response.ok);
+      console.log('📡 CLEAR ALL RESPONSE HEADERS:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
-        throw new Error(`Failed to clear documents: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ RESPONSE ERROR TEXT:', errorText);
+        throw new Error(`Failed to clear documents: ${response.status} - ${errorText}`);
       }
       
       const result = await response.json();
@@ -1118,6 +1121,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         setKnowledgeBase([]);
         fetchKnowledgeBase();
         fetchDocuments();
+        console.log('FIRST REFRESH - Force cleared display');
       }, 2000);
       
       setTimeout(() => {
@@ -1125,6 +1129,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         setKnowledgeBase([]);
         fetchKnowledgeBase();
         fetchDocuments();
+        console.log('SECOND REFRESH - Force cleared display');
       }, 5000);
       
       setTimeout(() => {
@@ -1132,14 +1137,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         setKnowledgeBase([]);
         fetchKnowledgeBase();
         fetchDocuments();
+        console.log('FINAL REFRESH - Force cleared display');
         
         // Final check and force clear if needed
         setTimeout(() => {
           console.log('FINAL CHECK - Knowledge Base length:', knowledgeBase.length);
-          if (knowledgeBase.length > 0) {
-            console.log('FINAL FORCE CLEAR - Knowledge Base still has data');
-            setKnowledgeBase([]);
-          }
+          console.log('FINAL CHECK - Force clearing display regardless of state');
+          setKnowledgeBase([]);
+          console.log('FINAL CHECK - Knowledge Base display cleared');
         }, 1000);
       }, 8000);
       
