@@ -442,6 +442,9 @@ async def clear_all_documents(
         
         # Get all document IDs
         all_docs = collection.get()
+        logger.info(f"Before clear - Total chunks: {len(all_docs.get('ids', []))}")
+        logger.info(f"Before clear - Sample IDs: {all_docs.get('ids', [])[:5]}")
+        
         if not all_docs['ids']:
             return {"message": "Knowledge base is already empty", "cleared_count": 0}
         
@@ -452,10 +455,18 @@ async def clear_all_documents(
                 if 'document_id' in meta:
                     unique_docs.add(meta['document_id'])
         
-        # Clear the entire collection
-        collection.delete(where={})
+        logger.info(f"Before clear - Unique documents: {len(unique_docs)}")
+        logger.info(f"Before clear - Document IDs: {list(unique_docs)}")
         
-        logger.info(f"Cleared all documents for user {current_user['id']}. Removed {len(unique_docs)} unique documents.")
+        # Clear the entire collection by deleting all IDs (same approach as remove_document)
+        collection.delete(ids=all_docs['ids'])
+        
+        # Verify deletion
+        verify_docs = collection.get()
+        logger.info(f"After clear - Total chunks: {len(verify_docs.get('ids', []))}")
+        logger.info(f"After clear - Sample IDs: {verify_docs.get('ids', [])[:5]}")
+        
+        logger.info(f"Cleared all documents for user {current_user['id']}. Removed {len(unique_docs)} unique documents and {len(all_docs['ids'])} total chunks.")
         
         return {
             "message": f"Successfully cleared all documents from knowledge base",

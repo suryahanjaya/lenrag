@@ -1037,6 +1037,9 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       return;
     }
     
+    // Store the count before clearing
+    const documentsCount = knowledgeBase.length;
+    
     setMessage('Menghapus semua dokumen...');
     setIsLoading(true);
     
@@ -1054,7 +1057,8 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         throw new Error(`Failed to clear documents: ${response.status}`);
       }
       
-      setMessage(`Berhasil menghapus semua ${knowledgeBase.length} dokumen dari knowledge base!`);
+      const result = await response.json();
+      setMessage(`Berhasil menghapus semua ${result.cleared_count || documentsCount} dokumen dari knowledge base!`);
       
       // Refresh data
       fetchKnowledgeBase();
