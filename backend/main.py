@@ -486,6 +486,16 @@ async def health_check():
         }
     }
 
+@app.get("/database-stats")
+async def get_database_stats(current_user = Depends(get_current_user)):
+    """Get database statistics for monitoring large scale operations"""
+    try:
+        stats = await rag_pipeline.get_database_stats(current_user['id'])
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting database stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/auth-status")
 async def check_auth_status():
     """Check authentication configuration"""

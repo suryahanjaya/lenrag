@@ -22,15 +22,18 @@ class RAGPipeline:
         # Initialize embedding model
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         
-        # Initialize ChromaDB
+        # Initialize ChromaDB with optimizations for large scale
         self.chroma_client = chromadb.Client(Settings(
             persist_directory="./chroma_db",
-            anonymized_telemetry=False
+            anonymized_telemetry=False,
+            # Optimizations for large scale
+            allow_reset=True,
+            is_persistent=True
         ))
         
-        # Text splitter configuration for chunking documents
-        self.chunk_size = 2000  # Increased for better context retention (was 800)
-        self.chunk_overlap = 300  # Increased overlap for better continuity (was 150)
+        # Text splitter configuration for chunking documents - Optimized for 1000+ documents scale
+        self.chunk_size = 1500  # Smaller chunks for 35% more chunks, better for large scale
+        self.chunk_overlap = 250  # Optimized overlap for better coverage
         self.separators = ["\n\n", "\n", " ", ""]
     
     def _get_user_collection(self, user_id: str):
@@ -211,7 +214,9 @@ class RAGPipeline:
             collection = self._get_user_collection(user_id)
             
             # Split document into chunks
+            logger.info(f"Starting chunking for document {document_id} ({len(content)} characters)")
             chunks = self._split_text(content)
+            logger.info(f"Generated {len(chunks)} chunks for document {document_id}")
             
             if not chunks:
                 logger.warning(f"No chunks generated for document {document_id}")
@@ -238,17 +243,33 @@ class RAGPipeline:
                 })
             
             if chunk_ids:
-                # Add to ChromaDB
-                collection.add(
-                    documents=chunk_texts,
-                    metadatas=metadatas,
-                    ids=chunk_ids
-                )
+                # Add to ChromaDB with batch processing for large scale
+                logger.info(f"Adding {len(chunk_ids)} chunks to ChromaDB for document {document_id}")
                 
-                logger.info(f"Added {len(chunk_ids)} chunks for document {document_id}")
+                # Process in batches for large documents to prevent memory issues
+                batch_size = 100  # Process 100 chunks at a time
+                for i in range(0, len(chunk_ids), batch_size):
+                    batch_ids = chunk_ids[i:i + batch_size]
+                    batch_texts = chunk_texts[i:i + batch_size]
+                    batch_metadatas = metadatas[i:i + batch_size]
+                    
+                    collection.add(
+                        documents=batch_texts,
+                        metadatas=batch_metadatas,
+                        ids=batch_ids
+                    )
+                    logger.info(f"Added batch {i//batch_size + 1}/{(len(chunk_ids)-1)//batch_size + 1} for document {document_id}")
+                
+                logger.info(f"Successfully added {len(chunk_ids)} chunks for document {document_id}")
             
         except Exception as e:
             logger.error(f"Error adding document {document_id}: {e}")
+            # Cleanup on error to prevent partial data
+            try:
+                collection.delete(where={"document_id": document_id})
+                logger.info(f"Cleaned up partial data for document {document_id}")
+            except:
+                pass
             raise
     
     async def remove_document(self, user_id: str, document_id: str):
@@ -310,7 +331,7 @@ class RAGPipeline:
             # Search for relevant chunks with expanded query
             results = collection.query(
                 query_texts=[expanded_query],
-                n_results=15  # Increased to get more context with expanded query (was 8)
+                n_results=20  # Increased for better context with more chunks available
             )
             
             documents = results['documents'][0] if results['documents'] else []
@@ -333,29 +354,32 @@ class RAGPipeline:
                 # Add instruction to be more flexible in understanding
                 context += "\n\nPENTING: Jawab pertanyaan berdasarkan konteks di atas, bahkan jika ada variasi kata atau frasa dalam pertanyaan. Fokus pada makna dan inti pertanyaan, bukan pada kata-kata yang persis sama."
                 
-                # Generate answer using retrieved context with enhanced intelligence
-                prompt = f"""Anda adalah asisten hukum yang sangat berpengalaman dan cerdas. WAJIB MENGGUNAKAN BAHASA INDONESIA SAJA.
+                # Generate answer using retrieved context with enhanced intelligence for large-scale knowledge base
+                prompt = f"""Anda adalah asisten hukum yang sangat berpengalaman dengan akses ke database hukum yang sangat besar (1000+ dokumen). WAJIB MENGGUNAKAN BAHASA INDONESIA SAJA.
 
-Konteks dari dokumen pengguna:
+Konteks dari dokumen pengguna (dari database hukum yang luas):
 {context}
 
 Pertanyaan: {query}
 
-INSTRUKSI KHUSUS UNTUK KECERDASAN TINGGI:
-- ANALISIS KONTEKS dengan cermat dan berikan jawaban yang LENGKAP dan AKURAT
+INSTRUKSI KHUSUS UNTUK KECERDASAN TINGGI PADA SKALA BESAR:
+- ANALISIS KONTEKS dengan cermat dari database hukum yang luas dan berikan jawaban yang LENGKAP dan AKURAT
+- Manfaatkan pengetahuan dari 1000+ dokumen hukum untuk memberikan jawaban yang komprehensif
 - Jika pertanyaan tentang "UU yang mengatur tentang warga negara", CARI dan SEBUTKAN undang-undang spesifik yang mengatur hal tersebut
 - JANGAN katakan "tidak ada informasi" jika ada pasal atau undang-undang yang relevan dalam konteks
 - BERIKAN jawaban yang SPESIFIK dengan menyebutkan:
   * Nama undang-undang yang tepat
   * Pasal dan ayat yang relevan
   * Penjelasan lengkap tentang ketentuan tersebut
+  * Referensi silang dengan undang-undang terkait lainnya
 - Jika menemukan informasi yang relevan, jelaskan dengan DETAIL dan MENYELURUH
+- Manfaatkan konteks dari berbagai dokumen untuk memberikan perspektif yang komprehensif
 - Format respons dalam paragraf yang bersih dan mudah dibaca
 - Tulis dengan gaya percakapan yang profesional dan informatif
 - WAJIB menggunakan bahasa Indonesia dalam seluruh respons
 - BERSIFAT CERDAS dalam memahami maksud pertanyaan - fokus pada inti pertanyaan
 - Jika ada variasi kata dalam pertanyaan, jawab berdasarkan konteks yang relevan
-- BERIKAN jawaban yang KONSTRUKTIF dan BERMANFAAT
+- BERIKAN jawaban yang KONSTRUKTIF dan BERMANFAAT dengan memanfaatkan database hukum yang luas
 - Di akhir respons, sebutkan nama dokumen yang Anda gunakan sebagai sumber
 
 Jawaban:"""
@@ -371,9 +395,9 @@ Jawaban:"""
                 source_info = []
                 seen_docs = set()  # Track unique document IDs
                 
-                # Filter documents based on similarity score (more lenient for better coverage)
-                relevant_threshold = 0.7  # More lenient threshold - include documents with similarity score < 0.7
-                max_sources = 5  # More sources for better context
+                # Filter documents based on similarity score (optimized for large-scale knowledge base)
+                relevant_threshold = 0.8  # More lenient threshold for large knowledge base
+                max_sources = 8  # More sources for comprehensive context from large document collection
                 logger.info(f"Relevant threshold: {relevant_threshold}")
                 logger.info(f"Max sources: {max_sources}")
                 logger.info(f"All distances: {distances}")
@@ -451,24 +475,47 @@ Jawaban:"""
     
     def _expand_query(self, query: str) -> str:
         """Expand query with synonyms and related terms for better understanding"""
-        # Common synonyms and expansions for legal/regulatory terms
+        # Enhanced synonyms and expansions for large-scale legal knowledge base
         expansions = {
+            # Basic legal terms
             'warga negara': 'warga negara citizen kewarganegaraan penduduk',
             'uu yang mengatur': 'undang-undang yang mengatur peraturan hukum ketentuan',
             'mengatur tentang': 'mengatur tentang mengatur mengenai mengatur terkait',
-            'penyidik': 'penyidik investigator penyelidik',
-            'pegawai negeri sipil': 'pegawai negeri sipil pns aparatur sipil negara asn',
+            'undang-undang': 'undang-undang uu peraturan hukum',
+            'hukum': 'hukum undang-undang peraturan ketentuan',
+            
+            # Government and administration
+            'pemerintah': 'pemerintah pemerintah pusat pemerintah daerah',
             'pemerintah daerah': 'pemerintah daerah pemda daerah otonom',
-            'berwenang': 'berwenang kewenangan wewenang hak',
             'pejabat': 'pejabat pejabat negara pejabat publik',
-            'lingkungan': 'lingkungan wilayah daerah',
+            'pegawai negeri sipil': 'pegawai negeri sipil pns aparatur sipil negara asn',
+            'berwenang': 'berwenang kewenangan wewenang hak tugas',
+            
+            # Legal procedures
+            'penyidik': 'penyidik investigator penyelidik',
+            'penyidik pejabat': 'penyidik pejabat penyidik pegawai negeri sipil',
             'sebagaimana dimaksud': 'sebagaimana dimaksud sesuai dengan menurut',
             'ayat': 'ayat pasal butir',
-            'berwenang': 'berwenang kewenangan wewenang hak tugas',
-            'penyidik pejabat': 'penyidik pejabat penyidik pegawai negeri sipil',
+            'lingkungan': 'lingkungan wilayah daerah',
             'di lingkungan': 'di lingkungan dalam lingkungan pada lingkungan',
-            'undang-undang': 'undang-undang uu peraturan hukum',
-            'hukum': 'hukum undang-undang peraturan ketentuan'
+            
+            # Rights and obligations
+            'hak': 'hak hak asasi manusia hak warga negara',
+            'kewajiban': 'kewajiban tanggung jawab kewajiban warga negara',
+            'kewenangan': 'kewenangan wewenang kekuasaan',
+            'tanggung jawab': 'tanggung jawab pertanggungjawaban',
+            
+            # Legal concepts
+            'peraturan': 'peraturan ketentuan aturan',
+            'ketentuan': 'ketentuan peraturan aturan',
+            'sanksi': 'sanksi hukuman pidana',
+            'pelanggaran': 'pelanggaran pelanggaran hukum',
+            
+            # Time and process
+            'proses': 'proses prosedur tahapan',
+            'tahapan': 'tahapan langkah proses',
+            'jangka waktu': 'jangka waktu periode waktu',
+            'batas waktu': 'batas waktu deadline tenggat'
         }
         
         expanded_query = query.lower()
@@ -609,3 +656,38 @@ Answer:
         except Exception as e:
             logger.error(f"Error in multi-document query: {e}")
             raise
+    
+    async def get_database_stats(self, user_id: str) -> Dict[str, Any]:
+        """Get database statistics for monitoring large scale operations"""
+        try:
+            collection = self._get_user_collection(user_id)
+            
+            # Get total count
+            count = collection.count()
+            
+            # Get sample of documents
+            sample = collection.get(limit=10)
+            
+            # Count unique documents
+            unique_docs = set()
+            if sample['metadatas']:
+                for meta in sample['metadatas']:
+                    if 'document_id' in meta:
+                        unique_docs.add(meta['document_id'])
+            
+            return {
+                'total_chunks': count,
+                'sample_size': len(sample.get('ids', [])),
+                'estimated_documents': len(unique_docs),
+                'status': 'healthy' if count > 0 else 'empty'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting database stats: {e}")
+            return {
+                'total_chunks': 0,
+                'sample_size': 0,
+                'estimated_documents': 0,
+                'status': 'error',
+                'error': str(e)
+            }
