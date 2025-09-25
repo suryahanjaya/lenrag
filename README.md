@@ -6,8 +6,8 @@
 
 **A powerful Retrieval-Augmented Generation (RAG) system designed to simplify the process of finding relevant laws and legal regulations.**
 
-[![Next.js](https://img.shields.io/badge/Next.js-13+-black?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2+-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Python](https://img.shields.io/badge/Python-3.8+-yellow?style=flat-square&logo=python)](https://python.org/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20DB-purple?style=flat-square)](https://www.trychroma.com/)
@@ -29,10 +29,57 @@
 
 - **⚡ Lightning Fast**: Get answers in seconds, not hours
 - **🎯 Precise Results**: AI-powered semantic search finds exactly what you need
-- **📚 Multi-Format Support**: Works with Google Docs, PDFs, DOCX, and more
-- **🔒 Secure**: Enterprise-grade security with Google OAuth
-- **🌐 Always Available**: Cloud-based with 99.9% uptime
-- **🎨 Beautiful UI**: Modern, responsive design that works on any device
+- **🔒 Secure**: Enterprise-grade security with Google OAuth 2.0
+- **📚 Multi-format Support**: Works with Google Docs, PDFs, DOCX, and more
+- **🌐 Smart Fallback**: General knowledge when your docs don't have the answer
+- **💬 Natural Language**: Ask questions in plain English
+
+---
+
+## 🏗️ **Architecture Overview**
+
+<div align="center">
+
+```mermaid
+graph TB
+    subgraph "Frontend (Next.js 14)"
+        A[React Components] --> B[Dashboard]
+        A --> C[Authentication]
+        A --> D[Document Management]
+        A --> E[Chat Interface]
+    end
+    
+    subgraph "Backend (FastAPI)"
+        F[FastAPI Server] --> G[Google Auth Service]
+        F --> H[Google Docs Service]
+        F --> I[RAG Pipeline]
+        F --> J[Supabase Client]
+    end
+    
+    subgraph "AI & Vector Database"
+        K[ChromaDB] --> L[Vector Storage]
+        M[Sentence Transformers] --> N[Embeddings]
+        O[Gemini 2.0 Flash] --> P[LLM Processing]
+    end
+    
+    subgraph "External Services"
+        Q[Google Drive API]
+        R[Google OAuth 2.0]
+        S[Supabase Auth]
+        T[Gemini API]
+    end
+    
+    A --> F
+    F --> K
+    F --> M
+    F --> O
+    G --> R
+    H --> Q
+    J --> S
+    I --> T
+```
+
+</div>
 
 ---
 
@@ -40,33 +87,58 @@
 
 ### 🎨 **Frontend Technologies**
 
-| Technology | Version | Purpose | Why We Chose It |
-|------------|---------|---------|-----------------|
-| **Next.js** | 13+ | React Framework | ⚡ App Router, SSR, optimized performance |
-| **TypeScript** | 5.0+ | Type Safety | 🛡️ Catch errors at compile time |
-| **Tailwind CSS** | 3.3+ | Styling | 🎨 Utility-first, responsive design |
-| **Shadcn/ui** | Latest | Components | 🧩 Beautiful, accessible components |
-| **Lucide React** | Latest | Icons | 🎯 Consistent, lightweight icons |
+| Technology | Version | Purpose | Why We Use It |
+|------------|---------|---------|---------------|
+| **Next.js** | 14.2+ | React Framework | ⚡ Server-side rendering, API routes, optimized performance |
+| **React** | 18+ | UI Library | 🎯 Component-based architecture, hooks, state management |
+| **TypeScript** | 5.0+ | Type Safety | 🔒 Static typing, better IDE support, fewer runtime errors |
+| **Tailwind CSS** | 3.3+ | Styling | 🎨 Utility-first CSS, responsive design, rapid development |
+| **Radix UI** | Latest | Component Library | ♿ Accessible, unstyled, composable components |
+| **Lucide React** | 0.292+ | Icons | 🎯 Beautiful, customizable SVG icons |
 
 ### ⚙️ **Backend Technologies**
 
-| Technology | Version | Purpose | Why We Chose It |
-|------------|---------|---------|-----------------|
-| **FastAPI** | 0.100+ | Web Framework | 🚀 High performance, auto-docs, async |
-| **Python** | 3.8+ | Programming Language | 🐍 Rich ecosystem, AI libraries |
-| **ChromaDB** | Latest | Vector Database | 🔍 Optimized for embeddings, fast search |
-| **Google APIs** | Latest | Integration | 📁 Drive, Docs, OAuth integration |
-| **Gemini 2.0 Flash** | Latest | AI Model | 🤖 Advanced reasoning, fast responses |
+| Technology | Version | Purpose | Why We Use It |
+|------------|---------|---------|---------------|
+| **FastAPI** | 0.104+ | Web Framework | 🚀 High performance, automatic API docs, type hints |
+| **Python** | 3.8+ | Programming Language | 🐍 Rich ecosystem, AI/ML libraries, readability |
+| **Uvicorn** | 0.24+ | ASGI Server | ⚡ High-performance async server |
+| **Pydantic** | 2.5+ | Data Validation | 🔒 Automatic validation, serialization, type safety |
 
-### 🔧 **Infrastructure & Tools**
+### 🤖 **AI & Machine Learning**
 
-| Technology | Purpose | Benefits |
-|------------|---------|----------|
-| **Docker** | Containerization | 🐳 Consistent deployment, easy scaling |
-| **Supabase** | Database (Optional) | 🗄️ PostgreSQL, real-time features |
-| **Google Cloud** | APIs & Auth | ☁️ Reliable, secure, scalable |
+| Technology | Version | Purpose | Why We Use It |
+|------------|---------|---------|---------------|
+| **ChromaDB** | 0.4.18+ | Vector Database | 🎯 Optimized for embeddings, persistent storage, scalability |
+| **Sentence Transformers** | 2.2.2+ | Embeddings | 🧠 State-of-the-art semantic search, multilingual support |
+| **Gemini 2.0 Flash** | Latest | Large Language Model | 🚀 Google's latest AI model, fast responses, high accuracy |
+| **Google Generative AI** | 0.3.0+ | AI SDK | 🔗 Official Google AI integration |
+
+### 🔐 **Authentication & Security**
+
+| Technology | Version | Purpose | Why We Use It |
+|------------|---------|---------|---------------|
+| **Google OAuth 2.0** | Latest | Authentication | 🔒 Industry standard, secure, trusted by users |
+| **JWT Tokens** | Latest | Session Management | 🎯 Stateless, scalable, secure |
+| **Supabase** | 2.0.2+ | Backend-as-a-Service | 🚀 User management, real-time features, PostgreSQL |
+
+### 📄 **Document Processing**
+
+| Technology | Version | Purpose | Why We Use It |
+|------------|---------|---------|---------------|
+| **Google Drive API** | Latest | Document Access | 📁 Seamless Google Docs integration |
+| **PyPDF** | 3.17.1+ | PDF Processing | 📄 Extract text from PDF documents |
+| **python-docx** | 1.1.0+ | Word Processing | 📝 Handle DOCX files |
+| **BeautifulSoup4** | 4.12.2+ | HTML Parsing | 🌐 Parse web content and HTML documents |
+| **TikToken** | 0.5.2+ | Tokenization | 🔤 Efficient text tokenization for AI models |
+
+### ☁️ **Deployment & Infrastructure**
+
+| Service | Purpose | Why We Use It |
+|---------|---------|---------------|
 | **Vercel** | Frontend Hosting | ⚡ Global CDN, zero-config deployment |
 | **Render** | Backend Hosting | 🚀 Auto-deploy, managed infrastructure |
+| **Docker** | Containerization | 📦 Consistent environments, easy deployment |
 
 ---
 
@@ -83,18 +155,22 @@
 - **Multi-format Support**: Google Docs, PDFs, DOCX, TXT, PPTX
 - **Smart Organization**: Automatic categorization and tagging
 - **Version Control**: Track document changes over time
+- **Bulk Upload**: Add multiple documents at once
+- **Folder Support**: Import entire Google Drive folders
 
 ### 🤖 **AI-Powered Search**
 - **Semantic Search**: Find documents by meaning, not just keywords
 - **Contextual Understanding**: AI understands legal terminology
 - **Multi-language Support**: Works in multiple languages
 - **Smart Filtering**: Advanced search filters and sorting
+- **Vector Embeddings**: High-dimensional semantic representations
 
 ### 💬 **Intelligent Chat**
 - **Natural Language Processing**: Ask questions in plain English
 - **Contextual Responses**: Answers based on your specific documents
 - **Source Attribution**: Always know where answers come from
 - **Conversation History**: Keep track of your research
+- **Smart Fallback**: General knowledge when documents don't have answers
 
 ---
 
@@ -134,52 +210,55 @@ ls -la
 ### 2️⃣ **Google Cloud Setup**
 
 1. **Create Google Cloud Project**
-   ```bash
-   # Go to Google Cloud Console
-   # Create new project or select existing
-   ```
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable the following APIs:
+     - Google Drive API
+     - Google Docs API
+     - Google+ API (for profile information)
 
-2. **Enable Required APIs**
-   - Google Drive API
-   - Google Docs API
-   - Google+ API
+2. **Configure OAuth 2.0**
+   - Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
+   - Application type: "Web application"
+   - Authorized redirect URIs:
+     - `http://localhost:3000/auth/callback` (development)
+     - `https://yourdomain.com/auth/callback` (production)
 
-3. **Create OAuth Credentials**
-   - Go to APIs & Services > Credentials
-   - Create OAuth 2.0 Client ID
-   - Set redirect URI: `http://localhost:3000/auth/callback`
+3. **Get Gemini API Key**
+   - Go to [Google AI Studio](https://aistudio.google.com/)
+   - Create a new API key
+   - Copy the key for environment variables
 
 ### 3️⃣ **Environment Configuration**
 
-#### Backend Environment (`.env` in backend folder):
-```env
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+#### Frontend Environment (`.env.local`)
 
-# Gemini AI Configuration
-GEMINI_API_KEY=your_gemini_api_key_here
+```bash
+# Copy the example file
+cp env.local.example .env.local
 
-# Supabase Configuration (Optional)
-SUPABASE_URL=your_supabase_url_here
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_key_here
-
-# Development Settings
-ENVIRONMENT=development
-DEBUG=true
+# Edit the file with your values
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-#### Frontend Environment (`.env.local` in root folder):
-```env
-# Google OAuth Configuration
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id_here
+#### Backend Environment (`.env`)
 
-# Backend Configuration
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+```bash
+# Copy the example file
+cd backend
+cp env.example .env
 
-# Supabase Configuration (Optional)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+# Edit the file with your values
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GEMINI_API_KEY=your_gemini_api_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 ### 4️⃣ **Backend Setup**
@@ -219,278 +298,273 @@ npm run dev
 
 ### 6️⃣ **Access the Application**
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API**: [http://localhost:8000](http://localhost:8000)
+- **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🎯 **How It Works**
+
+<div align="center">
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as Backend
+    participant G as Google APIs
+    participant C as ChromaDB
+    participant AI as Gemini AI
+
+    U->>F: Sign in with Google
+    F->>B: OAuth request
+    B->>G: Authenticate user
+    G-->>B: Access token
+    B-->>F: JWT token
+    F-->>U: Authentication success
+
+    U->>F: Select documents
+    F->>B: Get documents request
+    B->>G: Fetch user documents
+    G-->>B: Document list
+    B-->>F: Document data
+    F-->>U: Display documents
+
+    U->>F: Add to knowledge base
+    F->>B: Add documents request
+    B->>B: Process documents
+    B->>C: Store embeddings
+    C-->>B: Storage confirmation
+    B-->>F: Success response
+    F-->>U: Documents added
+
+    U->>F: Ask question
+    F->>B: Chat request
+    B->>C: Search embeddings
+    C-->>B: Relevant chunks
+    B->>AI: Generate response
+    AI-->>B: AI response
+    B-->>F: Chat response
+    F-->>U: Display answer
+```
+
+</div>
+
+### 🔄 **RAG Pipeline Process**
+
+1. **Document Ingestion**
+   - User selects documents from Google Drive
+   - Documents are processed and chunked
+   - Text embeddings are generated using Sentence Transformers
+   - Embeddings are stored in ChromaDB vector database
+
+2. **Query Processing**
+   - User asks a question in natural language
+   - Question is converted to embedding vector
+   - Similarity search finds relevant document chunks
+   - Context is prepared for AI model
+
+3. **Response Generation**
+   - Gemini 2.0 Flash processes the context and question
+   - AI generates contextual response based on documents
+   - If no relevant documents found, fallback to general knowledge
+   - Response includes source attribution
 
 ---
 
 ## 🐳 **Docker Deployment**
 
-### 🚀 **Quick Docker Setup**
+### Build and Run with Docker Compose:
 
 ```bash
-# Build and run with Docker Compose
+# Build and start all services
 docker-compose up --build
 
-# Or run in detached mode
+# Run in background
 docker-compose up -d --build
 ```
 
-### 🔧 **Individual Container Build**
+### Individual Container Build:
 
-#### Backend Container:
+#### Backend:
+
 ```bash
-# Build backend image
-docker build -f Dockerfile.backend -t lara-backend .
-
-# Run backend container
-docker run -p 8000:8000 --env-file backend/.env lara-backend
+docker build -f Dockerfile.backend -t rag-chatbot-backend .
+docker run -p 8000:8000 rag-chatbot-backend
 ```
 
-#### Frontend Container:
+#### Frontend:
+
 ```bash
-# Build frontend image
-docker build -f Dockerfile.frontend -t lara-frontend .
-
-# Run frontend container
-docker run -p 3000:3000 --env-file .env.local lara-frontend
+docker build -f Dockerfile.frontend -t rag-chatbot-frontend .
+docker run -p 3000:3000 rag-chatbot-frontend
 ```
 
 ---
 
-## 🌐 **Production Deployment**
+## 🚀 **Production Deployment**
 
-### 🚀 **Vercel (Frontend)**
+### Render (Backend)
 
-1. **Connect Repository**
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Import your GitHub repository
+1. Connect your GitHub repository to Render
+2. Set the following configuration:  
+   * **Root Directory**: `backend`  
+   * **Build Command**: `pip install -r requirements.txt`  
+   * **Start Command**: `python main.py`  
+   * **Environment Variables**: Add all backend environment variables
 
-2. **Configure Settings**
-   ```yaml
-   Framework Preset: Next.js
-   Root Directory: . (root)
-   Build Command: npm run build
-   Output Directory: .next
-   ```
+### Vercel (Frontend)
 
-3. **Environment Variables**
-   - Add all `NEXT_PUBLIC_*` variables
-   - Set production backend URL
-
-### ⚙️ **Render (Backend)**
-
-1. **Create Web Service**
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - Create new Web Service
-
-2. **Configure Settings**
-   ```yaml
-   Root Directory: backend
-   Build Command: pip install -r requirements.txt
-   Start Command: python main.py
-   Environment: Python 3
-   ```
-
-3. **Environment Variables**
-   - Add all backend environment variables
-   - Set production database URLs
+1. Connect your GitHub repository to Vercel
+2. Set the following configuration:  
+   * **Framework Preset**: Next.js  
+   * **Root Directory**: `.` (root)  
+   * **Build Command**: `npm run build`  
+   * **Environment Variables**: Add all frontend environment variables
 
 ---
 
-## 📚 **API Documentation**
+## 📚 **API Endpoints**
 
-### 🔐 **Authentication Endpoints**
+### Authentication
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `POST` | `/auth/google` | Google OAuth authentication | `code`, `state` |
-| `GET` | `/auth/refresh` | Refresh access token | `refresh_token` |
-| `POST` | `/auth/logout` | Logout user | `token` |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/google` | Google OAuth authentication |
+| `GET` | `/health` | Health check |
 
-### 📄 **Document Endpoints**
+### Documents
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `GET` | `/documents` | List user documents | `page`, `limit`, `search` |
-| `POST` | `/documents/add` | Add documents to knowledge base | `document_ids[]` |
-| `DELETE` | `/documents/{id}` | Remove document from KB | `document_id` |
-| `GET` | `/documents/{id}/content` | Get document content | `document_id` |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/documents` | List user documents |
+| `POST` | `/documents/add` | Add documents to knowledge base |
+| `DELETE` | `/documents/{id}` | Remove document from knowledge base |
+| `GET` | `/documents/folders` | Get documents from Google Drive folder |
 
-### 💬 **Chat Endpoints**
+### Chat
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `POST` | `/chat` | Send message to AI | `message`, `context` |
-| `GET` | `/chat/history` | Get chat history | `user_id`, `limit` |
-| `DELETE` | `/chat/history` | Clear chat history | `user_id` |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/chat` | Chat with documents |
+| `GET` | `/debug/knowledge-base` | Debug knowledge base content |
 
-### 🔍 **Search Endpoints**
+### User
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `GET` | `/search` | Search documents | `query`, `filters` |
-| `POST` | `/search/semantic` | Semantic search | `query`, `limit` |
-| `GET` | `/search/suggestions` | Get search suggestions | `query` |
-
----
-
-## 🎯 **Usage Examples**
-
-### 📝 **Basic Document Search**
-
-```typescript
-// Search for documents about "contract law"
-const searchResults = await fetch('/api/search', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    query: "contract law",
-    filters: { type: "legal_document" }
-  })
-});
-```
-
-### 💬 **AI Chat Example**
-
-```typescript
-// Ask a question about your documents
-const chatResponse = await fetch('/api/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: "What are the key requirements for a valid contract?",
-    context: "legal_documents"
-  })
-});
-```
-
-### 📁 **Document Management**
-
-```typescript
-// Add documents to knowledge base
-const addDocuments = await fetch('/api/documents/add', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    document_ids: ["doc1", "doc2", "doc3"]
-  })
-});
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/user/profile` | Get user profile |
 
 ---
 
 ## 🔍 **Troubleshooting**
 
-### ❌ **Common Issues**
+### Common Issues
 
-#### 1. **Authentication Failed**
-```bash
-# Check Google Cloud Console settings
-✅ Redirect URI: http://localhost:3000/auth/callback
-✅ APIs enabled: Drive, Docs, Google+
-✅ Client ID and Secret in environment variables
-```
+1. **Authentication Failed**  
+   * Check Google Cloud Console redirect URI: `http://localhost:3000/auth/callback`  
+   * Ensure APIs are enabled (Drive, Docs, Google+)  
+   * Verify client ID and secret in environment variables
 
-#### 2. **Documents Not Loading**
-```bash
-# Check Google Drive API permissions
-✅ Drive API enabled
-✅ Proper scopes requested
-✅ Access token valid
-```
+2. **Documents Not Loading**  
+   * Check Google Drive API permissions  
+   * Verify access token is valid  
+   * Ensure proper scopes are requested
 
-#### 3. **Chat Not Working**
-```bash
-# Check AI configuration
-✅ Gemini API key valid
-✅ Documents added to knowledge base
-✅ Backend logs for errors
-```
+3. **Chat Not Working**  
+   * Check Gemini API key  
+   * Verify documents are added to knowledge base  
+   * Check backend logs for errors
+
+4. **Vector Database Issues**
+   * Ensure ChromaDB is properly initialized
+   * Check disk space for vector storage
+   * Verify embedding model is loaded correctly
+
+### Debug Pages
+
+* `/debug` - OAuth configuration debug
+* `/debug-auth` - Authentication status and token testing
+
+### Performance Optimization
+
+1. **Chunk Size Optimization**
+   - Default: 1500 characters per chunk
+   - Overlap: 250 characters for better context
+   - Adjust based on document type and size
+
+2. **Embedding Model**
+   - Using `all-MiniLM-L6-v2` for balance of speed and accuracy
+   - Supports 384-dimensional embeddings
+   - Optimized for semantic similarity
+
+3. **Vector Database**
+   - ChromaDB with cosine similarity
+   - Persistent storage for scalability
+   - User-specific collections for privacy
 
 ---
 
 ## 🤝 **Contributing**
 
-We welcome contributions to Lara! Here's how you can help:
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-### 🚀 **Getting Started**
+### Development Guidelines
 
-1. **Fork the Repository**
-   ```bash
-   git clone https://github.com/your-username/lenrag.git
-   cd lenrag
-   ```
-
-2. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-
-3. **Make Changes**
-   - Follow our coding standards
-   - Add tests for new features
-   - Update documentation
-
-4. **Submit Pull Request**
-   ```bash
-   git commit -m "Add amazing feature"
-   git push origin feature/amazing-feature
-   ```
+- Follow TypeScript best practices
+- Write comprehensive tests
+- Update documentation for new features
+- Follow the existing code style
+- Add proper error handling
 
 ---
 
 ## 📝 **License**
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 **Acknowledgments**
 
-### 🏆 **Special Thanks**
-
-- **Google AI Team** - For the amazing Gemini 2.0 Flash model
-- **ChromaDB Team** - For the excellent vector database
-- **Next.js Team** - For the incredible React framework
-- **FastAPI Team** - For the high-performance Python framework
-- **Open Source Community** - For all the amazing libraries and tools
+* **Google APIs** for document integration
+* **Gemini AI** for intelligent responses
+* **ChromaDB** for vector storage
+* **Next.js and FastAPI** communities
+* **Original Repository**: [codemet-rag-chatbot](https://github.com/santoshnaya/codemet-rag-chatbot) by [santoshnaya](https://github.com/santoshnaya)
 
 ---
 
 ## 📞 **Support & Contact**
 
-### 🆘 **Need Help?**
+If you encounter any issues or have questions:
 
-- **Documentation**: Check our comprehensive docs above
-- **Issues**: [GitHub Issues](https://github.com/suryahanjaya/lenrag/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/suryahanjaya/lenrag/discussions)
-- **Email**: support@lara-legal.com
+1. Check the [Issues](https://github.com/suryahanjaya/lenrag/issues) section
+2. Create a new issue with detailed information
+3. Include error logs and environment details
 
-### 🌟 **Show Your Support**
-
-If you find Lara helpful, please consider:
-
-- ⭐ **Starring** the repository
-- 🍴 **Forking** the project
-- 🐛 **Reporting** bugs
-- 💡 **Suggesting** new features
-- 📢 **Sharing** with others
-
----
+### 🔗 **Connect with the Developer**
 
 <div align="center">
 
-### 🚀 **Built with ❤️ by the Lara Team**
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-surya--hanjaya-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/surya-hanjaya/)
+[![GitHub](https://img.shields.io/badge/GitHub-suryahanjaya-black?style=for-the-badge&logo=github)](https://github.com/suryahanjaya?tab=repositories)
+[![Instagram](https://img.shields.io/badge/Instagram-h4njy-pink?style=for-the-badge&logo=instagram)](https://www.instagram.com/h4njy/)
 
-**Lara** - Making Legal Research Simple, Fast, and Intelligent
-
-[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/suryahanjaya/lenrag)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/suryahanjaya)
+</div>
 
 ---
 
-**© 2025 Lara Legal RAG Assistant. All rights reserved.**
+**Built with ❤️ using FastAPI, Next.js, and Google AI**
+
+<div align="center">
+
+![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red?style=for-the-badge)
+![Powered by AI](https://img.shields.io/badge/Powered%20by-AI-purple?style=for-the-badge)
 
 </div>
