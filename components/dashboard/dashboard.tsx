@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { TimeDisplay } from '@/components/ui/time-display';
+import { ProfilePicture } from '@/components/ui/profile-picture';
 import { User, Document, KnowledgeBaseDocument, Folder } from '@/lib/types';
 import '../../styles.css';
 
@@ -14,8 +15,6 @@ interface DashboardProps {
 
 export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [cachedProfilePicture, setCachedProfilePicture] = useState<string | null>(null);
-  const [profilePictureError, setProfilePictureError] = useState(false);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBaseDocument[]>([]);
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -636,106 +635,6 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     }
   }, [token]);
 
-  // Profile picture caching effect
-  useEffect(() => {
-    if (user?.picture && user?.id) {
-      const cacheKey = `profile_picture_${user.id}`;
-      const base64CacheKey = `profile_picture_base64_${user.id}`;
-      const cached = localStorage.getItem(cacheKey);
-      const base64Cached = localStorage.getItem(base64CacheKey);
-      
-      // Check for base64 cache first (more reliable)
-      if (base64Cached) {
-        try {
-          const { data, timestamp } = JSON.parse(base64Cached);
-          const now = Date.now();
-          const cacheDuration = 24 * 60 * 60 * 1000; // 24 hours
-          
-          if (now - timestamp < cacheDuration) {
-            setCachedProfilePicture(data);
-            setProfilePictureError(false);
-            return;
-          } else {
-            localStorage.removeItem(base64CacheKey);
-          }
-        } catch (error) {
-          // Silent error handling
-        }
-      }
-      
-      if (cached) {
-        try {
-          const { url, timestamp } = JSON.parse(cached);
-          const now = Date.now();
-          const cacheDuration = 24 * 60 * 60 * 1000; // 24 hours
-          
-          if (now - timestamp < cacheDuration) {
-            setCachedProfilePicture(url);
-            setProfilePictureError(false);
-            return;
-          } else {
-            localStorage.removeItem(cacheKey);
-          }
-        } catch (error) {
-          // Silent error handling
-        }
-      }
-      
-      // If no valid cache, try to convert to base64
-      convertImageToBase64(user.picture).then(base64 => {
-        if (base64) {
-          setCachedProfilePicture(base64);
-          setProfilePictureError(false);
-          
-          // Cache the base64 data
-          const base64CacheKey = `profile_picture_base64_${user.id}`;
-          const cacheData = {
-            data: base64,
-            timestamp: Date.now()
-          };
-          localStorage.setItem(base64CacheKey, JSON.stringify(cacheData));
-        } else {
-          setCachedProfilePicture(user.picture || null);
-          setProfilePictureError(false);
-        }
-      });
-    }
-  }, [user?.picture, user?.id]);
-
-  // Function to retry loading profile picture
-  const retryProfilePicture = () => {
-    if (user?.picture && user?.id) {
-      // Clear any existing cache and try again
-      const cacheKey = `profile_picture_${user.id}`;
-      localStorage.removeItem(cacheKey);
-      setProfilePictureError(false);
-      setCachedProfilePicture(user.picture);
-    }
-  };
-
-  // Function to convert image to base64 as fallback
-  const convertImageToBase64 = async (imageUrl: string) => {
-    try {
-      const response = await fetch(imageUrl, {
-        mode: 'cors',
-        credentials: 'omit'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      return null;
-    }
-  };
 
   const handleSelectDoc = (docId: string, index?: number) => {
     setSelectedDocs((prev: Set<string>) => {
@@ -1238,56 +1137,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="nav-actions">
               {/* User Profile Picture - Glass Effect */}
               <div className="nav-profile">
-                <div className="nav-profile-avatar">
-                  {user.picture ? (
-                    <img 
-                      src={user.picture} 
-                      alt="Profile" 
-                      className="w-full h-full object-cover rounded-full"
-                      loading="eager"
-                      decoding="async"
-                      onLoad={() => {
-                        // Cache the successful image to prevent future 429 errors
-                        if (user.picture && user.id) {
-                          const cacheKey = `profile_picture_${user.id}`;
-                          const cacheData = {
-                            url: user.picture,
-                            timestamp: Date.now()
-                          };
-                          localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-                        }
-                      }}
-                      onError={(e) => {
-                        setProfilePictureError(true);
-                        // Hide the image and show fallback
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) {
-                          fallback.style.display = 'flex';
-                        }
-                      }}
-                    />
-                  ) : null}
-                  <div 
-                    className="nav-profile-fallback"
-                    style={{ display: user.picture ? 'none' : 'flex' }}
-                  >
-                    <span className="nav-profile-text">
-                      {(user.name || 'U').charAt(0).toUpperCase()}
-                    </span>
-                    {profilePictureError && (
-                      <button
-                        onClick={retryProfilePicture}
-                        className="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-75 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-200"
-                        title="Retry loading profile picture"
-                      >
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <ProfilePicture 
+                  user={user} 
+                  size="md"
+                  className="nav-profile-avatar"
+                />
               </div>
 
               {/* Logout Button with Door Animation */}
