@@ -9,14 +9,12 @@ Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-52-generic x86_64)
  * Management:     https://landscape.canonical.com
  * Support:        https://ubuntu.com/pro
 
- System information as of Fri Sep 26 09:08:15 AM WIB 2025
+ System information as of Fri Sep 26 03:35:35 PM WIB 2025
 
-  System load:  0.83               Processes:               285
-  Usage of /:   89.3% of 47.07GB   Users logged in:         1
-  Memory usage: 20%                IPv4 address for ens192: 192.168.17.20
-  Swap usage:   26%
-
-  => / is using 89.3% of 47.07GB
+  System load:  0.7                Processes:               284
+  Usage of /:   54.9% of 47.07GB   Users logged in:         1
+  Memory usage: 22%                IPv4 address for ens192: 192.168.17.20
+  Swap usage:   21%
 
 
 Expanded Security Maintenance for Applications is not enabled.
@@ -26,34 +24,3 @@ To see these additional updates run: apt list --upgradable
 
 3 additional security updates can be applied with ESM Apps.
 Learn more about enabling ESM Apps service at https://ubuntu.com/esm
-
-
-*** System restart required ***
-Last login: Wed Apr 30 09:04:12 2025 from 192.168.166.22
-hariyadi@news-portal:~$ ls
-n8n  news_analytics  nltk_data
-hariyadi@news-portal:~$ sudo docker ps
-[sudo] password for hariyadi:
-CONTAINER ID   IMAGE                COMMAND                  CREATED        STATUS        PORTS                                         NAMES
-20f9933eb9c4   n8n-with-pdf-parse   "tini -- /docker-ent…"   6 months ago   Up 6 months   0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp   n8n
-hariyadi@news-portal:~$ sudo docker ps
-CONTAINER ID   IMAGE                COMMAND                  CREATED        STATUS        PORTS                                         NAMES
-20f9933eb9c4   n8n-with-pdf-parse   "tini -- /docker-ent…"   6 months ago   Up 6 months   0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp   n8n
-hariyadi@news-portal:~$ sudo docker ps -a
-CONTAINER ID   IMAGE                COMMAND                  CREATED        STATUS        PORTS                                         NAMES
-20f9933eb9c4   n8n-with-pdf-parse   "tini -- /docker-ent…"   6 months ago   Up 6 months   0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp   n8n
-hariyadi@news-portal:~$ sudo docker stop n8n
-n8n
-hariyadi@news-portal:~$ sudo docker images
-REPOSITORY                TAG       IMAGE ID       CREATED        SIZE
-n8n-with-pdf-parse        latest    1b24f6f48656   6 months ago   759MB
-docker.n8n.io/n8nio/n8n   latest    5617d9cad4ce   6 months ago   713MB
-hariyadi@news-portal:~$ sudo docker rmi n8n-with-pdf-parse docker.n8n.io/n8nio/n8n
-Untagged: n8n-with-pdf-parse:latest
-Deleted: sha256:1b24f6f486568ae448dec3c070ba0cc0e66239193a000978a62c1add3fc6de58
-Untagged: docker.n8n.io/n8nio/n8n:latest
-Untagged: docker.n8n.io/n8nio/n8n@sha256:311aa42efcf79d204475fed75b98a8b82a231901729fc38b4fce51f3159031e8
-Deleted: sha256:5617d9cad4ce94816deafe165bcdeb20ff7bf4588550ba1a55d903e41c87d695
-hariyadi@news-portal:~$ sudo docker images
-REPOSITORY   TAG       IMAGE ID   CREATED   SIZE
-hariyadi@news-portal:~$
