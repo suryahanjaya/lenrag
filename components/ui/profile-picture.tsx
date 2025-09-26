@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 interface ProfilePictureProps {
   user: {
     id: string
-    name: string
+    name?: string
     picture?: string
   }
   className?: string
@@ -25,22 +25,23 @@ export function ProfilePicture({ user, className = '', size = 'md' }: ProfilePic
 
   useEffect(() => {
     if (user.picture) {
-      console.log('ProfilePicture: Loading image for user:', user.name, 'URL:', user.picture)
+      console.log('ProfilePicture: Loading image for user:', user.name || 'Unknown', 'URL:', user.picture)
       setImageError(false)
       setIsLoading(true)
+      setRetryCount(0) // Reset retry count when picture changes
     }
   }, [user.picture, user.name])
 
   const handleImageLoad = () => {
-    console.log('ProfilePicture: Image loaded successfully for user:', user.name)
+    console.log('ProfilePicture: Image loaded successfully for user:', user.name || 'Unknown')
     setIsLoading(false)
     setImageError(false)
   }
 
   const handleImageError = () => {
-    console.log('ProfilePicture: Image failed to load for user:', user.name, 'URL:', user.picture, 'Retry count:', retryCount)
+    console.log('ProfilePicture: Image failed to load for user:', user.name || 'Unknown', 'URL:', user.picture, 'Retry count:', retryCount)
     
-    if (retryCount < 2) {
+    if (retryCount < 2 && user.picture) {
       // Retry with a different URL format
       setRetryCount(prev => prev + 1)
       setIsLoading(true)
@@ -64,8 +65,8 @@ export function ProfilePicture({ user, className = '', size = 'md' }: ProfilePic
       
       // Force reload by updating the src
       setTimeout(() => {
-        const img = document.querySelector(`img[alt="${user.name}'s profile"]`) as HTMLImageElement
-        if (img) {
+        const img = document.querySelector(`img[alt="${user.name || 'Unknown'}'s profile"]`) as HTMLImageElement
+        if (img && retryUrl) {
           img.src = retryUrl
         }
       }, 100)
@@ -75,7 +76,8 @@ export function ProfilePicture({ user, className = '', size = 'md' }: ProfilePic
     }
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string) => {
+    if (!name) return 'U'
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -107,7 +109,7 @@ export function ProfilePicture({ user, className = '', size = 'md' }: ProfilePic
       {user.picture && !imageError ? (
         <img
           src={getImageUrl() || user.picture}
-          alt={`${user.name}'s profile`}
+          alt={`${user.name || 'Unknown'}'s profile`}
           className="w-full h-full object-cover"
           onLoad={handleImageLoad}
           onError={handleImageError}
@@ -122,7 +124,7 @@ export function ProfilePicture({ user, className = '', size = 'md' }: ProfilePic
         }`}
       >
         <span className="text-white font-semibold text-xs">
-          {getInitials(user.name || 'U')}
+          {getInitials(user.name)}
         </span>
       </div>
       
