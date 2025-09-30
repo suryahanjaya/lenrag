@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef, useLayoutEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { TimeDisplay } from '@/components/ui/time-display';
 import { ProfilePicture } from '@/components/ui/profile-picture';
@@ -13,13 +13,17 @@ interface DashboardProps {
   onLogout?: () => void;
 }
 
-export function Dashboard({ user, token, onLogout }: DashboardProps) {
+function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBaseDocument[]>([]);
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [chatMessage, setChatMessage] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Memoize user object to prevent unnecessary re-renders
+  const memoizedUser = useMemo(() => user, [user?.id, user?.name, user?.picture, user?.email]);
   
   // Bulk upload states
   const [bulkUploadProgress, setBulkUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
@@ -229,17 +233,18 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const [currentFolderName, setCurrentFolderName] = useState<string>('');
   const [folderHistory, setFolderHistory] = useState<Array<{id: string, name: string}>>([]);
 
-  // Real-time clock
+  // Real-time clock - optimized to reduce re-renders
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 60000); // Update every minute instead of every second
 
     return () => clearInterval(timer);
   }, []);
 
-  // Handle chat button click with animation
-  const handleChatToggle = () => {
+
+  // Handle chat button click with animation - optimized with useCallback
+  const handleChatToggle = useCallback(() => {
     setChatAnimation('animate-chat-bounce');
     
     if (!isChatExpanded) {
@@ -260,7 +265,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         setChatAnimation('');
       }, 300);
     }
-  };
+  }, [isChatExpanded]);
 
   // Get greeting and background based on time with premium gradients
   const getGreeting = () => {
@@ -1009,9 +1014,11 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         }
     };
 
-  // Fungsi untuk mengirim pesan chat
-  const handleSendMessage = async () => {
-    if (!chatMessage.trim()) {
+  // Fungsi untuk mengirim pesan chat - optimized with useCallback
+  const handleSendMessage = useCallback(async () => {
+    const inputValue = inputRef.current?.value || '';
+    
+    if (!inputValue.trim()) {
       setMessage('Masukkan pesan terlebih dahulu.');
       return;
     }
@@ -1027,11 +1034,13 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
         role: 'assistant', 
         content: 'Maaf, saya tidak dapat menjawab pertanyaan karena knowledge base Anda masih kosong. Silakan tambahkan dokumen terlebih dahulu dari Google Drive untuk memulai percakapan.' 
       }]);
+      if (inputRef.current) inputRef.current.value = '';
       setChatMessage('');
       return;
     }
     
-    const userMessage = chatMessage.trim();
+    const userMessage = inputValue.trim();
+    if (inputRef.current) inputRef.current.value = '';
     setChatMessage('');
     setIsChatLoading(true);
     
@@ -1079,14 +1088,14 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
     } finally {
       setIsChatLoading(false);
     }
-  };
+  }, [chatMessage, token, knowledgeBase.length, setChatHistory, setChatMessage, setIsChatLoading, setMessage]);
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
 
   if (!user) {
     return null; // Jangan render apa-apa jika belum login
@@ -1095,13 +1104,28 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
   const greeting = getGreeting();
   
   // Get background class based on time
-  const getBackgroundClass = () => {
-    return 'min-h-screen bg-gradient-to-br from-white via-red-50/30 to-white relative overflow-hidden';
-  };
+  const backgroundClass = 'min-h-screen bg-gradient-to-br from-white via-red-50/30 to-white relative overflow-hidden';
+
+  // Ultra-fast input handler for real-time typing like Google
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setChatMessage(value);
+  }, []);
+
+  // Memoize input props to prevent unnecessary re-renders
+  const inputProps = useMemo(() => ({
+    value: chatMessage,
+    onChange: handleInputChange,
+    onKeyPress: handleKeyPress,
+    placeholder: knowledgeBase.length === 0 ? "Tambahkan dokumen terlebih dahulu..." : "Tanyakan sesuatu tentang dokumen Anda...",
+    disabled: isChatLoading || knowledgeBase.length === 0,
+    autoComplete: "off" as const,
+    spellCheck: false
+  }), [chatMessage, handleInputChange, handleKeyPress, knowledgeBase.length, isChatLoading]);
 
 
   return (
-    <div className={getBackgroundClass()}>
+    <div className={backgroundClass}>
       {/* Premium Background Pattern */}
       <div className="background-dots"></div>
       
@@ -1138,7 +1162,7 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
               {/* User Profile Picture - Glass Effect */}
               <div className="nav-profile">
                 <ProfilePicture 
-                  user={user} 
+                  user={memoizedUser} 
                   size="md"
                   className="nav-profile-avatar"
                 />
@@ -1497,13 +1521,10 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
                 </div>
                 <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                   <input
+                    ref={inputRef}
                     type="text"
-                    value={chatMessage}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder={knowledgeBase.length === 0 ? "Tambahkan dokumen terlebih dahulu..." : "Tanyakan sesuatu tentang dokumen Anda..."}
-                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg hover:shadow-xl text-base sm:text-lg font-medium"
-                    disabled={isChatLoading || knowledgeBase.length === 0}
+                    {...inputProps}
+                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 shadow-lg text-base sm:text-lg font-medium"
                   />
                   <Button
                     onClick={handleSendMessage}
@@ -2094,3 +2115,5 @@ export function Dashboard({ user, token, onLogout }: DashboardProps) {
       </div>
   );
 }
+
+export { Dashboard };
