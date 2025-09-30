@@ -555,7 +555,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
     }
     
     setIsLoading(true);
-    setMessage('');
+    setMessage('Memuat 100 dokumen terbaru dari Google Drive...');
     
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents`, {
@@ -591,7 +591,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       setIsShowingRecentFiles(false);
       
       if (data && data.length > 0) {
-        setMessage(`Berhasil dimuat ${data.length} dokumen dari Google Drive Anda.`);
+        setMessage(`Berhasil dimuat ${data.length} dokumen terbaru dari Google Drive Anda.`);
       } else {
         setMessage('Tidak ada dokumen ditemukan di Google Drive Anda.');
       }

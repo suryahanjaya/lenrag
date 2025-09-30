@@ -31,9 +31,9 @@ class RAGPipeline:
             is_persistent=True
         ))
         
-        # Text splitter configuration for chunking documents - Optimized for 1000+ documents scale
-        self.chunk_size = 1500  # Smaller chunks for 35% more chunks, better for large scale
-        self.chunk_overlap = 250  # Optimized overlap for better coverage
+        # Text splitter configuration for chunking documents - Optimized for 100 documents scale
+        self.chunk_size = 2000  # Larger chunks for better context with fewer documents
+        self.chunk_overlap = 200  # Reduced overlap for better performance
         self.separators = ["\n\n", "\n", " ", ""]
     
     def _get_user_collection(self, user_id: str):
@@ -317,7 +317,7 @@ class RAGPipeline:
             # Search for relevant chunks with expanded query
             results = collection.query(
                 query_texts=[expanded_query],
-                n_results=20  # Increased for better context with more chunks available
+                n_results=15  # Optimized for 100 documents - reduced for better performance
             )
             
             documents = results['documents'][0] if results['documents'] else []

@@ -47,7 +47,8 @@ class GoogleDocsService:
             
             params = {
                 'q': query,
-                'pageSize': 1000,  # Increased to get more files and folders
+                'pageSize': 100,  # Limited to 100 latest files for better performance
+                'orderBy': 'modifiedTime desc',  # Sort by most recently modified
                 'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
             }
             
@@ -76,6 +77,7 @@ class GoogleDocsService:
                 broader_params = {
                     'q': broader_query,
                     'pageSize': 100,
+                    'orderBy': 'modifiedTime desc',  # Sort by most recently modified
                     'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
                 }
                 
