@@ -1,1 +1,4 @@
-
+Host     : 192.168.17.20
+Port     : 6970
+User     : hariyadi
+Password : N3wS012025#!S$$

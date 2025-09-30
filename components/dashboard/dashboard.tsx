@@ -33,19 +33,19 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
   // Helper function for error messages
   const setErrorMessage = (errorType: 'folder' | 'documents' | 'add' | 'remove' | 'general') => {
     const messages = {
-      folder: 'Gagal memuat dokumen dari folder. Periksa URL folder dan coba lagi.',
-      documents: 'Gagal memuat dokumen. Periksa koneksi internet dan coba lagi.',
-      add: 'Gagal menambahkan dokumen. Periksa koneksi dan coba lagi.',
-      remove: 'Gagal menghapus dokumen. Periksa koneksi dan coba lagi.',
-      general: 'Terjadi kesalahan. Silakan coba lagi.'
+      folder: 'DORA: Gagal memuat dokumen dari folder. Periksa URL folder dan coba lagi.',
+      documents: 'DORA: Gagal memuat dokumen. Periksa koneksi internet dan coba lagi.',
+      add: 'DORA: Gagal menambahkan dokumen. Periksa koneksi dan coba lagi.',
+      remove: 'DORA: Gagal menghapus dokumen. Periksa koneksi dan coba lagi.',
+      general: 'DORA: Terjadi kesalahan. Silakan coba lagi.'
     };
     setMessage(messages[errorType]);
   };
 
   // Helper function to format AI response with better structure
   const formatAIResponse = (content: string) => {
-    // First, try to split by existing paragraph breaks
-    let paragraphs = content.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
+        // DORA: First, try to split by existing paragraph breaks
+        let paragraphs = content.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
     
     // If no paragraph breaks exist, try to create them based on sentence patterns
     if (paragraphs.length === 1 && paragraphs[0].length > 200) {
@@ -86,24 +86,40 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       paragraphs = newParagraphs;
     }
     
-    // Format each paragraph
+    // Enhanced formatting for DORA responses - remove bullet points and create flowing paragraphs
     let formatted = paragraphs.map(paragraph => {
-      // Check if paragraph contains bullet points or numbered lists
+      // Remove bullet points and numbering completely, convert to flowing text
+      let cleaned = paragraph
+        .replace(/^[\s]*[•\-\*]\s*/gm, '') // Remove bullet points
+        .replace(/^\s*\d+\.\s*/gm, '') // Remove numbering
+        .replace(/^\s*[-•*]\s*/gm, '') // Remove any remaining bullet-like characters
+        .trim();
+      
+      // If the paragraph was originally a list, convert it to flowing text
       if (paragraph.includes('•') || paragraph.includes('-') || paragraph.includes('*') || /^\d+\./.test(paragraph)) {
-        // Format as list
         const lines = paragraph.split('\n').filter(line => line.trim());
-        const listItems = lines.map(line => {
-          // Clean up bullet points
-          const cleaned = line
-            .replace(/^[•\-\*]\s*/, '• ')
-            .replace(/^\d+\.\s*/, '• ')
+        const cleanedLines = lines.map(line => {
+          return line
+            .replace(/^[\s]*[•\-\*]\s*/, '')
+            .replace(/^\s*\d+\.\s*/, '')
             .trim();
-          return cleaned;
-        });
-        return listItems.join('\n');
+        }).filter(line => line.length > 0);
+        
+        // Join with appropriate connectors
+        if (cleanedLines.length > 1) {
+          cleaned = cleanedLines.join('. ') + '.';
+        } else {
+          cleaned = cleanedLines[0] || cleaned;
+        }
       }
-      return paragraph;
-    }).join('\n\n');
+      
+      // Ensure proper sentence structure
+      if (cleaned && !cleaned.endsWith('.') && !cleaned.endsWith('!') && !cleaned.endsWith('?')) {
+        cleaned += '.';
+      }
+      
+      return cleaned;
+    }).filter(p => p.length > 0).join('\n\n');
 
     // Add proper spacing and formatting
     formatted = formatted
@@ -153,7 +169,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
     return suggestions;
   };
 
-  // Component to render formatted chat message
+  // Component to render formatted chat message with enhanced paragraph structure
   const renderFormattedMessage = (content: string) => {
     const paragraphs = content.split('\n\n');
     const isIncomplete = detectIncompleteResponse(content);
@@ -162,41 +178,40 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
     return (
       <div className="formatted-message">
         {paragraphs.map((paragraph, index) => {
-          // Check if paragraph contains bullet points
-          if (paragraph.includes('•') || paragraph.includes('-') || paragraph.includes('*')) {
-            const lines = paragraph.split('\n').filter(line => line.trim());
-            return (
-              <div key={index} className="mb-4">
-                <ul className="list-disc list-inside space-y-2 ml-4">
-                  {lines.map((line, lineIndex) => (
-                    <li key={lineIndex} className="text-gray-700 leading-relaxed">
-                      {line.replace(/^[•\-\*]\s*/, '').trim()}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          }
+          // Clean paragraph from any remaining bullet points or numbering
+          const cleanedParagraph = paragraph
+            .replace(/^[\s]*[•\-\*]\s*/gm, '')
+            .replace(/^\s*\d+\.\s*/gm, '')
+            .replace(/^\s*[-•*]\s*/gm, '')
+            .trim();
           
-          // Regular paragraph with better spacing
+          // Skip empty paragraphs
+          if (!cleanedParagraph) return null;
+          
+          // Enhanced paragraph rendering with better typography
           return (
-            <p key={index} className="mb-4 text-gray-700 leading-relaxed text-sm">
-              {paragraph}
-            </p>
+            <div key={index} className="mb-6">
+              <p className="text-gray-700 leading-relaxed text-sm">
+                {cleanedParagraph}
+              </p>
+            </div>
           );
         })}
         
         {/* Show suggestions for incomplete responses */}
         {isIncomplete && suggestions.length > 0 && (
-          <div className="suggestion-box">
-            <h4>Saran untuk mendapatkan jawaban yang lebih lengkap:</h4>
-            <ul>
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800 font-medium mb-3">
+              💡 DORA menyarankan pertanyaan yang lebih spesifik:
+            </p>
+            <div className="text-sm text-blue-700 space-y-2">
               {suggestions.map((suggestion, index) => (
-                <li key={index}>
-                  {suggestion}
-                </li>
+                <div key={index} className="flex items-start">
+                  <span className="mr-2 text-blue-600">→</span>
+                  <span className="italic">{suggestion}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
       </div>
@@ -1146,13 +1161,13 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="nav-brand">
               <div className="nav-logo">
                 <div className="nav-logo-icon">
-                  <span className="nav-logo-text">L</span>
+                  <span className="nav-logo-text">D</span>
                 </div>
                 <div className="nav-logo-dot"></div>
               </div>
               <div>
                 <h2 className="nav-title">
-                  LARA
+                  DORA
                 </h2>
               </div>
             </div>
@@ -1313,8 +1328,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
                         <span className="text-white text-xl sm:text-2xl">💬</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h2 className="chat-title-mobile">Chat dengan AI</h2>
-                        <p className="chat-subtitle-mobile">Tanyakan apapun tentang dokumen Anda</p>
+                        <h2 className="chat-title-mobile">Chat dengan DORA</h2>
+                        <p className="chat-subtitle-mobile">DORA dapat memahami berbagai jenis dokumen</p>
                       </div>
                     </div>
                     
@@ -1351,8 +1366,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
                         <span className="text-white text-2xl">💬</span>
                       </div>
                       <div>
-                        <h2 className="chat-title-tablet">Chat dengan AI</h2>
-                        <p className="chat-subtitle-tablet">Tanyakan apapun tentang dokumen Anda</p>
+                        <h2 className="chat-title-tablet">Chat dengan DORA</h2>
+                        <p className="chat-subtitle-tablet">DORA dapat memahami berbagai jenis dokumen</p>
                       </div>
                     </div>
                     
@@ -1389,8 +1404,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
                         <span className="text-white text-3xl">💬</span>
                       </div>
                       <div>
-                        <h2 className="chat-title-desktop">Chat dengan AI</h2>
-                        <p className="chat-subtitle-desktop">Tanyakan apapun tentang dokumen Anda</p>
+                        <h2 className="chat-title-desktop">Chat dengan DORA</h2>
+                        <p className="chat-subtitle-desktop">DORA dapat memahami berbagai jenis dokumen</p>
                       </div>
                     </div>
                     
@@ -1583,7 +1598,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 <span className="text-white text-2xl sm:text-3xl">📁</span>
                             </div>
                             <div>
-                                <h2 className="documents-title">Google Drive Documents</h2>
+                                <h2 className="documents-title">DORA - Google Drive Documents</h2>
                                 <p className="documents-subtitle">
                                     {isShowingRecentFiles ? (
                                         <span className="flex items-center space-x-2">
@@ -2018,8 +2033,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 <span className="text-white text-2xl sm:text-3xl">🧠</span>
                             </div>
                             <div>
-                                <h2 className="knowledge-title">Knowledge Base</h2>
-                                <p className="knowledge-subtitle">Dokumen yang siap untuk AI</p>
+                                <h2 className="knowledge-title">DORA Knowledge Base</h2>
+                                <p className="knowledge-subtitle">Dokumen yang siap untuk DORA</p>
                             </div>
                         </div>
                         <div className="knowledge-actions">
@@ -2100,17 +2115,17 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="footer-brand-container">
               <div className="footer-logo">
                 <div className="footer-logo-icon">
-                  <span className="footer-logo-text">L</span>
+                  <span className="footer-logo-text">D</span>
                 </div>
                 <div className="footer-logo-dot"></div>
               </div>
               <div className="footer-brand-text">
-                <h3 className="footer-title">LARA</h3>
-                <p className="footer-subtitle">Legal Assistant</p>
+                <h3 className="footer-title">DORA</h3>
+                <p className="footer-subtitle">Document Retrieval Assistant</p>
               </div>
             </div>
             <p className="footer-description">
-              Transform your legal documents into an intelligent knowledge base.
+              Transform your documents into an intelligent knowledge base with DORA.
             </p>
           </div>
         </footer>

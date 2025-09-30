@@ -10,7 +10,7 @@ import logging
 
 from services.google_auth import GoogleAuthService
 from services.google_docs import GoogleDocsService
-from services.rag_pipeline import RAGPipeline
+from services.rag_pipeline import DORAPipeline
 from services.supabase_client import SupabaseClient
 from models.schemas import (
     AuthRequest, 
@@ -28,7 +28,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="RAG Chatbot with Google Docs", version="1.0.0")
+app = FastAPI(title="DORA - Document Retrieval Assistant", version="2.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -45,7 +45,7 @@ security = HTTPBearer()
 # Initialize services
 google_auth_service = GoogleAuthService()
 google_docs_service = GoogleDocsService()
-rag_pipeline = RAGPipeline()
+dora_pipeline = DORAPipeline()
 supabase_client = SupabaseClient()
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -63,7 +63,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 @app.get("/")
 async def root():
-    return {"message": "RAG Chatbot API is running"}
+    return {"message": "DORA - Document Retrieval Assistant API is running"}
 
 @app.post("/auth/google", response_model=Dict[str, Any])
 async def authenticate_google(request: AuthRequest):
@@ -314,8 +314,8 @@ async def add_documents_to_knowledge_base(
                     failed_documents.append({"id": doc_id, "error": "Very little content"})
                     continue
                 
-                # Add to RAG pipeline with metadata
-                await rag_pipeline.add_document(
+                # Add to DORA pipeline with metadata
+                await dora_pipeline.add_document(
                     user_id=current_user['id'],
                     document_id=doc_id,
                     content=content,
@@ -349,10 +349,10 @@ async def chat_with_documents(
     request: ChatRequest,
     current_user = Depends(get_current_user)
 ):
-    """Chat with the RAG system"""
+    """Chat with the DORA system"""
     try:
-        # Query the RAG pipeline
-        response = await rag_pipeline.query(
+        # Query the DORA pipeline
+        response = await dora_pipeline.query(
             user_id=current_user['id'],
             query=request.message,
             use_fallback=True
@@ -386,7 +386,7 @@ async def remove_document_from_knowledge_base(
 ):
     """Remove a document from the user's knowledge base"""
     try:
-        await rag_pipeline.remove_document(current_user['id'], document_id)
+        await dora_pipeline.remove_document(current_user['id'], document_id)
         return {"message": "Document removed successfully"}
     except Exception as e:
         logger.error(f"Error removing document: {e}")
@@ -407,7 +407,7 @@ async def clear_all_documents(
         print(f"=== FORCE RESET STARTED FOR USER: {user_id} ===")
         
         # Count documents before clearing
-        collection = rag_pipeline._get_user_collection(user_id)
+        collection = dora_pipeline._get_user_collection(user_id)
         all_docs = collection.get()
         
         if not all_docs['ids']:
@@ -446,12 +446,12 @@ async def clear_all_documents(
             logger.info("💥 METHOD 3: Deleting entire collection and recreating")
             print("💥 METHOD 3: Deleting entire collection and recreating")
             try:
-                rag_pipeline.chroma_client.delete_collection(collection_name)
+                dora_pipeline.chroma_client.delete_collection(collection_name)
                 logger.info(f"✅ Deleted collection: {collection_name}")
                 print(f"✅ Deleted collection: {collection_name}")
                 
                 # Recreate collection immediately after deletion
-                new_collection = rag_pipeline.chroma_client.create_collection(
+                new_collection = dora_pipeline.chroma_client.create_collection(
                     name=collection_name,
                     metadata={"hnsw:space": "cosine"}
                 )
@@ -490,7 +490,7 @@ async def clear_all_documents(
         
         # Final verification
         try:
-            final_collection = rag_pipeline._get_user_collection(user_id)
+            final_collection = dora_pipeline._get_user_collection(user_id)
             final_docs = final_collection.get()
             logger.info(f"FINAL VERIFICATION - Chunks remaining: {len(final_docs['ids'])}")
             logger.info(f"FINAL VERIFICATION - Sample IDs: {final_docs['ids'][:5]}")
@@ -546,7 +546,7 @@ async def health_check():
     """Health check endpoint"""
     try:
         # Test ChromaDB connection
-        test_collection = rag_pipeline._get_user_collection("test_user")
+        test_collection = dora_pipeline._get_user_collection("test_user")
         chroma_status = "operational"
     except Exception as e:
         chroma_status = f"error: {str(e)}"
@@ -555,7 +555,7 @@ async def health_check():
         "status": "healthy",
         "services": {
             "google_auth": "operational",
-            "rag_pipeline": "operational",
+            "dora_pipeline": "operational",
             "supabase": "operational",
             "chromadb": chroma_status
         }
@@ -565,7 +565,7 @@ async def health_check():
 async def get_database_stats(current_user = Depends(get_current_user)):
     """Get database statistics for monitoring large scale operations"""
     try:
-        stats = await rag_pipeline.get_database_stats(current_user['id'])
+        stats = await dora_pipeline.get_database_stats(current_user['id'])
         return stats
     except Exception as e:
         logger.error(f"Error getting database stats: {e}")
@@ -771,7 +771,7 @@ async def get_knowledge_base_documents(current_user = Depends(get_current_user))
     """Get actual documents in the knowledge base with metadata"""
     try:
         user_id = current_user['id']
-        collection = rag_pipeline._get_user_collection(user_id)
+        collection = dora_pipeline._get_user_collection(user_id)
         
         # Get all documents in the knowledge base
         all_docs = collection.get()

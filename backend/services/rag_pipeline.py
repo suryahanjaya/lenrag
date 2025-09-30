@@ -10,7 +10,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
-class RAGPipeline:
+class DORAPipeline:
     def __init__(self):
         # Initialize Gemini API
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
@@ -19,10 +19,10 @@ class RAGPipeline:
         genai.configure(api_key=self.gemini_api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
         
-        # Initialize embedding model
+        # Initialize embedding model - using multilingual model for better document understanding
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         
-        # Initialize ChromaDB with optimizations for large scale
+        # Initialize ChromaDB with optimizations for large scale document storage
         self.chroma_client = chromadb.Client(Settings(
             persist_directory="./chroma_db",
             anonymized_telemetry=False,
@@ -31,10 +31,20 @@ class RAGPipeline:
             is_persistent=True
         ))
         
-        # Text splitter configuration for chunking documents - Optimized for 100 documents scale
-        self.chunk_size = 2000  # Larger chunks for better context with fewer documents
-        self.chunk_overlap = 200  # Reduced overlap for better performance
-        self.separators = ["\n\n", "\n", " ", ""]
+        # Enhanced text splitter configuration for universal document types
+        self.chunk_size = 1500  # Optimized for various document types
+        self.chunk_overlap = 150  # Balanced overlap for context preservation
+        self.separators = ["\n\n", "\n", ". ", "! ", "? ", " ", ""]
+        
+        # Document type detection patterns
+        self.document_patterns = {
+            'legal': [r'pasal\s+\d+', r'undang-undang', r'peraturan', r'hukum'],
+            'academic': [r'referensi', r'daftar pustaka', r'kajian', r'penelitian'],
+            'technical': [r'api', r'endpoint', r'function', r'method', r'class'],
+            'business': [r'proposal', r'laporan', r'analisis', r'strategi'],
+            'medical': [r'diagnosis', r'gejala', r'pengobatan', r'terapi'],
+            'financial': [r'anggaran', r'keuangan', r'investasi', r'profit']
+        }
     
     def _get_user_collection(self, user_id: str):
         """Get or create a ChromaDB collection for a specific user"""
@@ -51,142 +61,94 @@ class RAGPipeline:
         """Generate a unique ID for a document chunk"""
         return f"{document_id}_chunk_{chunk_index}"
     
-    def _split_text(self, text: str) -> List[str]:
-        """Split text into chunks using intelligent text splitting logic for legal documents"""
+    def _detect_document_type(self, text: str, mime_type: str = None) -> str:
+        """Detect document type based on content and MIME type"""
+        text_lower = text.lower()
+        
+        # Check MIME type first
+        if mime_type:
+            if 'pdf' in mime_type:
+                return 'pdf'
+            elif 'word' in mime_type or 'document' in mime_type:
+                return 'document'
+            elif 'presentation' in mime_type or 'powerpoint' in mime_type:
+                return 'presentation'
+            elif 'spreadsheet' in mime_type or 'excel' in mime_type:
+                return 'spreadsheet'
+        
+        # Detect by content patterns
+        for doc_type, patterns in self.document_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, text_lower):
+                    return doc_type
+        
+        return 'general'
+    
+    def _split_text(self, text: str, mime_type: str = None) -> List[str]:
+        """Split text into chunks using intelligent text splitting for various document types"""
         if not text or not text.strip():
             return []
         
         chunks = []
-        logger.info(f"Starting text splitting for {len(text)} characters")
+        doc_type = self._detect_document_type(text, mime_type)
+        logger.info(f"Detected document type: {doc_type} for {len(text)} characters")
         
-        # For legal documents, try multiple splitting strategies
-        # Strategy 1: Split by Pasal (Article) boundaries if they exist
-        pasal_sections = re.split(r'(?=Pasal\s+\d+)', text)
+        # Strategy 1: Document-specific splitting
+        if doc_type == 'legal':
+            # Legal document splitting (Pasal, BAB, etc.)
+            sections = self._split_legal_document(text)
+        elif doc_type == 'academic':
+            # Academic document splitting (chapters, sections, references)
+            sections = self._split_academic_document(text)
+        elif doc_type == 'technical':
+            # Technical document splitting (functions, classes, APIs)
+            sections = self._split_technical_document(text)
+        elif doc_type == 'business':
+            # Business document splitting (sections, subsections)
+            sections = self._split_business_document(text)
+        else:
+            # General document splitting
+            sections = self._split_general_document(text)
         
-        # Strategy 1.5: For constitutional documents, also check for other patterns
-        # UUD 1945 uses different structure - check for "BAB", "Pasal", or numbered sections
-        constitutional_patterns = [
-            r'(?=BAB\s+\d+)',  # BAB I, BAB II, etc.
-            r'(?=Pasal\s+\d+)',  # Pasal 1, Pasal 2, etc.
-            r'(?=Pasal\s+\d+[A-Z])',  # Pasal 1A, Pasal 2B, etc.
-            r'(?=Pasal\s+\d+[a-z])',  # Pasal 1a, Pasal 2b, etc.
-        ]
-        
-        logger.info(f"Found {len(pasal_sections)} Pasal sections")
-        
-        # Try constitutional patterns if no regular Pasal found
-        if len(pasal_sections) <= 1:
-            for pattern in constitutional_patterns:
-                sections = re.split(pattern, text)
-                if len(sections) > 1:
-                    pasal_sections = sections
-                    logger.info(f"Found {len(sections)} sections using pattern: {pattern}")
-                    break
-        
-        if len(pasal_sections) > 1:  # Only use Pasal splitting if we found multiple sections
-            logger.info("Using Pasal-based splitting strategy")
-            for section in pasal_sections:
-                if not section.strip():
-                    continue
-                    
-                if len(section) <= self.chunk_size:
-                    if section.strip():
-                        chunks.append(section.strip())
-                else:
-                    # Split long sections by paragraphs first
-                    paragraphs = section.split('\n\n')
-                    current_chunk = ""
-                    
-                    for paragraph in paragraphs:
-                        if len(current_chunk) + len(paragraph) <= self.chunk_size:
-                            current_chunk += paragraph + "\n\n"
+        # Process sections into chunks
+        for section in sections:
+            if not section.strip():
+                continue
+                
+            if len(section) <= self.chunk_size:
+                if section.strip():
+                    chunks.append(section.strip())
+            else:
+                # Split long sections by paragraphs
+                paragraphs = section.split('\n\n')
+                current_chunk = ""
+                
+                for paragraph in paragraphs:
+                    if len(current_chunk) + len(paragraph) <= self.chunk_size:
+                        current_chunk += paragraph + "\n\n"
+                    else:
+                        if current_chunk.strip():
+                            chunks.append(current_chunk.strip())
+                        # If single paragraph is too long, split by sentences
+                        if len(paragraph) > self.chunk_size:
+                            sentences = re.split(r'[.!?]+\s+', paragraph)
+                            temp_chunk = ""
+                            
+                            for sentence in sentences:
+                                if len(temp_chunk) + len(sentence) <= self.chunk_size:
+                                    temp_chunk += sentence + ". "
+                                else:
+                                    if temp_chunk.strip():
+                                        chunks.append(temp_chunk.strip())
+                                    temp_chunk = sentence + ". "
+                            
+                            if temp_chunk.strip():
+                                chunks.append(temp_chunk.strip())
                         else:
-                            if current_chunk.strip():
-                                chunks.append(current_chunk.strip())
-                            # If single paragraph is too long, split by sentences
-                            if len(paragraph) > self.chunk_size:
-                                sentences = re.split(r'[.!?]+\s+', paragraph)
-                                temp_chunk = ""
-                                
-                                for sentence in sentences:
-                                    if len(temp_chunk) + len(sentence) <= self.chunk_size:
-                                        temp_chunk += sentence + ". "
-                                    else:
-                                        if temp_chunk.strip():
-                                            chunks.append(temp_chunk.strip())
-                                        temp_chunk = sentence + ". "
-                                
-                                if temp_chunk.strip():
-                                    chunks.append(temp_chunk.strip())
-                            else:
-                                current_chunk = paragraph + "\n\n"
-                    
-                    if current_chunk.strip():
-                        chunks.append(current_chunk.strip())
-        
-        # Strategy 2: If no Pasal sections found or chunks are too few, use paragraph splitting
-        if not chunks or len(chunks) < 10:  # If we have very few chunks, use paragraph splitting
-            logger.info(f"Using paragraph-based splitting strategy (chunks so far: {len(chunks)})")
-            
-            # For constitutional documents, be more aggressive with splitting
-            # Split by multiple newlines first, then by single newlines
-            text_sections = re.split(r'\n\s*\n\s*\n', text)  # Triple newlines
-            if len(text_sections) <= 1:
-                text_sections = re.split(r'\n\s*\n', text)  # Double newlines
-            if len(text_sections) <= 1:
-                text_sections = [text]  # Use whole text if no clear sections
-            
-            for section in text_sections:
-                if not section.strip():
-                    continue
-                    
-                if len(section) <= self.chunk_size:
-                    if section.strip():
-                        chunks.append(section.strip())
-                else:
-                    # Split long sections by paragraphs
-                    paragraphs = section.split('\n\n')
-                    current_chunk = ""
-                    
-                    for paragraph in paragraphs:
-                        if len(current_chunk) + len(paragraph) <= self.chunk_size:
-                            current_chunk += paragraph + "\n\n"
-                        else:
-                            if current_chunk.strip():
-                                chunks.append(current_chunk.strip())
-                            # If single paragraph is too long, split by sentences
-                            if len(paragraph) > self.chunk_size:
-                                sentences = re.split(r'[.!?]+\s+', paragraph)
-                                temp_chunk = ""
-                                
-                                for sentence in sentences:
-                                    if len(temp_chunk) + len(sentence) <= self.chunk_size:
-                                        temp_chunk += sentence + ". "
-                                    else:
-                                        if temp_chunk.strip():
-                                            chunks.append(temp_chunk.strip())
-                                        temp_chunk = sentence + ". "
-                                
-                                if temp_chunk.strip():
-                                    chunks.append(temp_chunk.strip())
-                            else:
-                                current_chunk = paragraph + "\n\n"
-                    
-                    if current_chunk.strip():
-                        chunks.append(current_chunk.strip())
-                    sentences = re.split(r'[.!?]+\s+', paragraph)
-                    current_chunk = ""
-                    
-                    for sentence in sentences:
-                        if len(current_chunk) + len(sentence) <= self.chunk_size:
-                            current_chunk += sentence + ". "
-                        else:
-                            if current_chunk.strip():
-                                chunks.append(current_chunk.strip())
-                            current_chunk = sentence + ". "
-                    
-                    if current_chunk.strip():
-                        chunks.append(current_chunk.strip())
+                            current_chunk = paragraph + "\n\n"
+                
+                if current_chunk.strip():
+                    chunks.append(current_chunk.strip())
         
         # Apply overlap if we have multiple chunks
         if len(chunks) > 1 and self.chunk_overlap > 0:
@@ -204,6 +166,98 @@ class RAGPipeline:
         logger.info(f"Final chunk count: {len(chunks)}")
         return chunks
     
+    def _split_legal_document(self, text: str) -> List[str]:
+        """Split legal documents by Pasal, BAB, etc."""
+        # Try multiple legal document patterns
+        patterns = [
+            r'(?=Pasal\s+\d+)',  # Pasal 1, Pasal 2, etc.
+            r'(?=BAB\s+\d+)',    # BAB I, BAB II, etc.
+            r'(?=Pasal\s+\d+[A-Z])',  # Pasal 1A, Pasal 2B, etc.
+            r'(?=Pasal\s+\d+[a-z])',  # Pasal 1a, Pasal 2b, etc.
+            r'(?=Pasal\s+\d+[A-Za-z])',  # Mixed case
+        ]
+        
+        for pattern in patterns:
+            sections = re.split(pattern, text)
+            if len(sections) > 1:
+                logger.info(f"Found {len(sections)} legal sections using pattern: {pattern}")
+                return [s.strip() for s in sections if s.strip()]
+        
+        # Fallback to paragraph splitting
+        return re.split(r'\n\s*\n', text)
+    
+    def _split_academic_document(self, text: str) -> List[str]:
+        """Split academic documents by chapters, sections, references"""
+        patterns = [
+            r'(?=Chapter\s+\d+)',  # Chapter 1, Chapter 2
+            r'(?=CHAPTER\s+\d+)',  # CHAPTER 1, CHAPTER 2
+            r'(?=Bab\s+\d+)',       # Bab 1, Bab 2
+            r'(?=BAB\s+\d+)',       # BAB 1, BAB 2
+            r'(?=Section\s+\d+)',   # Section 1, Section 2
+            r'(?=Referensi)',       # References section
+            r'(?=Daftar Pustaka)',  # Bibliography
+        ]
+        
+        for pattern in patterns:
+            sections = re.split(pattern, text)
+            if len(sections) > 1:
+                logger.info(f"Found {len(sections)} academic sections using pattern: {pattern}")
+                return [s.strip() for s in sections if s.strip()]
+        
+        # Fallback to paragraph splitting
+        return re.split(r'\n\s*\n', text)
+    
+    def _split_technical_document(self, text: str) -> List[str]:
+        """Split technical documents by functions, classes, APIs"""
+        patterns = [
+            r'(?=def\s+\w+)',      # Python functions
+            r'(?=function\s+\w+)', # JavaScript functions
+            r'(?=class\s+\w+)',    # Classes
+            r'(?=public\s+\w+)',   # Public methods
+            r'(?=private\s+\w+)',  # Private methods
+            r'(?=API\s+Endpoint)', # API endpoints
+        ]
+        
+        for pattern in patterns:
+            sections = re.split(pattern, text)
+            if len(sections) > 1:
+                logger.info(f"Found {len(sections)} technical sections using pattern: {pattern}")
+                return [s.strip() for s in sections if s.strip()]
+        
+        # Fallback to paragraph splitting
+        return re.split(r'\n\s*\n', text)
+    
+    def _split_business_document(self, text: str) -> List[str]:
+        """Split business documents by sections, subsections"""
+        patterns = [
+            r'(?=Executive Summary)',  # Executive Summary
+            r'(?=Introduction)',       # Introduction
+            r'(?=Methodology)',        # Methodology
+            r'(?=Results)',            # Results
+            r'(?=Conclusion)',         # Conclusion
+            r'(?=Recommendations)',    # Recommendations
+        ]
+        
+        for pattern in patterns:
+            sections = re.split(pattern, text)
+            if len(sections) > 1:
+                logger.info(f"Found {len(sections)} business sections using pattern: {pattern}")
+                return [s.strip() for s in sections if s.strip()]
+        
+        # Fallback to paragraph splitting
+        return re.split(r'\n\s*\n', text)
+    
+    def _split_general_document(self, text: str) -> List[str]:
+        """Split general documents by paragraphs and sections"""
+        # Try to split by multiple newlines first
+        sections = re.split(r'\n\s*\n\s*\n', text)  # Triple newlines
+        if len(sections) <= 1:
+            sections = re.split(r'\n\s*\n', text)    # Double newlines
+        if len(sections) <= 1:
+            sections = [text]  # Use whole text if no clear sections
+        
+        return [s.strip() for s in sections if s.strip()]
+    
     async def add_document(self, user_id: str, document_id: str, content: str, document_name: str = None, mime_type: str = None):
         """Add a document to the user's knowledge base"""
         try:
@@ -213,9 +267,9 @@ class RAGPipeline:
             
             collection = self._get_user_collection(user_id)
             
-            # Split document into chunks
-            logger.info(f"Starting chunking for document {document_id} ({len(content)} characters)")
-            chunks = self._split_text(content)
+            # Split document into chunks with MIME type detection
+            logger.info(f"Starting chunking for document {document_id} ({len(content)} characters, MIME: {mime_type})")
+            chunks = self._split_text(content, mime_type)
             logger.info(f"Generated {len(chunks)} chunks for document {document_id}")
             
             if not chunks:
@@ -327,8 +381,8 @@ class RAGPipeline:
             logger.info(f"Query results: {len(documents)} documents found")
             logger.info(f"Distances: {distances}")
             
-            # More lenient similarity threshold for expanded queries
-            if documents and distances and min(distances) < 0.9:
+                # More lenient similarity threshold for expanded queries
+            if documents and distances and min(distances) < 0.95:
                 # Create context from retrieved documents with document names and more context
                 context_parts = []
                 for i, (doc, meta) in enumerate(zip(documents, metadatas)):
@@ -340,32 +394,44 @@ class RAGPipeline:
                 # Add instruction to be more flexible in understanding
                 context += "\n\nPENTING: Jawab pertanyaan berdasarkan konteks di atas, bahkan jika ada variasi kata atau frasa dalam pertanyaan. Fokus pada makna dan inti pertanyaan, bukan pada kata-kata yang persis sama."
                 
-                # Generate answer using retrieved context with enhanced intelligence for large-scale knowledge base
-                prompt = f"""Anda adalah asisten hukum yang sangat berpengalaman dengan akses ke database hukum yang sangat besar (1000+ dokumen). WAJIB MENGGUNAKAN BAHASA INDONESIA SAJA.
+                # Generate answer using retrieved context with DORA's enhanced intelligence
+                prompt = f"""Anda adalah DORA (Document Retrieval Assistant) - asisten cerdas yang dapat memahami dan menganalisis berbagai jenis dokumen. WAJIB MENGGUNAKAN BAHASA INDONESIA SAJA.
 
-Konteks dari dokumen pengguna (dari database hukum yang luas):
+Konteks dari dokumen pengguna:
 {context}
 
 Pertanyaan: {query}
 
-INSTRUKSI KHUSUS UNTUK KECERDASAN TINGGI PADA SKALA BESAR:
-- ANALISIS KONTEKS dengan cermat dari database hukum yang luas dan berikan jawaban yang LENGKAP dan AKURAT
-- Manfaatkan pengetahuan dari 1000+ dokumen hukum untuk memberikan jawaban yang komprehensif
-- Jika pertanyaan tentang "UU yang mengatur tentang warga negara", CARI dan SEBUTKAN undang-undang spesifik yang mengatur hal tersebut
-- JANGAN katakan "tidak ada informasi" jika ada pasal atau undang-undang yang relevan dalam konteks
-- BERIKAN jawaban yang SPESIFIK dengan menyebutkan:
-  * Nama undang-undang yang tepat
-  * Pasal dan ayat yang relevan
-  * Penjelasan lengkap tentang ketentuan tersebut
-  * Referensi silang dengan undang-undang terkait lainnya
-- Jika menemukan informasi yang relevan, jelaskan dengan DETAIL dan MENYELURUH
-- Manfaatkan konteks dari berbagai dokumen untuk memberikan perspektif yang komprehensif
-- Format respons dalam paragraf yang bersih dan mudah dibaca
+INSTRUKSI KHUSUS UNTUK DORA (DOCUMENT RETRIEVAL ASSISTANT):
+- ANALISIS KONTEKS dengan cermat dari berbagai jenis dokumen dan berikan jawaban yang LENGKAP dan AKURAT
+- DORA dapat memahami dokumen hukum, akademik, teknis, bisnis, medis, keuangan, dan jenis dokumen lainnya
+- Jika pertanyaan tentang hukum, CARI dan SEBUTKAN undang-undang, pasal, atau peraturan yang relevan
+- Jika pertanyaan tentang akademik, berikan analisis berdasarkan penelitian, referensi, atau kajian
+- Jika pertanyaan tentang teknis, jelaskan konsep, fungsi, atau implementasi yang relevan
+- Jika pertanyaan tentang bisnis, berikan analisis strategi, proposal, atau laporan yang relevan
+- JANGAN katakan "tidak ada informasi" jika ada konten yang relevan dalam dokumen
+
+FORMAT RESPONS YANG DIHARUSKAN:
+- TULIS dalam bentuk PARAGRAF yang mengalir dengan baik, BUKAN dalam bentuk poin-poin atau bullet points
+- BAGI jawaban menjadi 2-4 paragraf yang logis dan mudah dibaca
+- Setiap paragraf harus fokus pada aspek tertentu dari jawaban
+- Gunakan transisi yang halus antar paragraf
+- Hindari penggunaan bullet points (•), dashes (-), atau numbering (1., 2., 3.)
+
+STRUKTUR PARAGRAF YANG DIANJURKAN:
+1. Paragraf Pertama: Jawaban langsung dan ringkasan utama
+2. Paragraf Kedua: Penjelasan detail dan analisis mendalam
+3. Paragraf Ketiga (opsional): Contoh atau kasus spesifik
+4. Paragraf Terakhir: Kesimpulan dan referensi sumber
+
+PANDUAN PENULISAN:
 - Tulis dengan gaya percakapan yang profesional dan informatif
+- Gunakan kalimat yang lengkap dan koheren
+- Hindari frasa yang terputus-putus
+- Buat alur logis dari satu ide ke ide berikutnya
 - WAJIB menggunakan bahasa Indonesia dalam seluruh respons
-- BERSIFAT CERDAS dalam memahami maksud pertanyaan - fokus pada inti pertanyaan
-- Jika ada variasi kata dalam pertanyaan, jawab berdasarkan konteks yang relevan
-- BERIKAN jawaban yang KONSTRUKTIF dan BERMANFAAT dengan memanfaatkan database hukum yang luas
+- BERSIFAT CERDAS dalam memahami maksud pertanyaan
+- BERIKAN jawaban yang KONSTRUKTIF dan BERMANFAAT
 - Di akhir respons, sebutkan nama dokumen yang Anda gunakan sebagai sumber
 
 Jawaban:"""
@@ -377,12 +443,11 @@ Jawaban:"""
                 answer = self._clean_response(raw_answer)
                 
                 # Extract source document information with deduplication and relevance filtering
-                from models.schemas import SourceInfo
                 source_info = []
                 seen_docs = set()  # Track unique document IDs
                 
                 # Filter documents based on similarity score (optimized for large-scale knowledge base)
-                relevant_threshold = 0.8  # More lenient threshold for large knowledge base
+                relevant_threshold = 0.9  # More lenient threshold for large knowledge base
                 max_sources = 8  # More sources for comprehensive context from large document collection
                 logger.info(f"Relevant threshold: {relevant_threshold}")
                 logger.info(f"Max sources: {max_sources}")
@@ -402,12 +467,12 @@ Jawaban:"""
                             
                             # Create Google Drive link
                             drive_link = f"https://drive.google.com/file/d/{doc_id}/view"
-                            source_info.append(SourceInfo(
-                                id=doc_id,
-                                name=doc_name,
-                                type=mime_type,
-                                link=drive_link
-                            ))
+                            source_info.append({
+                                "id": doc_id,
+                                "name": doc_name,
+                                "type": mime_type,
+                                "link": drive_link
+                            })
                             logger.info(f"Added relevant source: {doc_name} (distance: {distance:.3f})")
                         else:
                             logger.info(f"Skipped duplicate or unknown document: {doc_name}")
@@ -426,12 +491,12 @@ Jawaban:"""
                     
                     if doc_id != 'unknown':
                         drive_link = f"https://drive.google.com/file/d/{doc_id}/view"
-                        source_info.append(SourceInfo(
-                            id=doc_id,
-                            name=doc_name,
-                            type=mime_type,
-                            link=drive_link
-                        ))
+                        source_info.append({
+                            "id": doc_id,
+                            "name": doc_name,
+                            "type": mime_type,
+                            "link": drive_link
+                        })
                         logger.info(f"Added fallback source: {doc_name}")
                 
                 return {
@@ -451,7 +516,11 @@ Jawaban:"""
                 }
             
         except Exception as e:
-            logger.error(f"Error querying RAG system: {e}")
+            logger.error(f"Error querying DORA system: {e}")
+            logger.error(f"Error type: {type(e)}")
+            logger.error(f"Error details: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 'answer': "Maaf, terjadi kesalahan saat memproses pertanyaan Anda. Silakan coba lagi.",
                 'sources': [],
@@ -460,48 +529,57 @@ Jawaban:"""
             }
     
     def _expand_query(self, query: str) -> str:
-        """Expand query with synonyms and related terms for better understanding"""
-        # Enhanced synonyms and expansions for large-scale legal knowledge base
+        """Expand query with synonyms and related terms for universal document understanding"""
+        # Enhanced synonyms and expansions for DORA's universal document understanding
         expansions = {
-            # Basic legal terms
+            # Legal terms
             'warga negara': 'warga negara citizen kewarganegaraan penduduk',
-            'uu yang mengatur': 'undang-undang yang mengatur peraturan hukum ketentuan',
-            'mengatur tentang': 'mengatur tentang mengatur mengenai mengatur terkait',
-            'undang-undang': 'undang-undang uu peraturan hukum',
+            'undang-undang': 'undang-undang uu peraturan hukum ketentuan',
             'hukum': 'hukum undang-undang peraturan ketentuan',
+            'pasal': 'pasal ayat butir ketentuan',
+            'peraturan': 'peraturan ketentuan aturan regulasi',
             
-            # Government and administration
-            'pemerintah': 'pemerintah pemerintah pusat pemerintah daerah',
-            'pemerintah daerah': 'pemerintah daerah pemda daerah otonom',
-            'pejabat': 'pejabat pejabat negara pejabat publik',
-            'pegawai negeri sipil': 'pegawai negeri sipil pns aparatur sipil negara asn',
-            'berwenang': 'berwenang kewenangan wewenang hak tugas',
+            # Academic terms
+            'penelitian': 'penelitian riset kajian studi analisis',
+            'metodologi': 'metodologi metode pendekatan cara',
+            'referensi': 'referensi sumber pustaka literatur',
+            'kajian': 'kajian analisis penelitian studi',
+            'hasil': 'hasil temuan outcome result',
             
-            # Legal procedures
-            'penyidik': 'penyidik investigator penyelidik',
-            'penyidik pejabat': 'penyidik pejabat penyidik pegawai negeri sipil',
-            'sebagaimana dimaksud': 'sebagaimana dimaksud sesuai dengan menurut',
-            'ayat': 'ayat pasal butir',
-            'lingkungan': 'lingkungan wilayah daerah',
-            'di lingkungan': 'di lingkungan dalam lingkungan pada lingkungan',
+            # Technical terms
+            'fungsi': 'fungsi function method prosedur',
+            'implementasi': 'implementasi penerapan aplikasi',
+            'sistem': 'sistem system platform aplikasi',
+            'teknologi': 'teknologi technology teknis',
+            'kode': 'kode code script program',
             
-            # Rights and obligations
-            'hak': 'hak hak asasi manusia hak warga negara',
-            'kewajiban': 'kewajiban tanggung jawab kewajiban warga negara',
-            'kewenangan': 'kewenangan wewenang kekuasaan',
-            'tanggung jawab': 'tanggung jawab pertanggungjawaban',
+            # Business terms
+            'strategi': 'strategi strategy rencana plan',
+            'analisis': 'analisis analysis evaluasi assessment',
+            'laporan': 'laporan report dokumen document',
+            'proposal': 'proposal usulan rencana plan',
+            'investasi': 'investasi investment modal capital',
             
-            # Legal concepts
-            'peraturan': 'peraturan ketentuan aturan',
-            'ketentuan': 'ketentuan peraturan aturan',
-            'sanksi': 'sanksi hukuman pidana',
-            'pelanggaran': 'pelanggaran pelanggaran hukum',
+            # Medical terms
+            'diagnosis': 'diagnosis diagnosa identifikasi',
+            'gejala': 'gejala symptom tanda sign',
+            'pengobatan': 'pengobatan treatment terapi therapy',
+            'pasien': 'pasien patient orang sakit',
+            'kesehatan': 'kesehatan health medical medis',
             
-            # Time and process
-            'proses': 'proses prosedur tahapan',
-            'tahapan': 'tahapan langkah proses',
-            'jangka waktu': 'jangka waktu periode waktu',
-            'batas waktu': 'batas waktu deadline tenggat'
+            # Financial terms
+            'anggaran': 'anggaran budget biaya cost',
+            'keuangan': 'keuangan financial finance',
+            'profit': 'profit keuntungan benefit',
+            'investasi': 'investasi investment modal',
+            'ekonomi': 'ekonomi economic financial',
+            
+            # General terms
+            'dokumen': 'dokumen document file berkas',
+            'informasi': 'informasi information data',
+            'data': 'data information informasi',
+            'konten': 'konten content isi materi',
+            'sumber': 'sumber source referensi reference'
         }
         
         expanded_query = query.lower()
@@ -512,9 +590,11 @@ Jawaban:"""
         return expanded_query
 
     def _clean_response(self, text: str) -> str:
-        """Clean up the AI response to make it more readable"""
+        """Clean up the AI response to make it more readable with proper paragraph formatting"""
         if not text:
             return text
+        
+        import re  # Import re at the beginning of the method
         
         # Remove asterisks used for emphasis
         text = text.replace('*', '')
@@ -524,6 +604,10 @@ Jawaban:"""
         text = text.replace('__', '')
         text = text.replace('##', '')
         text = text.replace('###', '')
+        
+        # Remove bullet points and numbering
+        text = re.sub(r'^[\s]*[•\-\*]\s*', '', text, flags=re.MULTILINE)
+        text = re.sub(r'^\s*\d+\.\s*', '', text, flags=re.MULTILINE)
         
         # Clean up excessive whitespace and newlines
         lines = text.split('\n')
@@ -537,12 +621,16 @@ Jawaban:"""
         # Join lines with proper paragraph spacing
         result = '\n\n'.join(cleaned_lines)
         
-        # Remove any remaining multiple spaces
-        import re
-        result = re.sub(r'\s+', ' ', result)
-        result = re.sub(r'\n\s*\n', '\n\n', result)
+        # Remove any remaining multiple spaces within lines
+        result = re.sub(r'[ \t]+', ' ', result)
         
-        return result.strip()
+        # Ensure proper paragraph spacing (exactly 2 newlines between paragraphs)
+        result = re.sub(r'\n\s*\n\s*\n+', '\n\n', result)
+        
+        # Remove any leading/trailing whitespace
+        result = result.strip()
+        
+        return result
     
     async def summarize_document(self, user_id: str, document_id: str) -> str:
         """Summarize a specific document (bonus feature)"""

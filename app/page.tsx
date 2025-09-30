@@ -59,11 +59,11 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            RAG Chatbot with Google Docs
+            DORA - Document Retrieval Assistant
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Transform your Google Docs into an intelligent knowledge base. 
-            Ask questions and get answers powered by AI and your own documents.
+            Transform your documents into an intelligent knowledge base. 
+            DORA can understand legal, academic, technical, business, medical, and financial documents.
           </p>
           <GoogleAuthButton onSuccess={handleAuthSuccess} />
         </div>
@@ -97,11 +97,11 @@ export default function Home() {
           <Card>
             <CardHeader>
               <Brain className="h-8 w-8 text-purple-600 mb-2" />
-              <CardTitle className="text-lg">AI-Powered RAG</CardTitle>
+              <CardTitle className="text-lg">DORA Intelligence</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Advanced retrieval-augmented generation for accurate answers
+                Universal document understanding for all types of content
               </CardDescription>
             </CardContent>
           </Card>
@@ -137,9 +137,9 @@ export default function Home() {
               <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-green-600">2</span>
               </div>
-              <h3 className="text-xl font-semibold mb-2">AI Processing</h3>
+              <h3 className="text-xl font-semibold mb-2">DORA Processing</h3>
               <p className="text-gray-600">
-                Our AI processes your documents and creates intelligent embeddings for fast retrieval
+                DORA intelligently processes various document types and creates smart embeddings for universal retrieval
               </p>
             </div>
             
