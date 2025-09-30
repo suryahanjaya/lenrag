@@ -1161,11 +1161,13 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
             <div className="nav-actions">
               {/* User Profile Picture - Glass Effect */}
               <div className="nav-profile">
-                <ProfilePicture 
-                  user={memoizedUser} 
-                  size="md"
-                  className="nav-profile-avatar"
-                />
+                {memoizedUser && (
+                  <ProfilePicture 
+                    user={memoizedUser} 
+                    size="md"
+                    className="nav-profile-avatar"
+                  />
+                )}
               </div>
 
               {/* Logout Button with Door Animation */}

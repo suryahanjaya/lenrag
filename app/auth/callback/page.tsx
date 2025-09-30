@@ -1,15 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import * as React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [error, setError] = useState<string>('')
+  const [status, setStatus] = React.useState<'loading' | 'success' | 'error'>('loading')
+  const [error, setError] = React.useState<string>('')
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handleAuthCallback = async () => {
       const code = searchParams.get('code')
       const error = searchParams.get('error')
@@ -119,5 +119,25 @@ export default function AuthCallback() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function AuthCallback() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Loading...
+          </h2>
+          <p className="text-gray-600">
+            Please wait while we set up your account.
+          </p>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </React.Suspense>
   )
 }

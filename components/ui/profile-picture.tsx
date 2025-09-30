@@ -7,7 +7,7 @@ interface ProfilePictureProps {
     id: string
     name?: string
     picture?: string
-  }
+  } | null
   className?: string
   size?: 'sm' | 'md' | 'lg'
 }
@@ -17,11 +17,11 @@ const ProfilePicture = memo(function ProfilePicture({ user, className = '', size
   const [isLoading, setIsLoading] = useState(true)
 
   // Memoize user data to prevent unnecessary re-renders
-  const memoizedUser = useMemo(() => ({
-    id: user?.id,
-    name: user?.name,
-    picture: user?.picture
-  }), [user?.id, user?.name, user?.picture])
+  const memoizedUser = useMemo(() => user ? {
+    id: user.id,
+    name: user.name,
+    picture: user.picture
+  } : null, [user?.id, user?.name, user?.picture])
 
   const sizeClasses = {
     sm: 'w-6 h-6',
@@ -29,28 +29,50 @@ const ProfilePicture = memo(function ProfilePicture({ user, className = '', size
     lg: 'w-12 h-12'
   }
 
-  useEffect(() => {
-    console.log('ProfilePicture: useEffect triggered, user:', memoizedUser.name, 'picture:', memoizedUser.picture)
-    
-    if (memoizedUser.picture) {
-      console.log('ProfilePicture: Loading image for user:', memoizedUser.name || 'Unknown', 'URL:', memoizedUser.picture)
-      setImageError(false)
-      setIsLoading(true)
-    } else {
-      console.log('ProfilePicture: No picture available for user:', memoizedUser.name || 'Unknown')
-      setImageError(true)
-      setIsLoading(false)
-    }
-  }, [memoizedUser.picture, memoizedUser.name])
+useEffect(() => {
+  console.log(
+    'ProfilePicture: useEffect triggered, user:',
+    memoizedUser?.name,
+    'picture:',
+    memoizedUser?.picture
+  )
+
+  if (memoizedUser?.picture) {
+    console.log(
+      'ProfilePicture: Loading image for user:',
+      memoizedUser?.name || 'Unknown',
+      'URL:',
+      memoizedUser.picture
+    )
+    setImageError(false)
+    setIsLoading(true)
+  } else {
+    console.log(
+      'ProfilePicture: No picture available for user:',
+      memoizedUser?.name || 'Unknown'
+    )
+    setImageError(true)
+    setIsLoading(false)
+  }
+}, [memoizedUser?.picture, memoizedUser?.name])
+
 
   const handleImageLoad = () => {
-    console.log('ProfilePicture: Image loaded successfully for user:', memoizedUser.name || 'Unknown')
+    console.log(
+      'ProfilePicture: Image loaded successfully for user:',
+      memoizedUser?.name || 'Unknown'
+    )
     setIsLoading(false)
     setImageError(false)
   }
 
   const handleImageError = () => {
-    console.log('ProfilePicture: Image failed to load for user:', memoizedUser.name || 'Unknown', 'URL:', memoizedUser.picture)
+    console.log(
+      'ProfilePicture: Image failed to load for user:',
+      memoizedUser?.name || 'Unknown',
+      'URL:',
+      memoizedUser?.picture
+    )
     setImageError(true)
     setIsLoading(false)
   }
@@ -65,6 +87,16 @@ const ProfilePicture = memo(function ProfilePicture({ user, className = '', size
       .slice(0, 2)
   }
 
+  // Early return if no user
+  if (!memoizedUser) {
+    return (
+      <div className={`${sizeClasses[size]} rounded-full overflow-hidden border-2 border-white/30 ${className}`}>
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-400 to-gray-600">
+          <span className="text-white font-semibold text-xs">U</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`${sizeClasses[size]} rounded-full overflow-hidden border-2 border-white/30 ${className}`}>
