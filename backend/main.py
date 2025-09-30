@@ -299,7 +299,7 @@ async def add_documents_to_knowledge_base(
                 
                 if not doc_metadata:
                     logger.warning(f"⚠️ Document {doc_id} not found in user's documents")
-                    failed_documents.append({id: doc_id, error: "Not found in user's documents"})
+                    failed_documents.append({"id": doc_id, "error": "Not found in user's documents"})
                     continue
                 
                 logger.info(f"📄 Document {doc_id}: {doc_metadata.get('name', 'Unknown')}")
@@ -311,7 +311,7 @@ async def add_documents_to_knowledge_base(
                 
                 if not content or len(content.strip()) < 10:
                     logger.warning(f"⚠️ Document {doc_id} has very little content: '{content[:50]}...'")
-                    failed_documents.append({id: doc_id, error: "Very little content"})
+                    failed_documents.append({"id": doc_id, "error": "Very little content"})
                     continue
                 
                 # Add to RAG pipeline with metadata
@@ -327,7 +327,7 @@ async def add_documents_to_knowledge_base(
                 processed_count += 1
             except Exception as e:
                 logger.error(f"❌ Failed to process document {doc_id}: {e}", exc_info=True)
-                failed_documents.append({id: doc_id, error: str(e)})
+                failed_documents.append({"id": doc_id, "error": str(e)})
         
         logger.info(f"📊 BULK UPLOAD RESULT: {processed_count} successful, {len(failed_documents)} failed")
         if failed_documents:
