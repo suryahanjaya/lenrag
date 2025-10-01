@@ -9,16 +9,20 @@ import '../../styles.css';
 
 interface DashboardProps {
   user: User | null;
-  token: string | null;
   onLogout?: () => void;
 }
 
-function Dashboard({ user, token, onLogout }: DashboardProps) {
+function Dashboard({ user, onLogout }: DashboardProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBaseDocument[]>([]);
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
+
+  // Get token from localStorage
+  const getToken = () => {
+    return localStorage.getItem('google_token') || localStorage.getItem('access_token') || '';
+  };
   const [chatMessage, setChatMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -431,6 +435,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
   // Fungsi untuk mengambil SEMUA dokumen dari folder (termasuk subfolder)
   const fetchAllDocumentsFromFolder = async (url: string) => {
     
+    const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       setIsLoadingFolder(false);
@@ -446,8 +451,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Google-Token': token,
+        'Authorization': `Bearer ${getToken()}`,
+        'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
@@ -495,6 +500,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Fungsi untuk mengambil dokumen dari folder Google Drive (original)
   const fetchDocumentsFromFolder = async (url: string) => {
+    const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       setIsLoadingFolder(false);
@@ -508,8 +514,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Google-Token': token,
+        'Authorization': `Bearer ${getToken()}`,
+        'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ folder_url: url }),
@@ -563,6 +569,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Fungsi untuk mengambil dokumen dari Google Drive (tanpa folder)
   const fetchDocuments = async () => {
+    const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       setIsLoading(false);
@@ -575,8 +582,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Google-Token': token,
+        'Authorization': `Bearer ${getToken()}`,
+        'X-Google-Token': getToken(),
         },
       });
 
@@ -622,6 +629,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Fungsi untuk mengambil knowledge base
   const fetchKnowledgeBase = async () => {
+    const token = getToken();
     if (!token) return;
     
     try {
@@ -645,6 +653,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
   // Jalankan fetchDocuments ketika token tersedia
   useEffect(() => {
     
+    const token = getToken();
     if (token) {
       fetchDocuments();
       fetchKnowledgeBase();
@@ -653,7 +662,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       setIsLoading(false);
       setMessage("Token otentikasi tidak ditemukan. Silakan coba login ulang.");
     }
-  }, [token]);
+  }, [user]);
 
 
   const handleSelectDoc = (docId: string, index?: number) => {
@@ -758,7 +767,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
           return;
       }
       
-      if (!token) {
+      const token = getToken();
+    if (!token) {
           setMessage('Token tidak tersedia. Silakan login ulang.');
           return;
       }
@@ -770,8 +780,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
           const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
               method: 'POST',
               headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'X-Google-Token': token,
+        'Authorization': `Bearer ${getToken()}`,
+        'X-Google-Token': getToken(),
                   'Content-Type': 'application/json',
               },
               body: JSON.stringify({ document_ids: Array.from(selectedDocs) }),
@@ -809,6 +819,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       return;
     }
     
+    const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       return;
@@ -825,8 +836,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Google-Token': token,
+        'Authorization': `Bearer ${getToken()}`,
+        'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
@@ -879,8 +890,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
           const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'X-Google-Token': token,
+        'Authorization': `Bearer ${getToken()}`,
+        'X-Google-Token': getToken(),
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ document_ids: [file.id] }),
@@ -939,6 +950,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
 
   // Clear all documents from knowledge base
   const handleClearAllDocuments = async () => {
+    const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       return;
@@ -969,8 +981,8 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/clear-all-documents`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Google-Token': token,
+        'Authorization': `Bearer ${getToken()}`,
+        'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
       });
@@ -996,6 +1008,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
   
     // Fungsi untuk menghapus dokumen dari knowledge base
     const handleRemoveFromKnowledgeBase = async (docId: string) => {
+        const token = getToken();
         if (!token) {
             setMessage('Token tidak tersedia. Silakan login ulang.');
             return;
@@ -1038,6 +1051,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
       return;
     }
     
+    const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       return;
@@ -1103,7 +1117,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
     } finally {
       setIsChatLoading(false);
     }
-  }, [chatMessage, token, knowledgeBase.length, setChatHistory, setChatMessage, setIsChatLoading, setMessage]);
+  }, [chatMessage, knowledgeBase.length, setChatHistory, setChatMessage, setIsChatLoading, setMessage]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1598,7 +1612,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 <span className="text-white text-2xl sm:text-3xl">📁</span>
                             </div>
                             <div>
-                                <h2 className="documents-title">DORA - Google Drive Documents</h2>
+                                <h2 className="documents-title">Google Drive Documents</h2>
                                 <p className="documents-subtitle">
                                     {isShowingRecentFiles ? (
                                         <span className="flex items-center space-x-2">
@@ -2033,7 +2047,7 @@ function Dashboard({ user, token, onLogout }: DashboardProps) {
                                 <span className="text-white text-2xl sm:text-3xl">🧠</span>
                             </div>
                             <div>
-                                <h2 className="knowledge-title">DORA Knowledge Base</h2>
+                                <h2 className="knowledge-title">DORA Knowledge</h2>
                                 <p className="knowledge-subtitle">Dokumen yang siap untuk DORA</p>
                             </div>
                         </div>

@@ -11,7 +11,7 @@ import logging
 from services.google_auth import GoogleAuthService
 from services.google_docs import GoogleDocsService
 from services.rag_pipeline import DORAPipeline
-from services.supabase_client import SupabaseClient
+# from services.supabase_client import SupabaseClient
 from models.schemas import (
     AuthRequest, 
     DocumentResponse, 
@@ -46,14 +46,15 @@ security = HTTPBearer()
 google_auth_service = GoogleAuthService()
 google_docs_service = GoogleDocsService()
 dora_pipeline = DORAPipeline()
-supabase_client = SupabaseClient()
+# supabase_client = SupabaseClient()
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Validate JWT token and get current user"""
     try:
         token = credentials.credentials
-        user_data = await supabase_client.verify_token(token)
-        return user_data
+        # Use Google Auth service to verify token
+        user_info = await google_auth_service.get_user_info(token)
+        return user_info
     except Exception as e:
         logger.error(f"Token validation error: {e}")
         raise HTTPException(
@@ -79,13 +80,9 @@ async def authenticate_google(request: AuthRequest):
         user_info = await google_auth_service.get_user_info(tokens['access_token'])
         logger.info(f"Got user info for: {user_info.get('email')}")
         
-        # Create or update user in Supabase
-        supabase_user = await supabase_client.create_or_update_user(
-            user_info, tokens['access_token'], tokens.get('refresh_token')
-        )
-        
+        # Return user info and tokens (no Supabase integration)
         return {
-            "user": supabase_user,
+            "user": user_info,
             "access_token": tokens['access_token'],
             "refresh_token": tokens.get('refresh_token')
         }
@@ -101,12 +98,8 @@ async def get_user_documents(
 ):
     """Fetch all Google Docs for the authenticated user"""
     try:
-        # Try to get access token from Supabase first
-        access_token = await supabase_client.get_user_google_token(current_user['id'])
-        
-        # If no token in Supabase (development mode), use token from header
-        if not access_token:
-            access_token = x_google_token
+        # Get access token from header
+        access_token = x_google_token
             
         if not access_token:
             raise HTTPException(
@@ -156,12 +149,8 @@ async def get_documents_from_folder(
 ):
     """Fetch documents from a specific Google Drive folder (public or private)"""
     try:
-        # Try to get access token from Supabase first
-        access_token = await supabase_client.get_user_google_token(current_user['id'])
-        
-        # If no token in Supabase (development mode), use token from header
-        if not access_token:
-            access_token = x_google_token
+        # Get access token from header
+        access_token = x_google_token
             
         logger.info(f"Fetching documents from folder: {request.folder_url}")
         
@@ -213,14 +202,9 @@ async def get_all_documents_from_folder(
         logger.info(f"Current user: {current_user}")
         logger.info(f"X-Google-Token: {x_google_token}")
         
-        # Try to get access token from Supabase first
-        access_token = await supabase_client.get_user_google_token(current_user['id'])
-        logger.info(f"Access token from Supabase: {bool(access_token)}")
-        
-        # If no token in Supabase (development mode), use token from header
-        if not access_token:
-            access_token = x_google_token
-            logger.info(f"Using token from header: {bool(access_token)}")
+        # Get access token from header
+        access_token = x_google_token
+        logger.info(f"Using token from header: {bool(access_token)}")
             
         logger.info(f"Final access token available: {bool(access_token)}")
         logger.info(f"Fetching ALL documents from folder: {request.folder_url}")
@@ -274,11 +258,8 @@ async def add_documents_to_knowledge_base(
     """Add selected documents to the user's knowledge base"""
     try:
         # Get user's Google access token
-        access_token = await supabase_client.get_user_google_token(current_user['id'])
-        
-        # If no token in Supabase (development mode), use token from header
-        if not access_token:
-            access_token = x_google_token
+        # Get access token from header
+        access_token = x_google_token
             
         if not access_token:
             raise HTTPException(status_code=400, detail="Google access token not found")
@@ -287,7 +268,8 @@ async def add_documents_to_knowledge_base(
         processed_count = 0
         failed_documents = []
         
-        logger.info(f"📁 BULK UPLOAD: Processing {len(request.document_ids)} documents for user {current_user['id']}")
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
+        logger.info(f"📁 BULK UPLOAD: Processing {len(request.document_ids)} documents for user {user_id}")
         
         for doc_id in request.document_ids:
             try:
@@ -316,7 +298,7 @@ async def add_documents_to_knowledge_base(
                 
                 # Add to DORA pipeline with metadata
                 await dora_pipeline.add_document(
-                    user_id=current_user['id'],
+                    user_id=user_id,
                     document_id=doc_id,
                     content=content,
                     document_name=doc_metadata.get('name', f'Document {doc_id[:8]}'),
@@ -352,8 +334,9 @@ async def chat_with_documents(
     """Chat with the DORA system"""
     try:
         # Query the DORA pipeline
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
         response = await dora_pipeline.query(
-            user_id=current_user['id'],
+            user_id=user_id,
             query=request.message,
             use_fallback=True
         )
@@ -373,7 +356,13 @@ async def chat_with_documents(
 async def get_user_profile(current_user = Depends(get_current_user)):
     """Get user profile information"""
     try:
-        profile = await supabase_client.get_user_profile(current_user['id'])
+        # Get user profile from current_user (no Supabase)
+        profile = {
+            "id": current_user.get('sub'),
+            "email": current_user.get('email'),
+            "name": current_user.get('name'),
+            "picture": current_user.get('picture')
+        }
         return profile
     except Exception as e:
         logger.error(f"Error fetching user profile: {e}")
@@ -386,7 +375,8 @@ async def remove_document_from_knowledge_base(
 ):
     """Remove a document from the user's knowledge base"""
     try:
-        await dora_pipeline.remove_document(current_user['id'], document_id)
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
+        await dora_pipeline.remove_document(user_id, document_id)
         return {"message": "Document removed successfully"}
     except Exception as e:
         logger.error(f"Error removing document: {e}")
@@ -398,7 +388,7 @@ async def clear_all_documents(
 ):
     """Clear all documents from the user's knowledge base - FORCE RESET METHOD"""
     try:
-        user_id = current_user['id']
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
         collection_name = f"user_{user_id}"
         
         logger.info(f"🚀 CLEAR ALL ENDPOINT CALLED FOR USER: {user_id}")
@@ -556,7 +546,7 @@ async def health_check():
         "services": {
             "google_auth": "operational",
             "dora_pipeline": "operational",
-            "supabase": "operational",
+            "database": "operational",
             "chromadb": chroma_status
         }
     }
@@ -565,7 +555,8 @@ async def health_check():
 async def get_database_stats(current_user = Depends(get_current_user)):
     """Get database statistics for monitoring large scale operations"""
     try:
-        stats = await dora_pipeline.get_database_stats(current_user['id'])
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
+        stats = await dora_pipeline.get_database_stats(user_id)
         return stats
     except Exception as e:
         logger.error(f"Error getting database stats: {e}")
@@ -770,7 +761,7 @@ async def test_drive_api_direct(
 async def get_knowledge_base_documents(current_user = Depends(get_current_user)):
     """Get actual documents in the knowledge base with metadata"""
     try:
-        user_id = current_user['id']
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
         collection = dora_pipeline._get_user_collection(user_id)
         
         # Get all documents in the knowledge base

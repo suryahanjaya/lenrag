@@ -50,7 +50,7 @@ export default function Home() {
   }
 
   if (user) {
-    return <Dashboard user={user} token={token} onLogout={handleLogout} />
+    return <Dashboard user={user} onLogout={handleLogout} />
   }
 
   return (
