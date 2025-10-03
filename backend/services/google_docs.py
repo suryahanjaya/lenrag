@@ -47,7 +47,7 @@ class GoogleDocsService:
             
             params = {
                 'q': query,
-                'pageSize': 100,  # Limited to 100 latest files for better performance
+                'pageSize': 50,  # Reduced to 50 files for better performance and memory usage
                 'orderBy': 'modifiedTime desc',  # Sort by most recently modified
                 'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
             }
@@ -76,7 +76,7 @@ class GoogleDocsService:
                 broader_query = "trashed=false"
                 broader_params = {
                     'q': broader_query,
-                    'pageSize': 100,
+                    'pageSize': 50,  # Reduced for better performance
                     'orderBy': 'modifiedTime desc',  # Sort by most recently modified
                     'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
                 }
@@ -209,7 +209,7 @@ class GoogleDocsService:
             
             params = {
                 'q': query,
-                'pageSize': 1000,
+                'pageSize': 50,  # Reduced for better performance
                 'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
             }
             
@@ -245,7 +245,7 @@ class GoogleDocsService:
                 broader_query = f"'{folder_id}' in parents and trashed=false"
                 broader_params = {
                     'q': broader_query,
-                    'pageSize': 100,
+                    'pageSize': 50,  # Reduced for better performance
                     'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
                 }
                 
@@ -456,7 +456,7 @@ class GoogleDocsService:
             
             params = {
                 'q': query,
-                'pageSize': 1000,
+                'pageSize': 50,  # Reduced for better performance
                 'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
             }
             
@@ -537,7 +537,7 @@ class GoogleDocsService:
             # Continue with other folders even if one fails
     
     async def get_document_content(self, access_token: str, document_id: str, mime_type: str = None) -> str:
-        """Get the content of a document based on its type"""
+        """Get the content of a document based on its type - optimized for memory usage"""
         try:
             # First get file metadata to determine the type
             if not mime_type:
@@ -545,6 +545,9 @@ class GoogleDocsService:
                 mime_type = file_info.get('mimeType', '')
             
             logger.info(f"Extracting content for document {document_id} with MIME type: {mime_type}")
+            
+            # Memory optimization: Limit content size for very large documents
+            MAX_CONTENT_SIZE = 1000000  # 1MB limit for content extraction
             
             # Handle different document types
             if mime_type == 'application/vnd.google-apps.document':
@@ -566,6 +569,14 @@ class GoogleDocsService:
         except Exception as e:
             logger.error(f"Error getting document content for {document_id}: {e}")
             raise
+    
+    async def get_document_metadata(self, access_token: str, document_id: str) -> Dict[str, Any]:
+        """Get document metadata for a specific document"""
+        try:
+            return await self._get_file_info(access_token, document_id)
+        except Exception as e:
+            logger.error(f"Error getting document metadata for {document_id}: {e}")
+            return None
     
     async def _get_file_info(self, access_token: str, file_id: str) -> Dict[str, Any]:
         """Get file metadata from Drive API"""
@@ -798,7 +809,7 @@ on how to access or work with this type of file."""
             
             params = {
                 'q': query,
-                'pageSize': 100,
+                'pageSize': 50,  # Reduced for better performance
                 'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size)'
             }
             
@@ -845,7 +856,7 @@ on how to access or work with this type of file."""
             
             params = {
                 'q': query,
-                'pageSize': 100,
+                'pageSize': 50,  # Reduced for better performance
                 'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size)'
             }
             

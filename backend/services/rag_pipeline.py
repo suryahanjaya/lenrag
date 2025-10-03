@@ -23,18 +23,32 @@ class DORAPipeline:
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         
         # Initialize ChromaDB with optimizations for large scale document storage
-        self.chroma_client = chromadb.Client(Settings(
-            persist_directory="./chroma_db",
-            anonymized_telemetry=False,
-            # Optimizations for large scale
-            allow_reset=True,
-            is_persistent=True
-        ))
+        # Use absolute path to avoid confusion between root and backend folders
+        chroma_path = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
+        self.chroma_client = chromadb.PersistentClient(
+            path=chroma_path,
+            settings=Settings(
+                anonymized_telemetry=False,
+                allow_reset=True
+            )
+        )
         
-        # Enhanced text splitter configuration for universal document types
-        self.chunk_size = 1500  # Optimized for various document types
-        self.chunk_overlap = 150  # Balanced overlap for context preservation
+        # Standardized text splitter configuration for consistent chunking
+        # Target: 100 halaman = 300 chunks (konsisten untuk semua jenis dokumen)
+        self.chunk_size = 400   # FIXED: Correct size untuk 100 halaman = 300 chunks
+        self.chunk_overlap = 50  # Reduced overlap untuk efisiensi
         self.separators = ["\n\n", "\n", ". ", "! ", "? ", " ", ""]
+        
+        # UNIFIED chunk sizes untuk semua jenis dokumen - 100 halaman = 300 chunks
+        self.document_chunk_sizes = {
+            'pdf': 400,       # FIXED: 100 halaman = 300 chunks (119k chars ÷ 300 = ~400)
+            'doc': 400,       # FIXED: 100 halaman = 300 chunks
+            'academic': 400,  # FIXED: 100 halaman = 300 chunks
+            'legal': 400,     # FIXED: 100 halaman = 300 chunks
+            'technical': 400, # FIXED: 100 halaman = 300 chunks
+            'business': 400,  # FIXED: 100 halaman = 300 chunks
+            'general': 400    # FIXED: 100 halaman = 300 chunks
+        }
         
         # Document type detection patterns
         self.document_patterns = {
@@ -85,105 +99,148 @@ class DORAPipeline:
         return 'general'
     
     def _split_text(self, text: str, mime_type: str = None) -> List[str]:
-        """Split text into chunks using intelligent text splitting for various document types"""
+        """Split text into chunks using intelligent text splitting for maximum information retention"""
         if not text or not text.strip():
             return []
         
         chunks = []
         doc_type = self._detect_document_type(text, mime_type)
-        logger.info(f"Detected document type: {doc_type} for {len(text)} characters")
         
-        # Strategy 1: Document-specific splitting
+        # Determine optimal chunk size based on document type and MIME type
+        # UNIFIED: All document types use 400 character chunks for 100 pages = 300 chunks
+        if mime_type == 'application/pdf':
+            optimal_chunk_size = self.document_chunk_sizes.get('pdf', 400)
+        elif mime_type and 'word' in mime_type.lower():
+            optimal_chunk_size = self.document_chunk_sizes.get('doc', 400)
+        else:
+            optimal_chunk_size = self.document_chunk_sizes.get(doc_type, 400)
+        
+        logger.info(f"Detected document type: {doc_type}, MIME: {mime_type}, optimal chunk size: {optimal_chunk_size}")
+        logger.info(f"Processing document: {len(text)} characters")
+        logger.info(f"TARGET: 100 halaman = 300 chunks (unified for all document types)")
+        
+        # Debug logging for large documents
+        if len(text) > 50000:  # Large document
+            logger.info(f"Processing large document: {len(text)} characters, type: {doc_type}")
+            expected_chunks = len(text) // optimal_chunk_size
+            logger.info(f"Expected chunks for this document: ~{expected_chunks} (target: 300 for 100 pages)")
+        
+        # Strategy 1: Document-specific splitting with optimal chunk sizes
         if doc_type == 'legal':
-            # Legal document splitting (Pasal, BAB, etc.)
             sections = self._split_legal_document(text)
         elif doc_type == 'academic':
-            # Academic document splitting (chapters, sections, references)
             sections = self._split_academic_document(text)
         elif doc_type == 'technical':
-            # Technical document splitting (functions, classes, APIs)
             sections = self._split_technical_document(text)
         elif doc_type == 'business':
-            # Business document splitting (sections, subsections)
             sections = self._split_business_document(text)
         else:
-            # General document splitting
             sections = self._split_general_document(text)
         
-        # Process sections into chunks
-        for section in sections:
+        # Process sections into chunks with optimal chunk size
+        logger.info(f"Processing {len(sections)} sections into chunks with optimal size: {optimal_chunk_size}")
+        logger.info(f"LEGAL DOCUMENT DEBUG: Document type: {doc_type}, MIME: {mime_type}")
+        logger.info(f"LEGAL DOCUMENT DEBUG: Total text length: {len(text)} characters")
+        logger.info(f"LEGAL DOCUMENT DEBUG: Number of sections found: {len(sections)}")
+        
+        # SIMPLIFIED CHUNKING ALGORITHM - Target: 100 halaman = 300 chunks
+        # Process all sections into chunks with optimal chunk size
+        current_chunk = ""
+        
+        for i, section in enumerate(sections):
             if not section.strip():
                 continue
                 
-            if len(section) <= self.chunk_size:
-                if section.strip():
-                    chunks.append(section.strip())
+            # If section fits in current chunk, add it
+            if len(current_chunk) + len(section) <= optimal_chunk_size:
+                current_chunk += section + "\n\n"
             else:
-                # Split long sections by paragraphs
-                paragraphs = section.split('\n\n')
-                current_chunk = ""
-                
-                for paragraph in paragraphs:
-                    if len(current_chunk) + len(paragraph) <= self.chunk_size:
-                        current_chunk += paragraph + "\n\n"
-                    else:
-                        if current_chunk.strip():
-                            chunks.append(current_chunk.strip())
-                        # If single paragraph is too long, split by sentences
-                        if len(paragraph) > self.chunk_size:
-                            sentences = re.split(r'[.!?]+\s+', paragraph)
-                            temp_chunk = ""
-                            
-                            for sentence in sentences:
-                                if len(temp_chunk) + len(sentence) <= self.chunk_size:
-                                    temp_chunk += sentence + ". "
-                                else:
-                                    if temp_chunk.strip():
-                                        chunks.append(temp_chunk.strip())
-                                    temp_chunk = sentence + ". "
-                            
-                            if temp_chunk.strip():
-                                chunks.append(temp_chunk.strip())
-                        else:
-                            current_chunk = paragraph + "\n\n"
-                
+                # Save current chunk if it has content
                 if current_chunk.strip():
                     chunks.append(current_chunk.strip())
+                    logger.info(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+                
+                # Start new chunk with current section
+                if len(section) <= optimal_chunk_size:
+                    current_chunk = section + "\n\n"
+                else:
+                    # If section is too long, split it by paragraphs
+                    paragraphs = section.split('\n\n')
+                    current_chunk = ""
+                    
+                    for paragraph in paragraphs:
+                        if len(current_chunk) + len(paragraph) <= optimal_chunk_size:
+                            current_chunk += paragraph + "\n\n"
+                        else:
+                            # Save current chunk if it has content
+                            if current_chunk.strip():
+                                chunks.append(current_chunk.strip())
+                                logger.info(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+                            
+                            # Start new chunk with current paragraph
+                            if len(paragraph) <= optimal_chunk_size:
+                                current_chunk = paragraph + "\n\n"
+                            else:
+                                # If paragraph is still too long, split by sentences
+                                sentences = re.split(r'[.!?]+\s+', paragraph)
+                                temp_chunk = ""
+                                
+                                for sentence in sentences:
+                                    if len(temp_chunk) + len(sentence) <= optimal_chunk_size:
+                                        temp_chunk += sentence + ". "
+                                    else:
+                                        if temp_chunk.strip():
+                                            chunks.append(temp_chunk.strip())
+                                            logger.info(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
+                                        temp_chunk = sentence + ". "
+                                
+                                if temp_chunk.strip():
+                                    chunks.append(temp_chunk.strip())
+                                    logger.info(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
+                                current_chunk = ""
         
-        # Apply overlap if we have multiple chunks
+        # Add final chunk if it has content
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
+            logger.info(f"Added final chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+        
+        # Apply overlap if we have multiple chunks for better context preservation
         if len(chunks) > 1 and self.chunk_overlap > 0:
             overlapped_chunks = []
             for i, chunk in enumerate(chunks):
                 if i == 0:
                     overlapped_chunks.append(chunk)
                 else:
-                    # Add overlap from previous chunk
+                    # Add overlap from previous chunk for better context
                     prev_chunk = chunks[i-1]
                     overlap_text = prev_chunk[-self.chunk_overlap:] if len(prev_chunk) > self.chunk_overlap else prev_chunk
                     overlapped_chunks.append(overlap_text + " " + chunk)
+            logger.info(f"Applied overlap: {len(overlapped_chunks)} chunks with {self.chunk_overlap} character overlap")
             return overlapped_chunks
         
         logger.info(f"Final chunk count: {len(chunks)}")
         return chunks
     
     def _split_legal_document(self, text: str) -> List[str]:
-        """Split legal documents by Pasal, BAB, etc."""
-        # Try multiple legal document patterns
+        """Split legal documents by major sections only to prevent over-chunking"""
+        # FIXED: Use only major section patterns to prevent over-chunking
+        # Focus on BAB (chapters) first, then major sections
         patterns = [
-            r'(?=Pasal\s+\d+)',  # Pasal 1, Pasal 2, etc.
-            r'(?=BAB\s+\d+)',    # BAB I, BAB II, etc.
-            r'(?=Pasal\s+\d+[A-Z])',  # Pasal 1A, Pasal 2B, etc.
-            r'(?=Pasal\s+\d+[a-z])',  # Pasal 1a, Pasal 2b, etc.
-            r'(?=Pasal\s+\d+[A-Za-z])',  # Mixed case
+            r'(?=BAB\s+[IVX]+)',     # BAB I, BAB II, BAB III, etc. (Roman numerals)
+            r'(?=BAB\s+\d+)',        # BAB 1, BAB 2, etc. (Arabic numerals)
+            r'(?=BAGIAN\s+[IVX]+)',  # BAGIAN I, BAGIAN II, etc.
+            r'(?=BAGIAN\s+\d+)',    # BAGIAN 1, BAGIAN 2, etc.
         ]
         
         for pattern in patterns:
             sections = re.split(pattern, text)
             if len(sections) > 1:
-                logger.info(f"Found {len(sections)} legal sections using pattern: {pattern}")
+                logger.info(f"Found {len(sections)} legal major sections using pattern: {pattern}")
                 return [s.strip() for s in sections if s.strip()]
         
-        # Fallback to paragraph splitting
+        # FALLBACK: If no major sections found, use paragraph splitting
+        # This prevents over-chunking by individual Pasal
+        logger.info("No major legal sections found, using paragraph splitting")
         return re.split(r'\n\s*\n', text)
     
     def _split_academic_document(self, text: str) -> List[str]:
@@ -248,15 +305,30 @@ class DORAPipeline:
         return re.split(r'\n\s*\n', text)
     
     def _split_general_document(self, text: str) -> List[str]:
-        """Split general documents by paragraphs and sections"""
-        # Try to split by multiple newlines first
-        sections = re.split(r'\n\s*\n\s*\n', text)  # Triple newlines
-        if len(sections) <= 1:
-            sections = re.split(r'\n\s*\n', text)    # Double newlines
-        if len(sections) <= 1:
-            sections = [text]  # Use whole text if no clear sections
+        """Split general documents with consistent strategy for 300-400 chunks per 100 pages"""
+        # Consistent splitting strategy for standardized results
         
-        return [s.strip() for s in sections if s.strip()]
+        # Strategy 1: Split by double newlines (paragraphs) - most common
+        sections = re.split(r'\n\s*\n', text)
+        if len(sections) > 1:
+            logger.info(f"Found {len(sections)} paragraphs using double newlines")
+            return [s.strip() for s in sections if s.strip()]
+        
+        # Strategy 2: Split by single newlines (lines) - fallback
+        sections = re.split(r'\n', text)
+        if len(sections) > 1:
+            logger.info(f"Found {len(sections)} lines using single newlines")
+            return [s.strip() for s in sections if s.strip()]
+        
+        # Strategy 3: Split by sentences - last resort
+        sections = re.split(r'[.!?]+\s+', text)
+        if len(sections) > 1:
+            logger.info(f"Found {len(sections)} sentences")
+            return [s.strip() for s in sections if s.strip()]
+        
+        # Strategy 4: Use whole text if no clear sections
+        logger.info("No clear sections found, using whole text")
+        return [text.strip()] if text.strip() else []
     
     async def add_document(self, user_id: str, document_id: str, content: str, document_name: str = None, mime_type: str = None):
         """Add a document to the user's knowledge base"""

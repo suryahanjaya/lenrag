@@ -57,8 +57,11 @@ export default function AuthCallback() {
       // Store Google token for API calls
       localStorage.setItem('google_token', data.access_token)
 
-      // Redirect to dashboard
-      router.push('/')
+      // Add a small delay to ensure localStorage is written
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Redirect to dashboard with a flag to indicate successful auth
+      router.push('/?auth=success')
     } catch (error) {
       console.error('Authentication error:', error)
       router.push('/?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Authentication failed'))

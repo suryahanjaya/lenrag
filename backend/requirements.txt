@@ -1,21 +1,32 @@
+# Core FastAPI dependencies
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
+
+# Google API dependencies (optimized versions)
 google-auth>=2.23.4
 google-auth-oauthlib>=1.1.0
 google-auth-httplib2>=0.1.1
 google-api-python-client>=2.108.0
-supabase>=2.0.2
+google-generativeai>=0.3.0
+
+# Core utilities
 python-dotenv>=1.0.0
 pydantic>=2.5.0
 httpx>=0.25.2
-google-generativeai>=0.3.0
-chromadb>=0.4.18
+
+# AI/ML dependencies (optimized for space)
+chromadb>=0.4.22
 sentence-transformers>=2.2.2
+tiktoken>=0.5.2
+
+# Document processing (lightweight alternatives)
 pypdf>=3.17.1
 python-docx>=1.1.0
-openpyxl>=3.1.2
-beautifulsoup4>=4.12.2
-tiktoken>=0.5.2
-numpy>=1.24.3
-pandas>=2.1.4
+
+# Removed heavy dependencies:
+# - supabase (not used in current implementation)
+# - openpyxl (not essential for core functionality)
+# - beautifulsoup4 (not used)
+# - numpy (included in sentence-transformers)
+# - pandas (not used in current implementation)

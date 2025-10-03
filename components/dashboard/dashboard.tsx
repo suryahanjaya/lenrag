@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, memo, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { TimeDisplay } from '@/components/ui/time-display';
 import { ProfilePicture } from '@/components/ui/profile-picture';
@@ -256,7 +256,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute instead of every second
+    }, 300000); // Update every 5 minutes for better performance
 
     return () => clearInterval(timer);
   }, []);
@@ -577,7 +577,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }
     
     setIsLoading(true);
-    setMessage('Memuat 100 dokumen terbaru dari Google Drive...');
+    setMessage('Memuat 50 dokumen terbaru dari Google Drive...');
     
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents`, {
@@ -797,9 +797,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           setMessage(`Berhasil menambahkan ${result.processed_count || selectedDocs.size} dokumen ke knowledge base!`);
           setSelectedDocs(new Set());
           
-          // Refresh data
-          fetchDocuments();
-          // Add a small delay to ensure the backend has processed the documents
+          // Refresh only knowledge base, not documents list
+          // This avoids unnecessary API calls to fetch 50 documents
           setTimeout(() => {
             fetchKnowledgeBase();
           }, 2000);
@@ -933,8 +932,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       setBulkUploadStatus('Upload selesai! Memuat ulang data...');
       setMessage(`Bulk upload selesai! ${processedCount} dari ${supportedFiles.length} dokumen berhasil diupload.`);
       
-      // Refresh data
-      fetchDocuments();
+      // Refresh only knowledge base, not documents list
+      // This avoids unnecessary API calls to fetch 50 documents
       setTimeout(() => {
         fetchKnowledgeBase();
       }, 2000);
@@ -996,7 +995,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       
       // Clear display and refresh data
       setKnowledgeBase([]);
-      fetchDocuments();
+      // Only refresh knowledge base, not documents list
+      // This avoids unnecessary API calls to fetch 50 documents
       fetchKnowledgeBase();
       
     } catch (error) {
@@ -1032,8 +1032,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             
             setMessage('Dokumen berhasil dihapus dari knowledge base!');
             
-            // Refresh data
-            fetchDocuments();
+            // Refresh only knowledge base, not documents list
+            // This avoids unnecessary API calls to fetch 50 documents
             fetchKnowledgeBase();
             
         } catch (error) {

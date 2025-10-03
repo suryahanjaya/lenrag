@@ -249,6 +249,97 @@ async def get_all_documents_from_folder(
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
+@app.post("/documents/bulk-upload-from-folder")
+async def bulk_upload_from_folder(
+    request: FolderRequest,
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """Bulk upload ALL documents from a folder and its subfolders - SEQUENTIAL PROCESSING"""
+    try:
+        # Get access token from header
+        access_token = x_google_token
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Google access token not found")
+        
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
+        logger.info(f"📁 BULK UPLOAD FROM FOLDER: {request.folder_url} for user {user_id}")
+        
+        # Step 1: Get ALL documents from folder and subfolders
+        logger.info("🔍 STEP 1: Fetching all documents from folder and subfolders...")
+        all_documents = await google_docs_service.list_all_documents_from_folder(request.folder_url, access_token)
+        logger.info(f"📊 Found {len(all_documents)} documents in folder and subfolders")
+        
+        if not all_documents:
+            return {
+                "message": "No documents found in the specified folder",
+                "processed_count": 0,
+                "total_found": 0,
+                "failed_documents": []
+            }
+        
+        # Step 2: Process documents SEQUENTIALLY (one by one)
+        processed_count = 0
+        failed_documents = []
+        
+        logger.info("🔄 STEP 2: Processing documents sequentially...")
+        for i, doc in enumerate(all_documents, 1):
+            try:
+                doc_id = doc['id']
+                doc_name = doc['name']
+                logger.info(f"📄 [{i}/{len(all_documents)}] Processing: {doc_name}")
+                
+                # Get document content
+                content = await google_docs_service.get_document_content(access_token, doc_id)
+                
+                if not content or len(content.strip()) < 10:
+                    logger.warning(f"⚠️ Document {doc_name} has very little content")
+                    failed_documents.append({"id": doc_id, "name": doc_name, "error": "Very little content"})
+                    continue
+                
+                # Add to DORA pipeline (this will chunk and store)
+                await dora_pipeline.add_document(
+                    user_id=user_id,
+                    document_id=doc_id,
+                    content=content,
+                    document_name=doc_name,
+                    mime_type=doc.get('mime_type', 'unknown')
+                )
+                
+                logger.info(f"✅ [{i}/{len(all_documents)}] Successfully processed: {doc_name}")
+                processed_count += 1
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to process document {doc.get('name', 'Unknown')}: {e}")
+                failed_documents.append({
+                    "id": doc.get('id', 'unknown'),
+                    "name": doc.get('name', 'Unknown'),
+                    "error": str(e)
+                })
+        
+        # Step 3: Return results
+        logger.info(f"📊 BULK UPLOAD COMPLETED: {processed_count} successful, {len(failed_documents)} failed")
+        
+        # Step 3: Refresh Google Drive documents list
+        logger.info("🔄 STEP 3: Refreshing Google Drive documents list...")
+        try:
+            refreshed_documents = await google_docs_service.list_documents(access_token)
+            logger.info(f"📊 Refreshed documents list: {len(refreshed_documents)} documents")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not refresh documents list: {e}")
+        
+        return {
+            "message": f"Bulk upload completed: {processed_count} documents processed successfully",
+            "processed_count": processed_count,
+            "total_found": len(all_documents),
+            "failed_documents": failed_documents,
+            "refreshed_documents_count": len(refreshed_documents) if 'refreshed_documents' in locals() else 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in bulk upload from folder: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/documents/add")
 async def add_documents_to_knowledge_base(
     request: AddDocumentsRequest,
@@ -271,18 +362,46 @@ async def add_documents_to_knowledge_base(
         user_id = current_user.get('sub', current_user.get('id', 'default_user'))
         logger.info(f"📁 BULK UPLOAD: Processing {len(request.document_ids)} documents for user {user_id}")
         
-        for doc_id in request.document_ids:
+        # Check if this is a bulk upload (multiple documents)
+        is_bulk_upload = len(request.document_ids) > 1
+        
+        if is_bulk_upload:
+            logger.info(f"📁 BULK UPLOAD DETECTED: Processing {len(request.document_ids)} documents without re-fetching metadata")
+            # For bulk upload, we don't need to fetch all documents metadata
+            # We'll get metadata for each document individually to avoid unnecessary API calls
+            documents_lookup = {}
+        else:
+            # OPTIMIZATION: Get all documents metadata ONCE at the beginning for single document
+            logger.info("🚀 OPTIMIZATION: Fetching all documents metadata once...")
+            all_documents = await google_docs_service.list_documents(access_token)
+            logger.info(f"📊 Fetched {len(all_documents)} documents metadata")
+            
+            # Create a lookup dictionary for faster access
+            documents_lookup = {doc['id']: doc for doc in all_documents}
+            logger.info("📊 Created documents lookup dictionary")
+        
+        for i, doc_id in enumerate(request.document_ids, 1):
             try:
-                logger.info(f"📄 Processing document {doc_id}")
+                if is_bulk_upload:
+                    logger.info(f"📄 [{i}/{len(request.document_ids)}] Processing document {doc_id}")
+                else:
+                    logger.info(f"📄 Processing document {doc_id}")
                 
-                # Get document metadata first
-                documents = await google_docs_service.list_documents(access_token)
-                doc_metadata = next((doc for doc in documents if doc['id'] == doc_id), None)
-                
-                if not doc_metadata:
-                    logger.warning(f"⚠️ Document {doc_id} not found in user's documents")
-                    failed_documents.append({"id": doc_id, "error": "Not found in user's documents"})
-                    continue
+                # Get document metadata
+                if is_bulk_upload:
+                    # For bulk upload, get metadata for each document individually
+                    doc_metadata = await google_docs_service.get_document_metadata(access_token, doc_id)
+                    if not doc_metadata:
+                        logger.warning(f"⚠️ Document {doc_id} not found in user's documents")
+                        failed_documents.append({"id": doc_id, "error": "Not found in user's documents"})
+                        continue
+                else:
+                    # Use cached metadata for single document
+                    doc_metadata = documents_lookup.get(doc_id)
+                    if not doc_metadata:
+                        logger.warning(f"⚠️ Document {doc_id} not found in user's documents")
+                        failed_documents.append({"id": doc_id, "error": "Not found in user's documents"})
+                        continue
                 
                 logger.info(f"📄 Document {doc_id}: {doc_metadata.get('name', 'Unknown')}")
                 
@@ -305,7 +424,10 @@ async def add_documents_to_knowledge_base(
                     mime_type=doc_metadata.get('mime_type', 'unknown')
                 )
                 
-                logger.info(f"✅ Successfully added document {doc_id} to knowledge base")
+                if is_bulk_upload:
+                    logger.info(f"✅ [{i}/{len(request.document_ids)}] Successfully added document {doc_id} to knowledge base")
+                else:
+                    logger.info(f"✅ Successfully added document {doc_id} to knowledge base")
                 processed_count += 1
             except Exception as e:
                 logger.error(f"❌ Failed to process document {doc_id}: {e}", exc_info=True)
@@ -456,7 +578,9 @@ async def clear_all_documents(
             # Method 4: Direct file system deletion (if needed)
             import os
             import shutil
-            chroma_path = f"./chroma_db/{collection_name}"
+            # Use the same path as ChromaDB client
+            chroma_base_path = os.path.join(os.path.dirname(__file__), "chroma_db")
+            chroma_path = os.path.join(chroma_base_path, collection_name)
             if os.path.exists(chroma_path):
                 logger.info(f"💥 METHOD 4: Deleting directory {chroma_path}")
                 print(f"💥 METHOD 4: Deleting directory {chroma_path}")
@@ -471,12 +595,104 @@ async def clear_all_documents(
                 logger.info(f"ℹ️ Directory {chroma_path} does not exist")
                 print(f"ℹ️ Directory {chroma_path} does not exist")
             
+            # Method 5: Clear SQLite database entries for this user
+            logger.info("💥 METHOD 5: Clearing SQLite database entries")
+            print("💥 METHOD 5: Clearing SQLite database entries")
+            try:
+                import sqlite3
+                db_path = os.path.join(chroma_base_path, "chroma.sqlite3")
+                if os.path.exists(db_path):
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    
+                    # Get collection ID first
+                    cursor.execute("SELECT id FROM collections WHERE name = ?", (collection_name,))
+                    collection_result = cursor.fetchone()
+                    
+                    if collection_result:
+                        collection_id = collection_result[0]
+                        logger.info(f"Found collection ID: {collection_id} for {collection_name}")
+                        
+                        # Delete embeddings first (foreign key constraint)
+                        cursor.execute("DELETE FROM embeddings WHERE collection_id = ?", (collection_id,))
+                        embeddings_deleted = cursor.rowcount
+                        logger.info(f"Deleted {embeddings_deleted} embeddings")
+                        
+                        # Delete collection
+                        cursor.execute("DELETE FROM collections WHERE name = ?", (collection_name,))
+                        collections_deleted = cursor.rowcount
+                        logger.info(f"Deleted {collections_deleted} collections")
+                        
+                        # Also delete any related metadata
+                        cursor.execute("DELETE FROM metadata WHERE collection_id = ?", (collection_id,))
+                        metadata_deleted = cursor.rowcount
+                        logger.info(f"Deleted {metadata_deleted} metadata entries")
+                        
+                        conn.commit()
+                        conn.close()
+                        
+                        logger.info(f"✅ SQLite cleared: {embeddings_deleted} embeddings, {collections_deleted} collections, {metadata_deleted} metadata")
+                        print(f"✅ SQLite cleared: {embeddings_deleted} embeddings, {collections_deleted} collections, {metadata_deleted} metadata")
+                    else:
+                        logger.info(f"ℹ️ Collection {collection_name} not found in SQLite")
+                        print(f"ℹ️ Collection {collection_name} not found in SQLite")
+                        conn.close()
+                else:
+                    logger.info("ℹ️ SQLite database does not exist")
+                    print("ℹ️ SQLite database does not exist")
+            except Exception as e:
+                logger.warning(f"❌ Could not clear SQLite entries: {e}")
+                print(f"❌ Could not clear SQLite entries: {e}")
+            
             logger.info("🎉 NUCLEAR OPTION COMPLETED")
             print("🎉 NUCLEAR OPTION COMPLETED")
             
         except Exception as e:
             logger.error(f"Error in nuclear option: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to reset LLM data: {str(e)}")
+        
+        # Method 6: Force clear user-specific ChromaDB files if still not empty
+        try:
+            final_check = dora_pipeline._get_user_collection(user_id)
+            final_docs = final_check.get()
+            if len(final_docs['ids']) > 0:
+                logger.info("💥 METHOD 6: Force clearing user-specific ChromaDB files")
+                print("💥 METHOD 6: Force clearing user-specific ChromaDB files")
+                
+                # Delete only the user-specific folder, not the entire chroma_db
+                import shutil
+                import os
+                chroma_base_path = os.path.join(os.path.dirname(__file__), "chroma_db")
+                user_folder_path = os.path.join(chroma_base_path, collection_name)
+                
+                if os.path.exists(user_folder_path):
+                    shutil.rmtree(user_folder_path)
+                    logger.info(f"✅ Force cleared user folder: {user_folder_path}")
+                    print(f"✅ Force cleared user folder: {user_folder_path}")
+                else:
+                    logger.info(f"ℹ️ User folder does not exist: {user_folder_path}")
+                    print(f"ℹ️ User folder does not exist: {user_folder_path}")
+                    
+                # Also clear SQLite entries for this user
+                try:
+                    import sqlite3
+                    db_path = os.path.join(chroma_base_path, "chroma.sqlite3")
+                    if os.path.exists(db_path):
+                        conn = sqlite3.connect(db_path)
+                        cursor = conn.cursor()
+                        cursor.execute("DELETE FROM collections WHERE name = ?", (collection_name,))
+                        cursor.execute("DELETE FROM embeddings WHERE collection_id IN (SELECT id FROM collections WHERE name = ?)", (collection_name,))
+                        conn.commit()
+                        conn.close()
+                        logger.info(f"✅ Cleared SQLite entries for user: {collection_name}")
+                        print(f"✅ Cleared SQLite entries for user: {collection_name}")
+                except Exception as sqlite_error:
+                    logger.warning(f"⚠️ Could not clear SQLite entries: {sqlite_error}")
+                    print(f"⚠️ Could not clear SQLite entries: {sqlite_error}")
+                    
+        except Exception as e:
+            logger.warning(f"❌ Could not force clear user ChromaDB files: {e}")
+            print(f"❌ Could not force clear user ChromaDB files: {e}")
         
         # Final verification
         try:
@@ -485,25 +701,68 @@ async def clear_all_documents(
             logger.info(f"FINAL VERIFICATION - Chunks remaining: {len(final_docs['ids'])}")
             logger.info(f"FINAL VERIFICATION - Sample IDs: {final_docs['ids'][:5]}")
             
-            if len(final_docs['ids']) > 0:
-                logger.error(f"CRITICAL: {len(final_docs['ids'])} chunks still remain after reset operation!")
+            # Check if user folder still exists
+            user_folder_path = os.path.join(os.path.dirname(__file__), "chroma_db", collection_name)
+            folder_exists = os.path.exists(user_folder_path)
+            logger.info(f"FINAL VERIFICATION - User folder exists: {folder_exists}")
+            
+            # Check SQLite database for remaining entries
+            sqlite_cleared = True
+            try:
+                import sqlite3
+                db_path = os.path.join(os.path.dirname(__file__), "chroma_db", "chroma.sqlite3")
+                if os.path.exists(db_path):
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    
+                    # Check if collection still exists
+                    cursor.execute("SELECT COUNT(*) FROM collections WHERE name = ?", (collection_name,))
+                    collection_count = cursor.fetchone()[0]
+                    
+                    # Check if embeddings still exist
+                    cursor.execute("SELECT COUNT(*) FROM embeddings WHERE collection_id IN (SELECT id FROM collections WHERE name = ?)", (collection_name,))
+                    embeddings_count = cursor.fetchone()[0]
+                    
+                    conn.close()
+                    
+                    sqlite_cleared = (collection_count == 0 and embeddings_count == 0)
+                    logger.info(f"FINAL VERIFICATION - SQLite cleared: {sqlite_cleared} (collections: {collection_count}, embeddings: {embeddings_count})")
+                else:
+                    logger.info("FINAL VERIFICATION - SQLite database does not exist")
+            except Exception as e:
+                logger.warning(f"FINAL VERIFICATION - Could not check SQLite: {e}")
+                sqlite_cleared = False
+            
+            if len(final_docs['ids']) > 0 or folder_exists:
+                logger.error(f"CRITICAL: {len(final_docs['ids'])} chunks still remain or folder still exists!")
                 logger.info(f"Remaining chunk IDs: {final_docs['ids'][:5]}")
+                logger.info(f"User folder exists: {folder_exists}")
+                
+                # Force delete user folder if it still exists
+                if folder_exists:
+                    try:
+                        shutil.rmtree(user_folder_path)
+                        logger.info(f"✅ Force deleted user folder: {user_folder_path}")
+                    except Exception as e:
+                        logger.error(f"❌ Could not delete user folder: {e}")
                 
                 # Try one more time to delete remaining chunks
-                logger.info("ATTEMPTING FINAL CLEANUP")
-                final_collection.delete(ids=final_docs['ids'])
-                final_cleanup = final_collection.get()
-                logger.info(f"FINAL CLEANUP - Chunks remaining: {len(final_cleanup['ids'])}")
+                if len(final_docs['ids']) > 0:
+                    logger.info("ATTEMPTING FINAL CLEANUP")
+                    final_collection.delete(ids=final_docs['ids'])
+                    final_cleanup = final_collection.get()
+                    logger.info(f"FINAL CLEANUP - Chunks remaining: {len(final_cleanup['ids'])}")
                 
                 return {
                     "message": f"Reset operation completed but {len(final_docs['ids'])} chunks may still remain",
                     "cleared_count": len(unique_docs),
                     "total_chunks_removed": len(all_docs['ids']),
                     "remaining_chunks": len(final_docs['ids']),
-                    "final_chunks": len(final_cleanup['ids'])
+                    "folder_deleted": not os.path.exists(user_folder_path),
+                    "sqlite_cleared": sqlite_cleared
                 }
             else:
-                logger.info("SUCCESS: All chunks successfully cleared - LLM data reset")
+                logger.info("✅ SUCCESS: All chunks and files successfully cleared - LLM data reset")
                 
         except Exception as verify_error:
             logger.error(f"Error in final verification: {verify_error}")
@@ -514,7 +773,8 @@ async def clear_all_documents(
             "message": f"LLM data has been reset - all documents cleared from knowledge base",
             "cleared_count": len(unique_docs),
             "total_chunks_removed": len(all_docs['ids']),
-            "llm_status": "reset"
+            "llm_status": "reset",
+            "sqlite_cleared": sqlite_cleared if 'sqlite_cleared' in locals() else True
         }
         
         logger.info(f"RETURNING RESPONSE: {response_data}")

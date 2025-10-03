@@ -14,17 +14,46 @@ export default function Home() {
 
   useEffect(() => {
     // Check if user is already authenticated
-    const storedUser = localStorage.getItem('user')
-    const storedToken = localStorage.getItem('access_token')
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem('user')
+      const storedToken = localStorage.getItem('access_token')
+      
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser)
+          setUser(userData)
+        } catch (error) {
+          console.error('Error parsing stored user:', error)
+          localStorage.removeItem('user')
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('google_token')
+        }
+      }
+      if (storedToken) {
+        setToken(storedToken)
+      }
+      setLoading(false)
+    }
+
+    // Check for auth success parameter
+    const urlParams = new URLSearchParams(window.location.search)
+    const authSuccess = urlParams.get('auth')
     
-    if (storedUser) {
-      const userData = JSON.parse(storedUser)
-      setUser(userData)
+    if (authSuccess === 'success') {
+      // Clean up URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname)
+      // Force a re-check of auth state
+      setTimeout(checkAuth, 100)
+    } else {
+      // Check auth immediately
+      checkAuth()
     }
-    if (storedToken) {
-      setToken(storedToken)
-    }
-    setLoading(false)
+
+    // Also check auth after a short delay to handle race conditions
+    const timeoutId = setTimeout(checkAuth, 200)
+
+    return () => clearTimeout(timeoutId)
   }, [])
 
   const handleAuthSuccess = (userData: User) => {
