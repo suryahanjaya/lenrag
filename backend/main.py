@@ -11,7 +11,6 @@ import logging
 from services.google_auth import GoogleAuthService
 from services.google_docs import GoogleDocsService
 from services.rag_pipeline import DORAPipeline
-# from services.supabase_client import SupabaseClient
 from models.schemas import (
     AuthRequest, 
     DocumentResponse, 
@@ -46,7 +45,6 @@ security = HTTPBearer()
 google_auth_service = GoogleAuthService()
 google_docs_service = GoogleDocsService()
 dora_pipeline = DORAPipeline()
-# supabase_client = SupabaseClient()
 
 # Cache for storing user info to avoid repeated Google API calls
 user_cache = {}

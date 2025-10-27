@@ -30,27 +30,10 @@ const ProfilePicture = memo(function ProfilePicture({ user, className = '', size
   }
 
 useEffect(() => {
-  console.log(
-    'ProfilePicture: useEffect triggered, user:',
-    memoizedUser?.name,
-    'picture:',
-    memoizedUser?.picture
-  )
-
   if (memoizedUser?.picture) {
-    console.log(
-      'ProfilePicture: Loading image for user:',
-      memoizedUser?.name || 'Unknown',
-      'URL:',
-      memoizedUser.picture
-    )
     setImageError(false)
     setIsLoading(true)
   } else {
-    console.log(
-      'ProfilePicture: No picture available for user:',
-      memoizedUser?.name || 'Unknown'
-    )
     setImageError(true)
     setIsLoading(false)
   }
@@ -58,21 +41,11 @@ useEffect(() => {
 
 
   const handleImageLoad = () => {
-    console.log(
-      'ProfilePicture: Image loaded successfully for user:',
-      memoizedUser?.name || 'Unknown'
-    )
     setIsLoading(false)
     setImageError(false)
   }
 
   const handleImageError = () => {
-    console.log(
-      'ProfilePicture: Image failed to load for user:',
-      memoizedUser?.name || 'Unknown',
-      'URL:',
-      memoizedUser?.picture
-    )
     setImageError(true)
     setIsLoading(false)
   }
