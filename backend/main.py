@@ -1076,8 +1076,8 @@ async def get_knowledge_base_documents(current_user = Depends(get_current_user))
         user_id = current_user.get('sub', current_user.get('id', 'default_user'))
         collection = dora_pipeline._get_user_collection(user_id)
         
-        # Get all documents in the knowledge base
-        all_docs = collection.get()
+        # Get all documents in the knowledge base (limit=None to get all chunks)
+        all_docs = collection.get(limit=None)
         
         logger.info(f"=== KNOWLEDGE BASE REQUEST FOR USER {user_id} ===")
         logger.info(f"Raw ChromaDB data for user {user_id}:")

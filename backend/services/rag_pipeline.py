@@ -69,6 +69,13 @@ class DORAPipeline:
         self.cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
         os.makedirs(self.cache_dir, exist_ok=True)
         
+        # Legal document special handling
+        self.legal_mode = True  # Enable special handling for legal documents
+        self.legal_split_priority = ["Pasal", "Ayat", "Huruf"]  # Priority for legal structure
+        self.legal_fallback_chunk_size = 800  # For non-structured legal text
+        self.legal_min_pasal_size = 1200  # Pasal chunk threshold
+        self.legal_min_ayat_size = 800   # Ayat chunk threshold
+        
         # Document type detection patterns
         self.document_patterns = {
             'legal': [r'pasal\s+\d+', r'undang-undang', r'peraturan', r'hukum'],
@@ -297,10 +304,94 @@ class DORAPipeline:
         logger.info(f"Final chunk count: {len(chunks)} (OPTIMIZED: reduced from ~300 to ~120 per 100 pages)")
         return chunks
     
+    def _extract_legal_metadata(self, text: str) -> Dict[str, Any]:
+        """Extract legal metadata (Pasal, Ayat, Huruf) from text"""
+        metadata = {
+            "pasal": None,
+            "ayat": None,
+            "huruf": None,
+            "type": "legal"
+        }
+        
+        # Extract Pasal
+        pasal_match = re.search(r'Pasal\s+(\d+)', text, re.IGNORECASE)
+        if pasal_match:
+            metadata["pasal"] = f"Pasal {pasal_match.group(1)}"
+        
+        # Extract Ayat
+        ayat_match = re.search(r'ayat\s+\((\d+)\)', text, re.IGNORECASE)
+        if ayat_match:
+            metadata["ayat"] = f"Ayat ({ayat_match.group(1)})"
+        else:
+            # Also check for "ayat (1)", "ayat (2)", etc.
+            ayat_match2 = re.search(r'\((\d+)\)', text)
+            if ayat_match2:
+                metadata["ayat"] = f"({ayat_match2.group(1)})"
+        
+        # Extract Huruf
+        huruf_match = re.search(r'huruf\s+([a-z])', text, re.IGNORECASE)
+        if huruf_match:
+            metadata["huruf"] = f"Huruf {huruf_match.group(1)}"
+        
+        return metadata
+    
     def _split_legal_document(self, text: str) -> List[str]:
-        """Split legal documents by major sections only to prevent over-chunking"""
-        # FIXED: Use only major section patterns to prevent over-chunking
-        # Focus on BAB (chapters) first, then major sections
+        """Split legal documents by legal structure hierarchy (Pasal → Ayat → Huruf)"""
+        if not self.legal_mode:
+            # Fallback to standard BAB splitting
+            return self._split_legal_by_chapters(text)
+        
+        # OPTIMIZED: Split by legal structure hierarchy
+        # Priority: BAB → Pasal → Ayat → Huruf
+        chunks = []
+        
+        # Step 1: Split by BAB (chapters)
+        bab_sections = re.split(r'(?=BAB\s+[IVX]+|BAB\s+\d+)', text, flags=re.IGNORECASE)
+        bab_sections = [s.strip() for s in bab_sections if s.strip() and not s.startswith('BAB')]
+        
+        logger.info(f"Found {len(bab_sections)} BAB sections for legal document")
+        
+        # Step 2: For each BAB, split by Pasal
+        for bab_section in bab_sections:
+            pasal_sections = re.split(r'(?=Pasal\s+\d+)', bab_section, flags=re.IGNORECASE)
+            pasal_sections = [s.strip() for s in pasal_sections if s.strip()]
+            
+            for pasal_text in pasal_sections:
+                # Check if this is a standalone Pasal
+                pasal_match = re.match(r'Pasal\s+\d+', pasal_text, re.IGNORECASE)
+                
+                if pasal_match:
+                    # This is a Pasal, check its size
+                    if len(pasal_text) <= self.legal_min_pasal_size:
+                        # Pasal fits in one chunk, keep it
+                        chunks.append(pasal_text)
+                        logger.info(f"Keeping Pasal as single chunk: {len(pasal_text)} chars")
+                    else:
+                        # Pasal too long, split by Ayat
+                        ayat_sections = re.split(r'(?=ayat\s+\(|\())', pasal_text, flags=re.IGNORECASE)
+                        ayat_sections = [s.strip() for s in ayat_sections if s.strip()]
+                        
+                        for ayat_text in ayat_sections:
+                            if len(ayat_text) <= self.legal_min_ayat_size:
+                                chunks.append(ayat_text)
+                                logger.info(f"Keeping Ayat as single chunk: {len(ayat_text)} chars")
+                            else:
+                                # Ayat too long, split by Huruf or fallback to paragraphs
+                                huruf_sections = re.split(r'(?=huruf\s+[a-z]|;\s+)', ayat_text, flags=re.IGNORECASE)
+                                huruf_sections = [s.strip() for s in huruf_sections if s.strip()]
+                                
+                                for huruf_text in huruf_sections:
+                                    chunks.append(huruf_text)
+                                    logger.info(f"Added Huruf chunk: {len(huruf_text)} chars")
+                else:
+                    # Not a Pasal, keep as is (likely preamble/intro)
+                    chunks.append(pasal_text)
+        
+        logger.info(f"Legal document split into {len(chunks)} chunks using hierarchy")
+        return chunks
+    
+    def _split_legal_by_chapters(self, text: str) -> List[str]:
+        """Fallback: Split legal documents by BAB (chapters) only"""
         patterns = [
             r'(?=BAB\s+[IVX]+)',     # BAB I, BAB II, BAB III, etc. (Roman numerals)
             r'(?=BAB\s+\d+)',        # BAB 1, BAB 2, etc. (Arabic numerals)
@@ -314,8 +405,6 @@ class DORAPipeline:
                 logger.info(f"Found {len(sections)} legal major sections using pattern: {pattern}")
                 return [s.strip() for s in sections if s.strip()]
         
-        # FALLBACK: If no major sections found, use paragraph splitting
-        # This prevents over-chunking by individual Pasal
         logger.info("No major legal sections found, using paragraph splitting")
         return re.split(r'\n\s*\n', text)
     
@@ -423,8 +512,8 @@ class DORAPipeline:
                 logger.info(f"Loaded {len(cached_chunks)} chunks from cache for document {document_id}")
                 chunks = cached_chunks
             else:
-                # Count total files for adaptive chunk sizing
-                all_docs = collection.get()
+                # Count total files for adaptive chunk sizing (limit=None to get all chunks)
+                all_docs = collection.get(limit=None)
                 total_files = len(set(meta.get('document_id') for meta in all_docs.get('metadatas', []) if meta.get('document_id')))
                 
                 # Split document into chunks with MIME type detection and adaptive sizing
@@ -452,13 +541,26 @@ class DORAPipeline:
                 chunk_id = self._generate_chunk_id(document_id, i)
                 chunk_ids.append(chunk_id)
                 chunk_texts.append(chunk)
-                metadatas.append({
+                
+                # Extract legal metadata if this is a legal document
+                metadata_base = {
                     "document_id": document_id,
                     "document_name": document_name or f"Document {document_id[:8]}",
                     "mime_type": mime_type or "unknown",
                     "chunk_index": i,
                     "user_id": user_id
-                })
+                }
+                
+                # Add legal-specific metadata
+                if mime_type and ('document' in mime_type or 'pdf' in mime_type):
+                    legal_metadata = self._extract_legal_metadata(chunk)
+                    if legal_metadata.get("pasal") or legal_metadata.get("ayat"):
+                        metadata_base.update(legal_metadata)
+                        logger.info(f"Added legal metadata for chunk {i}: {legal_metadata}")
+                
+                # Filter out None values from metadata (ChromaDB doesn't accept None)
+                filtered_metadata = {k: v for k, v in metadata_base.items() if v is not None}
+                metadatas.append(filtered_metadata)
             
             if chunk_ids:
                 # Add to ChromaDB with batch processing for large scale
@@ -495,9 +597,10 @@ class DORAPipeline:
         try:
             collection = self._get_user_collection(user_id)
             
-            # Get all chunks for this document
+            # Get all chunks for this document (limit=None to get all chunks)
             results = collection.get(
-                where={"document_id": document_id}
+                where={"document_id": document_id},
+                limit=None
             )
             
             if results['ids']:
@@ -1065,9 +1168,10 @@ Jawaban:"""
         try:
             collection = self._get_user_collection(user_id)
             
-            # Get all chunks for this document
+            # Get all chunks for this document (limit=None to get all chunks)
             results = collection.get(
-                where={"document_id": document_id}
+                where={"document_id": document_id},
+                limit=None
             )
             
             if not results['documents']:

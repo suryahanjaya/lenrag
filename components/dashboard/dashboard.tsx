@@ -627,12 +627,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   };
 
 
-  // Fungsi untuk mengambil knowledge base
-  const fetchKnowledgeBase = async () => {
+  // Fungsi untuk mengambil knowledge base dengan retry mechanism
+  const fetchKnowledgeBase = async (retryCount = 0) => {
     const token = getToken();
-    if (!token) return;
+    if (!token) {
+      console.log('No token found, skipping knowledge base fetch');
+      return;
+    }
     
     try {
+      console.log(`Fetching knowledge base... (attempt ${retryCount + 1})`);
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/knowledge-base`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -641,12 +645,27 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
       if (response.ok) {
         const data = await response.json();
+        console.log(`Knowledge base fetched: ${data.documents?.length || 0} documents`);
         setKnowledgeBase(data.documents || []);
       } else {
+        console.error(`Knowledge base fetch failed: ${response.status} ${response.statusText}`);
         setKnowledgeBase([]);
+        
+        // Retry logic: retry up to 3 times with increasing delay
+        if (retryCount < 3 && response.status >= 500) {
+          console.log(`Retrying in ${(retryCount + 1) * 1000}ms...`);
+          setTimeout(() => fetchKnowledgeBase(retryCount + 1), (retryCount + 1) * 1000);
+        }
       }
     } catch (error) {
+      console.error('Error fetching knowledge base:', error);
       setKnowledgeBase([]);
+      
+      // Retry on network error
+      if (retryCount < 3) {
+        console.log(`Retrying after network error in ${(retryCount + 1) * 1000}ms...`);
+        setTimeout(() => fetchKnowledgeBase(retryCount + 1), (retryCount + 1) * 1000);
+      }
     }
   };
 
@@ -780,8 +799,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
               method: 'POST',
               headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
+                  'Authorization': `Bearer ${token}`,
+                  'X-Google-Token': token,
                   'Content-Type': 'application/json',
               },
               body: JSON.stringify({ document_ids: Array.from(selectedDocs) }),
@@ -797,8 +816,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           setMessage(`Berhasil menambahkan ${result.processed_count || selectedDocs.size} dokumen ke knowledge base!`);
           setSelectedDocs(new Set());
           
-          // Refresh only knowledge base, not documents list
-          // This avoids unnecessary API calls to fetch 50 documents
+          // Refresh knowledge base after a short delay to ensure backend processing is complete
           setTimeout(() => {
             fetchKnowledgeBase();
           }, 2000);
@@ -933,10 +951,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       setMessage(`Bulk upload selesai! ${processedCount} dari ${supportedFiles.length} dokumen berhasil diupload.`);
       
       // Refresh only knowledge base, not documents list
-      // This avoids unnecessary API calls to fetch 50 documents
+      // Refresh knowledge base after bulk upload processing
       setTimeout(() => {
         fetchKnowledgeBase();
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
       console.error('Bulk upload error:', error);

@@ -556,10 +556,12 @@ class GoogleDocsService:
             
             elif mime_type in ['application/pdf', 
                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                             'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                             'text/plain',
-                             'application/vnd.google-apps.presentation']:
-                # Other file types - export as plain text
+                             'application/vnd.openxmlformats-officedocument.presentationml.presentation']:
+                # Uploaded files (PDF, Word, PowerPoint) - download and extract
+                return await self._export_file_as_text(access_token, document_id, mime_type)
+            
+            elif mime_type in ['text/plain', 'application/vnd.google-apps.presentation']:
+                # Native Google files or text files - export as text
                 return await self._export_file_as_text(access_token, document_id, mime_type)
             
             else:
@@ -622,6 +624,12 @@ class GoogleDocsService:
             # Try multiple methods to extract content
             content = None
             
+            # Native Google file types that can be exported
+            native_google_types = ['application/vnd.google-apps.document', 
+                                   'application/vnd.google-apps.spreadsheet',
+                                   'application/vnd.google-apps.presentation',
+                                   'application/vnd.google-apps.drawing']
+            
             # Method 1: For text files, download directly
             if mime_type == 'text/plain':
                 url = f"{self.drive_api_base}/files/{file_id}?alt=media"
@@ -631,8 +639,10 @@ class GoogleDocsService:
                     content = response.text
                     logger.info(f"Successfully extracted text file content: {len(content)} characters")
             
-            # Method 2: Try exporting as plain text (works for Google Docs, Sheets, some PDFs)
-            if not content:
+            # Method 2: Try exporting as plain text (ONLY for native Google file types)
+            # Skip this for PDFs, Word docs, etc. that are uploaded files
+            if not content and mime_type in native_google_types:
+                logger.info(f"Attempting to export native Google file type: {mime_type}")
                 url = f"{self.drive_api_base}/files/{file_id}/export?mimeType=text/plain"
                 async with httpx.AsyncClient() as client:
                     response = await client.get(url, headers=headers)
@@ -733,7 +743,29 @@ Please describe what specific information you're looking for, and I can help gui
                     content = f"DOCX document '{file_name}' - python-docx library not available for text extraction."
                     logger.warning("DOCX file found but python-docx library not available")
             
-            # Method 5: Enhanced placeholders for other file types
+            # Method 5: For PowerPoint files (PPTX), download and create placeholder
+            elif not content and mime_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                url = f"{self.drive_api_base}/files/{file_id}?alt=media"
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, headers=headers)
+                if response.status_code == 200:
+                    file_info = await self._get_file_info(access_token, file_id)
+                    file_name = file_info.get('name', 'Unknown')
+                    content = f"""This is a PowerPoint presentation named '{file_name}'.
+
+Presentations typically contain structured information including:
+- Title slides
+- Bullet points
+- Images and graphics
+- Tables and data visualizations
+- Summary sections
+
+The presentation is available in your Google Drive. Please describe what specific information you're looking for, and I can help guide you on how to access the content."""
+                    logger.info(f"PowerPoint file '{file_name}' - basic placeholder created")
+                else:
+                    logger.warning(f"Could not download PowerPoint file. Status: {response.status_code}")
+            
+            # Method 6: Enhanced placeholders for other file types
             if not content:
                 file_info = await self._get_file_info(access_token, file_id)
                 file_name = file_info.get('name', 'Unknown')
