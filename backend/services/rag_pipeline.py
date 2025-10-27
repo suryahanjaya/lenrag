@@ -435,16 +435,84 @@ class DORAPipeline:
                     'fallback_used': False
                 }
             
-            # Create expanded query for better understanding
+            # Detect query language and analyze intent for better understanding
+            query_language = self._detect_query_language(query)
+            query_intent = self._analyze_query_intent(query)
             expanded_query = self._expand_query(query)
+            
             logger.info(f"Original query: {query}")
+            logger.info(f"Detected language: {query_language}")
+            logger.info(f"Query intent: {query_intent}")
             logger.info(f"Expanded query: {expanded_query}")
             
-            # Search for relevant chunks with expanded query
+            # Search for relevant chunks with expanded query and multiple search strategies
+            # Strategy 1: Search with expanded query
             results = collection.query(
                 query_texts=[expanded_query],
-                n_results=15  # Optimized for 100 documents - reduced for better performance
+                n_results=20  # Increased for better coverage
             )
+            
+            # Strategy 2: If intent detected, also search with intent-specific terms
+            intent_query = None
+            if query_intent['intent']:
+                intent_terms = []
+                for intent in query_intent['intent']:
+                    if intent == 'definition':
+                        intent_terms.extend(['definisi', 'pengertian', 'artinya', 'meaning'])
+                    elif intent == 'how_to':
+                        intent_terms.extend(['cara', 'langkah', 'prosedur', 'method'])
+                    elif intent == 'when':
+                        intent_terms.extend(['waktu', 'tanggal', 'kapan', 'time'])
+                    elif intent == 'where':
+                        intent_terms.extend(['lokasi', 'tempat', 'dimana', 'location'])
+                    elif intent == 'why':
+                        intent_terms.extend(['alasan', 'sebab', 'mengapa', 'reason'])
+                    elif intent == 'comparison':
+                        intent_terms.extend(['perbedaan', 'beda', 'banding', 'difference'])
+                    elif intent == 'example':
+                        intent_terms.extend(['contoh', 'sample', 'misal', 'example'])
+                
+                if intent_terms:
+                    intent_query = f"{query} {' '.join(intent_terms)}"
+                    logger.info(f"Intent-based query: {intent_query}")
+                    
+                    # Get additional results with intent query
+                    intent_results = collection.query(
+                        query_texts=[intent_query],
+                        n_results=10
+                    )
+                    
+                    # Merge results (combine and deduplicate)
+                    if intent_results['documents'][0]:
+                        # Combine document lists
+                        all_docs = results['documents'][0] + intent_results['documents'][0]
+                        all_metadatas = results['metadatas'][0] + intent_results['metadatas'][0]
+                        all_distances = results['distances'][0] + intent_results['distances'][0]
+                        
+                        # Remove duplicates based on document content
+                        seen_docs = set()
+                        unique_docs = []
+                        unique_metadatas = []
+                        unique_distances = []
+                        
+                        for doc, meta, dist in zip(all_docs, all_metadatas, all_distances):
+                            if doc not in seen_docs:
+                                seen_docs.add(doc)
+                                unique_docs.append(doc)
+                                unique_metadatas.append(meta)
+                                unique_distances.append(dist)
+                        
+                        # Sort by distance (relevance)
+                        sorted_items = sorted(zip(unique_docs, unique_metadatas, unique_distances), 
+                                            key=lambda x: x[2])
+                        
+                        results = {
+                            'documents': [[item[0] for item in sorted_items]],
+                            'metadatas': [[item[1] for item in sorted_items]],
+                            'distances': [[item[2] for item in sorted_items]]
+                        }
+                        
+                        logger.info(f"Combined results: {len(results['documents'][0])} unique documents")
             
             documents = results['documents'][0] if results['documents'] else []
             metadatas = results['metadatas'][0] if results['metadatas'] else []
@@ -453,8 +521,22 @@ class DORAPipeline:
             logger.info(f"Query results: {len(documents)} documents found")
             logger.info(f"Distances: {distances}")
             
-                # More lenient similarity threshold for expanded queries
-            if documents and distances and min(distances) < 0.95:
+            # Dynamic similarity threshold based on query complexity and intent
+            base_threshold = 0.85  # Base threshold
+            if query_intent['complexity'] == 'low':
+                threshold = base_threshold + 0.05  # More lenient for simple queries
+            elif query_intent['complexity'] == 'high':
+                threshold = base_threshold - 0.05  # More strict for complex queries
+            else:
+                threshold = base_threshold
+            
+            # Adjust threshold based on intent
+            if query_intent['intent']:
+                threshold -= 0.05  # More lenient for specific intents
+            
+            logger.info(f"Using similarity threshold: {threshold}")
+            
+            if documents and distances and min(distances) < threshold:
                 # Create context from retrieved documents with document names and more context
                 context_parts = []
                 for i, (doc, meta) in enumerate(zip(documents, metadatas)):
@@ -466,6 +548,35 @@ class DORAPipeline:
                 # Add instruction to be more flexible in understanding
                 context += "\n\nPENTING: Jawab pertanyaan berdasarkan konteks di atas, bahkan jika ada variasi kata atau frasa dalam pertanyaan. Fokus pada makna dan inti pertanyaan, bukan pada kata-kata yang persis sama."
                 
+                # Generate intent-specific instructions
+                intent_instructions = ""
+                if query_intent['intent']:
+                    for intent in query_intent['intent']:
+                        if intent == 'definition':
+                            intent_instructions += "- Jika ini pertanyaan definisi, berikan pengertian yang jelas dan ringkas\n"
+                        elif intent == 'how_to':
+                            intent_instructions += "- Jika ini pertanyaan cara/langkah, berikan prosedur yang terstruktur dan mudah diikuti\n"
+                        elif intent == 'when':
+                            intent_instructions += "- Jika ini pertanyaan waktu, berikan informasi waktu/tanggal yang spesifik\n"
+                        elif intent == 'where':
+                            intent_instructions += "- Jika ini pertanyaan lokasi, berikan informasi tempat yang jelas\n"
+                        elif intent == 'why':
+                            intent_instructions += "- Jika ini pertanyaan alasan, berikan penjelasan sebab-akibat yang logis\n"
+                        elif intent == 'comparison':
+                            intent_instructions += "- Jika ini pertanyaan perbandingan, berikan perbedaan yang jelas\n"
+                        elif intent == 'example':
+                            intent_instructions += "- Jika ini pertanyaan contoh, berikan contoh yang relevan dan mudah dipahami\n"
+                        elif intent == 'requirement':
+                            intent_instructions += "- Jika ini pertanyaan syarat, berikan daftar syarat yang lengkap\n"
+                        elif intent == 'process':
+                            intent_instructions += "- Jika ini pertanyaan proses, berikan tahapan yang terstruktur\n"
+                        elif intent == 'benefit':
+                            intent_instructions += "- Jika ini pertanyaan manfaat, berikan keuntungan yang spesifik\n"
+                        elif intent == 'problem':
+                            intent_instructions += "- Jika ini pertanyaan masalah, berikan identifikasi masalah yang jelas\n"
+                        elif intent == 'solution':
+                            intent_instructions += "- Jika ini pertanyaan solusi, berikan pemecahan yang praktis\n"
+                
                 # Generate answer using retrieved context with DORA's enhanced intelligence
                 prompt = f"""Anda adalah DORA (Document Retrieval Assistant) - asisten cerdas yang dapat memahami dan menganalisis berbagai jenis dokumen. WAJIB MENGGUNAKAN BAHASA INDONESIA SAJA.
 
@@ -473,9 +584,14 @@ Konteks dari dokumen pengguna:
 {context}
 
 Pertanyaan: {query}
+Bahasa pertanyaan yang terdeteksi: {query_language}
+Intent yang terdeteksi: {query_intent['intent']}
+Konteks yang terdeteksi: {query_intent['context']}
 
 INSTRUKSI KHUSUS UNTUK DORA (DOCUMENT RETRIEVAL ASSISTANT):
-- ANALISIS KONTEKS dengan cermat dari berbagai jenis dokumen dan berikan jawaban yang LENGKAP dan AKURAT
+- WAJIB MENJAWAB DALAM BAHASA INDONESIA meskipun pertanyaan dalam bahasa apapun
+- BERIKAN JAWABAN YANG SINGKAT, PADAT, DAN TO THE POINT
+- ANALISIS KONTEKS dengan cermat dari berbagai jenis dokumen dan berikan jawaban yang AKURAT dan RELEVAN
 - DORA dapat memahami dokumen hukum, akademik, teknis, bisnis, medis, keuangan, dan jenis dokumen lainnya
 - Jika pertanyaan tentang hukum, CARI dan SEBUTKAN undang-undang, pasal, atau peraturan yang relevan
 - Jika pertanyaan tentang akademik, berikan analisis berdasarkan penelitian, referensi, atau kajian
@@ -483,8 +599,18 @@ INSTRUKSI KHUSUS UNTUK DORA (DOCUMENT RETRIEVAL ASSISTANT):
 - Jika pertanyaan tentang bisnis, berikan analisis strategi, proposal, atau laporan yang relevan
 - JANGAN katakan "tidak ada informasi" jika ada konten yang relevan dalam dokumen
 
+INSTRUKSI BERDASARKAN INTENT:
+{intent_instructions}
+
 FORMAT RESPONS YANG DIHARUSKAN:
-JAWAB LANGSUNG APA YANG DIMINTA DALAM SESINGKAT-KATNYA TANPA PENJELASAN LEBIH LANJUT
+- JAWAB LANGSUNG APA YANG DIMINTA DALAM SESINGKAT-KATNYA
+- GUNAKAN BAHASA INDONESIA YANG JELAS DAN MUDAH DIPAHAMI
+- HINDARI PENJELASAN PANJANG LEBAR - FOKUS PADA INTI PERTANYAAN
+- BERIKAN INFORMASI YANG PENTING SAJA
+- MAKSIMAL 3-4 KALIMAT UNTUK JAWABAN UMUM
+- UNTUK PERTANYAAN KOMPLEKS, BERIKAN JAWABAN YANG TERSTRUKTUR TETAPI TETAP RINGKAS
+- JANGAN ULANGI PERTANYAAN DALAM JAWABAN - LANGSUNG BERIKAN INFORMASI
+- GUNAKAN PEMAHAMAN SEMANTIK - CARI INFORMASI YANG BERKAITAN MESKIPUN TIDAK EXACT MATCH
 
 PANDUAN PENULISAN:
 - Tulis dengan gaya percakapan yang profesional dan informatif
@@ -509,7 +635,7 @@ Jawaban:"""
                 seen_docs = set()  # Track unique document IDs
                 
                 # Filter documents based on similarity score (optimized for large-scale knowledge base)
-                relevant_threshold = 0.9  # More lenient threshold for large knowledge base
+                relevant_threshold = threshold + 0.1  # Use the same threshold as document filtering
                 max_sources = 8  # More sources for comprehensive context from large document collection
                 logger.info(f"Relevant threshold: {relevant_threshold}")
                 logger.info(f"Max sources: {max_sources}")
@@ -569,7 +695,7 @@ Jawaban:"""
                 }
             
             else:
-                logger.warning(f"No relevant documents found. Min distance: {min(distances) if distances else 'N/A'}, threshold: 0.7")
+                logger.warning(f"No relevant documents found. Min distance: {min(distances) if distances else 'N/A'}, threshold: {threshold}")
                 return {
                     'answer': "Maaf, saya tidak dapat menemukan informasi yang relevan dalam dokumen Anda untuk menjawab pertanyaan ini. Silakan coba pertanyaan lain atau pastikan dokumen yang relevan sudah ditambahkan ke knowledge base.",
                     'sources': [],
@@ -590,69 +716,210 @@ Jawaban:"""
                 'fallback_used': False
             }
     
+    def _detect_query_language(self, query: str) -> str:
+        """Detect the language of the query to ensure proper handling"""
+        query_lower = query.lower()
+        
+        # Common English words
+        english_words = ['what', 'how', 'when', 'where', 'why', 'who', 'which', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'have', 'has', 'had', 'do', 'does', 'did', 'can', 'could', 'will', 'would', 'should', 'may', 'might', 'must', 'about', 'with', 'from', 'for', 'to', 'in', 'on', 'at', 'by']
+        
+        # Common Indonesian words
+        indonesian_words = ['apa', 'bagaimana', 'kapan', 'dimana', 'mengapa', 'siapa', 'yang', 'dan', 'atau', 'tetapi', 'adalah', 'telah', 'sudah', 'bisa', 'dapat', 'akan', 'harus', 'mungkin', 'tentang', 'dengan', 'dari', 'untuk', 'ke', 'di', 'pada', 'oleh', 'dalam', 'atas', 'bawah']
+        
+        # Count English and Indonesian words
+        english_count = sum(1 for word in english_words if word in query_lower)
+        indonesian_count = sum(1 for word in indonesian_words if word in query_lower)
+        
+        # If more English words detected, likely English
+        if english_count > indonesian_count:
+            return 'english'
+        elif indonesian_count > english_count:
+            return 'indonesian'
+        else:
+            # Default to Indonesian for mixed or unclear languages
+            return 'indonesian'
+    
+    def _analyze_query_intent(self, query: str) -> dict:
+        """Analyze the intent and context of the query for better understanding"""
+        query_lower = query.lower()
+        
+        # Intent patterns
+        intent_patterns = {
+            'definition': ['apa itu', 'apa yang dimaksud', 'definisi', 'pengertian', 'what is', 'what does', 'define'],
+            'how_to': ['bagaimana cara', 'cara', 'langkah', 'prosedur', 'how to', 'how do', 'step by step'],
+            'when': ['kapan', 'waktu', 'tanggal', 'kapan dimulai', 'when', 'what time', 'what date'],
+            'where': ['dimana', 'lokasi', 'tempat', 'where', 'location', 'place'],
+            'why': ['mengapa', 'kenapa', 'alasannya', 'why', 'reason', 'because'],
+            'who': ['siapa', 'who', 'person', 'orang'],
+            'what': ['apa', 'what', 'which'],
+            'comparison': ['perbedaan', 'beda', 'bandingkan', 'difference', 'compare', 'versus'],
+            'example': ['contoh', 'sample', 'misalnya', 'example', 'for instance'],
+            'requirement': ['syarat', 'kebutuhan', 'requirement', 'need', 'prerequisite'],
+            'process': ['proses', 'tahapan', 'process', 'step', 'procedure'],
+            'benefit': ['manfaat', 'keuntungan', 'benefit', 'advantage', 'advantage'],
+            'problem': ['masalah', 'problem', 'issue', 'trouble'],
+            'solution': ['solusi', 'pemecahan', 'solution', 'fix', 'resolve']
+        }
+        
+        # Context patterns
+        context_patterns = {
+            'legal': ['hukum', 'undang-undang', 'pasal', 'peraturan', 'legal', 'law', 'regulation'],
+            'technical': ['teknologi', 'sistem', 'aplikasi', 'software', 'technical', 'system', 'application'],
+            'business': ['bisnis', 'perusahaan', 'organisasi', 'business', 'company', 'organization'],
+            'academic': ['penelitian', 'studi', 'kajian', 'research', 'study', 'analysis'],
+            'medical': ['kesehatan', 'medis', 'dokter', 'pasien', 'medical', 'health', 'doctor'],
+            'financial': ['keuangan', 'uang', 'biaya', 'anggaran', 'financial', 'money', 'budget'],
+            'hr': ['karyawan', 'pegawai', 'hr', 'human resource', 'employee', 'staff'],
+            'admin': ['administrasi', 'admin', 'tata usaha', 'administration', 'administrative']
+        }
+        
+        # Analyze intent
+        detected_intent = []
+        for intent, patterns in intent_patterns.items():
+            for pattern in patterns:
+                if pattern in query_lower:
+                    detected_intent.append(intent)
+                    break
+        
+        # Analyze context
+        detected_context = []
+        for context, patterns in context_patterns.items():
+            for pattern in patterns:
+                if pattern in query_lower:
+                    detected_context.append(context)
+                    break
+        
+        return {
+            'intent': detected_intent,
+            'context': detected_context,
+            'is_question': any(word in query_lower for word in ['apa', 'bagaimana', 'kapan', 'dimana', 'mengapa', 'siapa', 'what', 'how', 'when', 'where', 'why', 'who']),
+            'is_request': any(word in query_lower for word in ['tolong', 'bisa', 'mohon', 'please', 'can you', 'could you']),
+            'complexity': 'high' if len(query.split()) > 10 else 'medium' if len(query.split()) > 5 else 'low'
+        }
+    
     def _expand_query(self, query: str) -> str:
         """Expand query with synonyms and related terms for universal document understanding"""
         # Enhanced synonyms and expansions for DORA's universal document understanding
         expansions = {
-            # Legal terms
-            'warga negara': 'warga negara citizen kewarganegaraan penduduk',
-            'undang-undang': 'undang-undang uu peraturan hukum ketentuan',
-            'hukum': 'hukum undang-undang peraturan ketentuan',
-            'pasal': 'pasal ayat butir ketentuan',
-            'peraturan': 'peraturan ketentuan aturan regulasi',
+            # Legal terms - expanded for better matching
+            'warga negara': 'warga negara citizen kewarganegaraan penduduk masyarakat',
+            'undang-undang': 'undang-undang uu peraturan hukum ketentuan aturan',
+            'hukum': 'hukum undang-undang peraturan ketentuan aturan legal',
+            'pasal': 'pasal ayat butir ketentuan klausul',
+            'peraturan': 'peraturan ketentuan aturan regulasi kebijakan',
+            'hak': 'hak right entitlement privilege',
+            'kewajiban': 'kewajiban obligation duty tanggung jawab',
+            'sanksi': 'sanksi penalty punishment hukuman',
             
-            # Academic terms
-            'penelitian': 'penelitian riset kajian studi analisis',
-            'metodologi': 'metodologi metode pendekatan cara',
-            'referensi': 'referensi sumber pustaka literatur',
-            'kajian': 'kajian analisis penelitian studi',
-            'hasil': 'hasil temuan outcome result',
+            # Academic terms - expanded for better matching
+            'penelitian': 'penelitian riset kajian studi analisis investigasi',
+            'metodologi': 'metodologi metode pendekatan cara prosedur',
+            'referensi': 'referensi sumber pustaka literatur acuan',
+            'kajian': 'kajian analisis penelitian studi evaluasi',
+            'hasil': 'hasil temuan outcome result kesimpulan',
+            'tujuan': 'tujuan goal objective target maksud',
+            'ruang lingkup': 'ruang lingkup scope coverage cakupan',
             
-            # Technical terms
-            'fungsi': 'fungsi function method prosedur',
-            'implementasi': 'implementasi penerapan aplikasi',
-            'sistem': 'sistem system platform aplikasi',
-            'teknologi': 'teknologi technology teknis',
-            'kode': 'kode code script program',
+            # Technical terms - expanded for better matching
+            'fungsi': 'fungsi function method prosedur operasi',
+            'implementasi': 'implementasi penerapan aplikasi eksekusi',
+            'sistem': 'sistem system platform aplikasi arsitektur',
+            'teknologi': 'teknologi technology teknis digital',
+            'kode': 'kode code script program algoritma',
+            'database': 'database basis data penyimpanan',
+            'server': 'server peladen host komputer',
+            'client': 'client klien pengguna aplikasi',
             
-            # Business terms
-            'strategi': 'strategi strategy rencana plan',
-            'analisis': 'analisis analysis evaluasi assessment',
-            'laporan': 'laporan report dokumen document',
-            'proposal': 'proposal usulan rencana plan',
+            # Business terms - expanded for better matching
+            'strategi': 'strategi strategy rencana plan taktik',
+            'analisis': 'analisis analysis evaluasi assessment review',
+            'laporan': 'laporan report dokumen document hasil',
+            'proposal': 'proposal usulan rencana plan gagasan',
+            'investasi': 'investasi investment modal capital dana',
+            'profit': 'profit keuntungan benefit laba margin',
+            'revenue': 'revenue pendapatan income penghasilan',
+            'budget': 'budget anggaran biaya cost dana',
+            
+            # Medical terms - expanded for better matching
+            'diagnosis': 'diagnosis diagnosa identifikasi penentuan',
+            'gejala': 'gejala symptom tanda sign indikasi',
+            'pengobatan': 'pengobatan treatment terapi therapy medikasi',
+            'pasien': 'pasien patient orang sakit klien',
+            'kesehatan': 'kesehatan health medical medis fisik',
+            'penyakit': 'penyakit disease illness kondisi',
+            'obat': 'obat medicine medication drug',
+            
+            # Financial terms - expanded for better matching
+            'anggaran': 'anggaran budget biaya cost dana',
+            'keuangan': 'keuangan financial finance moneter',
+            'profit': 'profit keuntungan benefit laba margin',
             'investasi': 'investasi investment modal capital',
+            'ekonomi': 'ekonomi economic financial bisnis',
+            'biaya': 'biaya cost expense expenditure',
+            'pendapatan': 'pendapatan income revenue earnings',
             
-            # Medical terms
-            'diagnosis': 'diagnosis diagnosa identifikasi',
-            'gejala': 'gejala symptom tanda sign',
-            'pengobatan': 'pengobatan treatment terapi therapy',
-            'pasien': 'pasien patient orang sakit',
-            'kesehatan': 'kesehatan health medical medis',
+            # HR/Administrative terms - new category
+            'karyawan': 'karyawan employee staff pekerja',
+            'cuti': 'cuti leave vacation libur',
+            'gaji': 'refund salary wage income',
+            'benefit': 'benefit tunjangan fasilitas keuntungan',
+            'performance': 'performance kinerja performa hasil',
+            'training': 'training pelatihan education edukasi',
             
-            # Financial terms
-            'anggaran': 'anggaran budget biaya cost',
-            'keuangan': 'keuangan financial finance',
-            'profit': 'profit keuntungan benefit',
-            'investasi': 'investasi investment modal',
-            'ekonomi': 'ekonomi economic financial',
+            # General terms - expanded for better matching
+            'dokumen': 'dokumen document file berkas arsip',
+            'informasi': 'informasi information data detail',
+            'data': 'data information informasi detail',
+            'konten': 'konten content isi materi substance',
+            'sumber': 'sumber source referensi reference origin',
+            'tujuan': 'tujuan goal objective target maksud',
+            'proses': 'proses process procedure tahapan',
+            'hasil': 'hasil result outcome output',
+            'masalah': 'masalah problem issue trouble',
+            'solusi': 'solusi solution answer resolution',
             
-            # General terms
-            'dokumen': 'dokumen document file berkas',
-            'informasi': 'informasi information data',
-            'data': 'data information informasi',
-            'konten': 'konten content isi materi',
-            'sumber': 'sumber source referensi reference'
+            # Question words - for better intent understanding
+            'apa': 'apa what which bagaimana',
+            'bagaimana': 'bagaimana how cara metode',
+            'kapan': 'kapan when waktu tanggal',
+            'dimana': 'dimana where lokasi tempat',
+            'mengapa': 'mengapa why sebab alasan',
+            'siapa': 'siapa who person orang',
+            'berapa': 'berapa how many how much jumlah',
+            
+            # Action words - for better intent understanding
+            'cara': 'cara how metode prosedur',
+            'langkah': 'langkah step tahapan proses',
+            'prosedur': 'prosedur procedure process langkah',
+            'metode': 'metode method cara approach',
+            'panduan': 'panduan guide manual instruksi',
+            'petunjuk': 'petunjuk instruction guide panduan'
         }
         
         expanded_query = query.lower()
+        
+        # Apply expansions
         for term, synonyms in expansions.items():
             if term in expanded_query:
                 expanded_query = expanded_query.replace(term, f"{term} {synonyms}")
         
-        return expanded_query
+        # Add the original query terms to ensure we don't lose the original intent
+        original_terms = query.lower().split()
+        expanded_query = f"{query.lower()} {expanded_query}"
+        
+        # Remove duplicate words while preserving order
+        words = expanded_query.split()
+        seen = set()
+        unique_words = []
+        for word in words:
+            if word not in seen:
+                seen.add(word)
+                unique_words.append(word)
+        
+        return ' '.join(unique_words)
 
     def _clean_response(self, text: str) -> str:
-        """Clean up the AI response to make it more readable with proper paragraph formatting"""
+        """Clean up the AI response to make it more readable and concise"""
         if not text:
             return text
         
@@ -670,6 +937,13 @@ Jawaban:"""
         # Remove bullet points and numbering
         text = re.sub(r'^[\s]*[•\-\*]\s*', '', text, flags=re.MULTILINE)
         text = re.sub(r'^\s*\d+\.\s*', '', text, flags=re.MULTILINE)
+        
+        # Remove common AI response prefixes that make responses verbose
+        text = re.sub(r'^(Berdasarkan konteks yang diberikan,?\s*)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'^(Menurut dokumen yang tersedia,?\s*)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'^(Dari informasi yang ada,?\s*)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'^(Informasi yang dapat saya berikan adalah,?\s*)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'^(Jawaban untuk pertanyaan Anda adalah,?\s*)', '', text, flags=re.IGNORECASE)
         
         # Clean up excessive whitespace and newlines
         lines = text.split('\n')
