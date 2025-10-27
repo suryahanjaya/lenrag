@@ -1,12 +1,15 @@
 import os
 import logging
 from typing import List, Dict, Any, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
 import json
 import re
+import hashlib
+import pickle
 
 logger = logging.getLogger(__name__)
 
@@ -33,30 +36,38 @@ class DORAPipeline:
             )
         )
         
-        # OPTIMIZED text splitter configuration for large-scale efficiency
-        # Target: 100 halaman = ~120 chunks (optimized for 5000+ files)
-        # BEFORE: 400 char chunks → 300 chunks/doc → 1.5M chunks for 5000 files (TOO HEAVY)
-        # AFTER: 1000 char chunks → ~120 chunks/doc → ~600K chunks for 5000 files (60% REDUCTION)
-        self.chunk_size = 1000   # OPTIMIZED: Increased from 400 to 1000 for efficiency
-        self.chunk_overlap = 100  # OPTIMIZED: Proportional overlap (10% of chunk size)
+        # ADAPTIVE text splitter configuration for optimized efficiency
+        # AUTO-ADJUSTMENT LOGIC: Adapts chunk size based on dataset scale
+        # <1500 files: 800 chars (more precise, ~180 chunks/doc for 100 pages)
+        # >=1500 files: 1000 chars (efficient for large scale, ~120 chunks/doc)
+        # DEFAULT: 800 chars for datasets <1500 files (better context precision)
+        self.base_chunk_size = 800   # OPTIMIZED: 800 chars for precision (<1500 files)
+        self.scale_threshold = 2000 # Switch to 1000 chars when >= 2000 files
+        self.chunk_overlap = 100     # OPTIMIZED: Proportional overlap (12.5% of 800 char)
         self.separators = ["\n\n", "\n", ". ", "! ", "? ", " ", ""]
         
-        # REVISED chunk sizes untuk semua jenis dokumen - 100 halaman = ~120 chunks
-        # Hybrid approach: semantic + length-based for best efficiency
+        # REVISED chunk sizes dengan auto-adjustment - scales dengan dataset size
+        # For <1500 files: 800 chars → ~180 chunks per 100 pages
+        # For >=1500 files: 1000 chars → ~120 chunks per 100 pages
         self.document_chunk_sizes = {
-            'pdf': 1000,       # OPTIMIZED: 100 halaman = ~120 chunks (119k chars ÷ 1000 = ~120)
-            'doc': 1000,       # OPTIMIZED: 100 halaman = ~120 chunks
-            'academic': 1000,  # OPTIMIZED: 100 halaman = ~120 chunks
-            'legal': 1000,     # OPTIMIZED: 100 halaman = ~120 chunks
-            'technical': 1000, # OPTIMIZED: 100 halaman = ~120 chunks
-            'business': 1000,  # OPTIMIZED: 100 halaman = ~120 chunks
-            'general': 1000    # OPTIMIZED: 100 halaman = ~120 chunks
+            'pdf': 800,       # OPTIMIZED: 800 chars for <1500 files (better precision)
+            'doc': 800,       # OPTIMIZED: 800 chars for <1500 files
+            'academic': 800,  # OPTIMIZED: 800 chars for <1500 files
+            'legal': 800,     # OPTIMIZED: 800 chars for <1500 files
+            'technical': 800, # OPTIMIZED: 800 chars for <1500 files
+            'business': 800,  # OPTIMIZED: 800 chars for <1500 files
+            'general': 800    # OPTIMIZED: 800 chars for <1500 files
         }
         
-        # Batch processing for parallel chunking (improves speed 6-8x)
+        # Parallel processing configuration (4-6 workers for efficient chunking)
         self.batch_size = 100
-        self.parallel_workers = 8
+        self.parallel_workers = 6    # OPTIMIZED: 4-6 workers for parallel processing
         self.chunk_strategy = "semantic_length_hybrid"
+        
+        # Caching configuration to avoid reprocessing
+        self.use_caching = True
+        self.cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        os.makedirs(self.cache_dir, exist_ok=True)
         
         # Document type detection patterns
         self.document_patterns = {
@@ -83,6 +94,49 @@ class DORAPipeline:
         """Generate a unique ID for a document chunk"""
         return f"{document_id}_chunk_{chunk_index}"
     
+    def _get_cache_path(self, document_id: str, content: str) -> str:
+        """Generate cache path for document chunks"""
+        # Create hash of content for cache key
+        content_hash = hashlib.md5(content.encode()).hexdigest()
+        cache_file = f"{document_id}_{content_hash[:16]}.pkl"
+        return os.path.join(self.cache_dir, cache_file)
+    
+    def _load_chunks_from_cache(self, cache_path: str) -> Optional[List[str]]:
+        """Load chunks from cache if exists"""
+        if not self.use_caching:
+            return None
+        
+        try:
+            if os.path.exists(cache_path):
+                logger.info(f"Loading chunks from cache: {cache_path}")
+                with open(cache_path, 'rb') as f:
+                    return pickle.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load cache: {e}")
+        
+        return None
+    
+    def _save_chunks_to_cache(self, cache_path: str, chunks: List[str]):
+        """Save chunks to cache for faster reprocessing"""
+        if not self.use_caching:
+            return
+        
+        try:
+            logger.info(f"Saving chunks to cache: {cache_path}")
+            with open(cache_path, 'wb') as f:
+                pickle.dump(chunks, f)
+        except Exception as e:
+            logger.warning(f"Failed to save cache: {e}")
+    
+    def _get_adaptive_chunk_size(self, total_files: int = 0) -> int:
+        """Auto-adjust chunk size based on dataset scale"""
+        if total_files >= self.scale_threshold:
+            # Large scale: use 1000 chars for efficiency
+            return 1000
+        else:
+            # Small-medium scale: use 800 chars for precision
+            return 800
+    
     def _detect_document_type(self, text: str, mime_type: str = None) -> str:
         """Detect document type based on content and MIME type"""
         text_lower = text.lower()
@@ -106,32 +160,37 @@ class DORAPipeline:
         
         return 'general'
     
-    def _split_text(self, text: str, mime_type: str = None) -> List[str]:
-        """Split text into chunks using OPTIMIZED hybrid semantic + length-based approach"""
+    def _split_text(self, text: str, mime_type: str = None, total_files: int = 0) -> List[str]:
+        """Split text into chunks using ADAPTIVE hybrid semantic + length-based approach"""
         if not text or not text.strip():
             return []
         
         chunks = []
         doc_type = self._detect_document_type(text, mime_type)
         
+        # AUTO-ADJUSTMENT: Use adaptive chunk size based on dataset scale
+        # <2000 files: 800 chars for precision
+        # >=2000 files: 1000 chars for efficiency
+        adaptive_chunk_size = self._get_adaptive_chunk_size(total_files)
+        
         # Determine optimal chunk size based on document type and MIME type
-        # OPTIMIZED: All document types use 1000 character chunks for 100 pages = ~120 chunks
+        # ADAPTIVE: Chunk size varies based on dataset scale
         if mime_type == 'application/pdf':
-            optimal_chunk_size = self.document_chunk_sizes.get('pdf', 1000)
+            optimal_chunk_size = max(self.document_chunk_sizes.get('pdf', 800), adaptive_chunk_size)
         elif mime_type and 'word' in mime_type.lower():
-            optimal_chunk_size = self.document_chunk_sizes.get('doc', 1000)
+            optimal_chunk_size = max(self.document_chunk_sizes.get('doc', 800), adaptive_chunk_size)
         else:
-            optimal_chunk_size = self.document_chunk_sizes.get(doc_type, 1000)
+            optimal_chunk_size = max(self.document_chunk_sizes.get(doc_type, 800), adaptive_chunk_size)
         
         logger.info(f"Detected document type: {doc_type}, MIME: {mime_type}, optimal chunk size: {optimal_chunk_size}")
         logger.info(f"Processing document: {len(text)} characters")
-        logger.info(f"TARGET: 100 halaman = ~120 chunks (OPTIMIZED for 5000+ files scale)")
+        logger.info(f"ADAPTIVE TARGET: 100 halaman = ~180 chunks (800 char) or ~120 chunks (1000 char)")
         
         # Debug logging for large documents
         if len(text) > 50000:  # Large document
             logger.info(f"Processing large document: {len(text)} characters, type: {doc_type}")
             expected_chunks = len(text) // optimal_chunk_size
-            logger.info(f"Expected chunks for this document: ~{expected_chunks} (target: ~120 for 100 pages, OPTIMIZED)")
+            logger.info(f"Expected chunks for this document: ~{expected_chunks} (adaptive chunk size: {optimal_chunk_size})")
         
         # Strategy 1: Document-specific splitting with optimal chunk sizes
         if doc_type == 'legal':
@@ -348,7 +407,7 @@ class DORAPipeline:
         return [text.strip()] if text.strip() else []
     
     async def add_document(self, user_id: str, document_id: str, content: str, document_name: str = None, mime_type: str = None):
-        """Add a document to the user's knowledge base"""
+        """Add a document to the user's knowledge base with caching support"""
         try:
             if not content or not content.strip():
                 logger.warning(f"Empty content for document {document_id}")
@@ -356,10 +415,26 @@ class DORAPipeline:
             
             collection = self._get_user_collection(user_id)
             
-            # Split document into chunks with MIME type detection
-            logger.info(f"Starting chunking for document {document_id} ({len(content)} characters, MIME: {mime_type})")
-            chunks = self._split_text(content, mime_type)
-            logger.info(f"Generated {len(chunks)} chunks for document {document_id}")
+            # Check cache first to avoid reprocessing
+            cache_path = self._get_cache_path(document_id, content)
+            cached_chunks = self._load_chunks_from_cache(cache_path)
+            
+            if cached_chunks:
+                logger.info(f"Loaded {len(cached_chunks)} chunks from cache for document {document_id}")
+                chunks = cached_chunks
+            else:
+                # Count total files for adaptive chunk sizing
+                all_docs = collection.get()
+                total_files = len(set(meta.get('document_id') for meta in all_docs.get('metadatas', []) if meta.get('document_id')))
+                
+                # Split document into chunks with MIME type detection and adaptive sizing
+                logger.info(f"Starting chunking for document {document_id} ({len(content)} characters, MIME: {mime_type})")
+                logger.info(f"Total files in collection: {total_files}, using adaptive chunk size")
+                chunks = self._split_text(content, mime_type, total_files)
+                logger.info(f"Generated {len(chunks)} chunks for document {document_id}")
+                
+                # Save chunks to cache for faster reprocessing
+                self._save_chunks_to_cache(cache_path, chunks)
             
             if not chunks:
                 logger.warning(f"No chunks generated for document {document_id}")
