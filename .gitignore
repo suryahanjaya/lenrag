@@ -208,3 +208,6 @@ chroma_db/
 # Deployment files (keep templates)
 render.yaml.bak
 vercel.json.bak
+
+webserver.txt
+webservercreden.txt

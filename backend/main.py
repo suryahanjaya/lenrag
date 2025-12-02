@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Depends, status, Header
+from fastapi import FastAPI, HTTPException, Depends, status, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -7,6 +7,12 @@ from typing import List, Optional, Dict, Any
 import httpx
 from dotenv import load_dotenv
 import logging
+
+
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from services.google_auth import GoogleAuthService
 from services.google_docs import GoogleDocsService
@@ -23,6 +29,12 @@ from models.schemas import (
 )
 
 load_dotenv()
+# CORS Configuration - Environment-based
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS", 
+    "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,10 +42,16 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="DORA - Document Retrieval Assistant", version="2.0.0")
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,14 +85,15 @@ async def root():
     return {"message": "DORA - Document Retrieval Assistant API is running"}
 
 @app.post("/auth/google", response_model=Dict[str, Any])
-async def authenticate_google(request: AuthRequest):
+@limiter.limit("5/minute")
+async def authenticate_google(request: Request, auth_request: AuthRequest):
     """Exchange Google authorization code for tokens and create/update user"""
     try:
-        logger.info(f"Received auth code: {request.code[:20]}...")
+        logger.info("Received authentication request [token redacted]")
         
         # Exchange code for tokens
-        tokens = await google_auth_service.exchange_code_for_tokens(request.code)
-        logger.info(f"Received tokens: access_token length={len(tokens.get('access_token', ''))}, has_refresh_token={bool(tokens.get('refresh_token'))}")
+        tokens = await google_auth_service.exchange_code_for_tokens(auth_request.code)
+        logger.info("Successfully exchanged code for tokens")
         
         # Get user info from Google
         user_info = await google_auth_service.get_user_info(tokens['access_token'])
@@ -107,7 +126,7 @@ async def get_user_documents(
                 detail="Google access token not found. Please ensure you're properly authenticated with Google."
             )
         
-        logger.info(f"Attempting to fetch documents with token: {access_token[:20]}...")
+        logger.info("Fetching documents for user [token redacted]")
         
         # Fetch documents from Google Drive (with error handling)
         try:
@@ -200,7 +219,7 @@ async def get_all_documents_from_folder(
         logger.info(f"=== ENDPOINT: /documents/from-folder-all ===")
         logger.info(f"Request: {request}")
         logger.info(f"Current user: {current_user}")
-        logger.info(f"X-Google-Token: {x_google_token}")
+        logger.info(f"X-Google-Token: [REDACTED]")
         
         # Get access token from header
         access_token = x_google_token

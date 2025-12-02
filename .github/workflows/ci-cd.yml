@@ -1,0 +1,164 @@
+name: DORA CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Backend Tests
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+    
+    - name: Run unit tests
+      run: |
+        cd backend
+        pytest tests/test_basic.py -v
+    
+    - name: Run integration tests
+      run: |
+        cd backend
+        pytest tests/test_integration.py -v
+    
+    - name: Code quality check
+      run: |
+        cd backend
+        pip install flake8 black
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check .
+  
+  # Frontend Tests
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Cache Node modules
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Lint check
+      run: npm run lint
+    
+    - name: Build check
+      run: npm run build
+  
+  # Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install security tools
+      run: |
+        pip install safety bandit
+    
+    - name: Check dependencies for vulnerabilities
+      run: |
+        cd backend
+        safety check --file requirements.txt || true
+    
+    - name: Run Bandit security scan
+      run: |
+        cd backend
+        bandit -r . -f json -o bandit-report.json || true
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: backend/bandit-report.json
+  
+  # Deploy to Staging (on main branch)
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [backend-tests, frontend-tests, security-scan]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying to staging environment..."
+        # Add your deployment commands here
+        # Example: docker build, docker push, kubectl apply, etc.
+    
+    - name: Health check
+      run: |
+        echo "🏥 Running health checks..."
+        # Add health check commands
+        # Example: curl https://staging.yourdomain.com/health
+  
+  # Deploy to Production (manual approval required)
+  deploy-production:
+    name: Deploy to Production
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://yourdomain.com
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to production
+      run: |
+        echo "🚀 Deploying to production environment..."
+        # Add your production deployment commands here
+    
+    - name: Health check
+      run: |
+        echo "🏥 Running production health checks..."
+        # Add production health check commands
+    
+    - name: Notify deployment
+      run: |
+        echo "✅ Production deployment complete!"
+        # Add notification logic (Slack, email, etc.)

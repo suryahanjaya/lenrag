@@ -13,6 +13,7 @@ google-generativeai>=0.3.0
 # Core utilities
 python-dotenv>=1.0.0
 pydantic>=2.5.0
+pydantic-settings>=2.0.0
 httpx>=0.25.2
 
 # AI/ML dependencies (optimized for space)
@@ -24,9 +25,19 @@ tiktoken>=0.5.2
 pypdf>=3.17.1
 python-docx>=1.1.0
 
-# Removed heavy dependencies:
-# - supabase (not used in current implementation)
-# - openpyxl (not essential for core functionality)
-# - beautifulsoup4 (not used)
-# - numpy (included in sentence-transformers)
-# - pandas (not used in current implementation)
+# Security & Rate Limiting
+slowapi>=0.1.9
+
+# Monitoring & Observability
+prometheus-client>=0.19.0
+prometheus-fastapi-instrumentator>=6.1.0
+
+# Testing (optional, for development)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+httpx>=0.25.2
+
+# Code Quality (optional, for development)
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
