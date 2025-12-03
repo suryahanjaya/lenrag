@@ -304,18 +304,21 @@ async def bulk_upload_from_folder(
             try:
                 doc_id = doc['id']
                 doc_name = doc['name']
-                logger.info(f"📄 [{i}/{len(all_documents)}] Processing: {doc_name}")
+                logger.debug(f"📄 [{i}/{len(all_documents)}] Processing: {doc_name}")
                 
                 # Get document content
                 content = await google_docs_service.get_document_content(access_token, doc_id)
                 
-                if not content or len(content.strip()) < 10:
-                    logger.warning(f"⚠️ Document {doc_name} has very little content")
-                    failed_documents.append({"id": doc_id, "name": doc_name, "error": "Very little content"})
+                content_len = len(content.strip()) if content else 0
+                logger.debug(f"📄 Document content length: {content_len} chars")
+                
+                if not content or content_len < 10:
+                    logger.warning(f"⚠️ Document {doc_name} has very little content ({content_len} chars)")
+                    failed_documents.append({"id": doc_id, "name": doc_name, "error": f"Very little content ({content_len} chars)"})
                     continue
                 
                 # Add to DORA pipeline (this will chunk and store)
-                await dora_pipeline.add_document(
+                chunks_added = await dora_pipeline.add_document(
                     user_id=user_id,
                     document_id=doc_id,
                     content=content,
@@ -323,8 +326,16 @@ async def bulk_upload_from_folder(
                     mime_type=doc.get('mime_type', 'unknown')
                 )
                 
-                logger.info(f"✅ [{i}/{len(all_documents)}] Successfully processed: {doc_name}")
-                processed_count += 1
+                if chunks_added > 0:
+                    logger.debug(f"✅ [{i}/{len(all_documents)}] Successfully processed: {doc_name} ({chunks_added} chunks)")
+                    processed_count += 1
+                else:
+                    logger.warning(f"⚠️ [{i}/{len(all_documents)}] Failed to generate chunks for: {doc_name}")
+                    failed_documents.append({
+                        "id": doc_id, 
+                        "name": doc_name, 
+                        "error": "No chunks generated (possible empty or unreadable content)"
+                    })
                 
             except Exception as e:
                 logger.error(f"❌ Failed to process document {doc.get('name', 'Unknown')}: {e}")
@@ -333,9 +344,6 @@ async def bulk_upload_from_folder(
                     "name": doc.get('name', 'Unknown'),
                     "error": str(e)
                 })
-        
-        # Step 3: Return results
-        logger.info(f"📊 BULK UPLOAD COMPLETED: {processed_count} successful, {len(failed_documents)} failed")
         
         # Step 3: Refresh Google Drive documents list
         logger.info("🔄 STEP 3: Refreshing Google Drive documents list...")
@@ -425,15 +433,16 @@ async def add_documents_to_knowledge_base(
                 # Get document content (this will automatically detect the MIME type)
                 content = await google_docs_service.get_document_content(access_token, doc_id)
                 
-                logger.info(f"📄 Extracted content length: {len(content)} characters")
+                content_len = len(content.strip()) if content else 0
+                logger.info(f"📄 Extracted content length: {content_len} characters")
                 
-                if not content or len(content.strip()) < 10:
-                    logger.warning(f"⚠️ Document {doc_id} has very little content: '{content[:50]}...'")
-                    failed_documents.append({"id": doc_id, "error": "Very little content"})
+                if not content or content_len < 10:
+                    logger.warning(f"⚠️ Document {doc_id} has very little content: '{content[:50] if content else ''}...'")
+                    failed_documents.append({"id": doc_id, "error": f"Very little content ({content_len} chars)"})
                     continue
                 
                 # Add to DORA pipeline with metadata
-                await dora_pipeline.add_document(
+                chunks_added = await dora_pipeline.add_document(
                     user_id=user_id,
                     document_id=doc_id,
                     content=content,
@@ -441,11 +450,16 @@ async def add_documents_to_knowledge_base(
                     mime_type=doc_metadata.get('mime_type', 'unknown')
                 )
                 
-                if is_bulk_upload:
-                    logger.info(f"✅ [{i}/{len(request.document_ids)}] Successfully added document {doc_id} to knowledge base")
+                if chunks_added > 0:
+                    if is_bulk_upload:
+                        logger.info(f"✅ [{i}/{len(request.document_ids)}] Successfully added document {doc_id} to knowledge base ({chunks_added} chunks)")
+                    else:
+                        logger.info(f"✅ Successfully added document {doc_id} to knowledge base ({chunks_added} chunks)")
+                    processed_count += 1
                 else:
-                    logger.info(f"✅ Successfully added document {doc_id} to knowledge base")
-                processed_count += 1
+                    logger.warning(f"⚠️ Failed to generate chunks for document {doc_id}")
+                    failed_documents.append({"id": doc_id, "error": "No chunks generated (possible empty or unreadable content)"})
+                    
             except Exception as e:
                 logger.error(f"❌ Failed to process document {doc_id}: {e}", exc_info=True)
                 failed_documents.append({"id": doc_id, "error": str(e)})

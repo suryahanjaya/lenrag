@@ -7,6 +7,7 @@ from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
 import json
 import re
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -326,80 +327,48 @@ class DORAPipeline:
             logger.info(f"Found {len(sections)} sentences")
             return [s.strip() for s in sections if s.strip()]
         
-        # Strategy 4: Use whole text if no clear sections
-        logger.info("No clear sections found, using whole text")
-        return [text.strip()] if text.strip() else []
-    
-    async def add_document(self, user_id: str, document_id: str, content: str, document_name: str = None, mime_type: str = None):
-        """Add a document to the user's knowledge base"""
+        return [text]
+
+    async def add_document(self, user_id: str, document_id: str, content: str, document_name: str, mime_type: str = None) -> int:
+        """Add a document to the vector store. Returns the number of chunks added."""
         try:
-            if not content or not content.strip():
-                logger.warning(f"Empty content for document {document_id}")
-                return
-            
             collection = self._get_user_collection(user_id)
             
-            # Split document into chunks with MIME type detection
-            logger.info(f"Starting chunking for document {document_id} ({len(content)} characters, MIME: {mime_type})")
+            # Split text into chunks
             chunks = self._split_text(content, mime_type)
-            logger.info(f"Generated {len(chunks)} chunks for document {document_id}")
             
             if not chunks:
                 logger.warning(f"No chunks generated for document {document_id}")
-                return
+                return 0
             
-            # Generate embeddings and store chunks
-            chunk_ids = []
-            chunk_texts = []
-            metadatas = []
+            logger.info(f"Adding {len(chunks)} chunks for document {document_id}")
             
-            for i, chunk in enumerate(chunks):
-                if not chunk.strip():
-                    continue
-                    
-                chunk_id = self._generate_chunk_id(document_id, i)
-                chunk_ids.append(chunk_id)
-                chunk_texts.append(chunk)
-                metadatas.append({
-                    "document_id": document_id,
-                    "document_name": document_name or f"Document {document_id[:8]}",
-                    "mime_type": mime_type or "unknown",
-                    "chunk_index": i,
-                    "user_id": user_id
-                })
+            # Prepare data for ChromaDB
+            ids = [f"{document_id}_{i}" for i in range(len(chunks))]
+            metadatas = [{
+                "document_id": document_id,
+                "document_name": document_name,
+                "chunk_index": i,
+                "mime_type": mime_type or "text/plain",
+                "timestamp": str(datetime.now().isoformat())
+            } for i in range(len(chunks))]
             
-            if chunk_ids:
-                # Add to ChromaDB with batch processing for large scale
-                logger.info(f"Adding {len(chunk_ids)} chunks to ChromaDB for document {document_id}")
-                
-                # Process in batches for large documents to prevent memory issues
-                batch_size = 100  # Process 100 chunks at a time
-                for i in range(0, len(chunk_ids), batch_size):
-                    batch_ids = chunk_ids[i:i + batch_size]
-                    batch_texts = chunk_texts[i:i + batch_size]
-                    batch_metadatas = metadatas[i:i + batch_size]
-                    
-                    collection.add(
-                        documents=batch_texts,
-                        metadatas=batch_metadatas,
-                        ids=batch_ids
-                    )
-                    logger.info(f"Added batch {i//batch_size + 1}/{(len(chunk_ids)-1)//batch_size + 1} for document {document_id}")
-                
-                logger.info(f"Successfully added {len(chunk_ids)} chunks for document {document_id}")
+            # Add to collection
+            collection.add(
+                documents=chunks,
+                metadatas=metadatas,
+                ids=ids
+            )
+            
+            logger.info(f"Successfully added document {document_id} with {len(chunks)} chunks")
+            return len(chunks)
             
         except Exception as e:
             logger.error(f"Error adding document {document_id}: {e}")
-            # Cleanup on error to prevent partial data
-            try:
-                collection.delete(where={"document_id": document_id})
-                logger.info(f"Cleaned up partial data for document {document_id}")
-            except:
-                pass
             raise
-    
+
     async def remove_document(self, user_id: str, document_id: str):
-        """Remove a document from the user's knowledge base"""
+        """Remove a document from the vector store"""
         try:
             collection = self._get_user_collection(user_id)
             
@@ -415,7 +384,6 @@ class DORAPipeline:
         except Exception as e:
             logger.error(f"Error removing document {document_id}: {e}")
             raise
-    
     
     async def query(self, user_id: str, query: str, use_fallback: bool = False) -> Dict[str, Any]:
         """Query the RAG system"""

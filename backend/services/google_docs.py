@@ -68,7 +68,7 @@ class GoogleDocsService:
             data = response.json()
             files = data.get('files', [])
             
-            logger.info(f"Google Drive API response: {data}")
+            logger.debug(f"Google Drive API response: {data}")
             logger.info(f"Raw files found: {len(files)}")
             
             # If no files found with the specific query, try a broader query
@@ -105,7 +105,7 @@ class GoogleDocsService:
             
             documents = []
             for file in files:
-                logger.info(f"Processing file: {file.get('name')} (ID: {file.get('id')})")
+                logger.debug(f"Processing file: {file.get('name')} (ID: {file.get('id')})")
                 
                 mime_type = file.get('mimeType', 'unknown')
                 
@@ -162,6 +162,7 @@ class GoogleDocsService:
         import re
         patterns = [
             r'drive\.google\.com/drive/folders/([a-zA-Z0-9_-]+)',
+            r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)',
             r'drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)',
             r'folders/([a-zA-Z0-9_-]+)',
             r'id=([a-zA-Z0-9_-]+)',
@@ -259,7 +260,7 @@ class GoogleDocsService:
             
             documents = []
             for file in files:
-                logger.info(f"Processing file: {file.get('name')} (ID: {file.get('id')})")
+                logger.debug(f"Processing file: {file.get('name')} (ID: {file.get('id')})")
                 
                 mime_type = file.get('mimeType', 'unknown')
                 parents = file.get('parents', [])
@@ -270,10 +271,10 @@ class GoogleDocsService:
                     file_extension = self._mime_to_extension(mime_type)
                 
                 is_folder = mime_type == 'application/vnd.google-apps.folder'
-                logger.info(f"File: {file.get('name')}, MIME: {mime_type}, Is Folder: {is_folder}")
+                logger.debug(f"File: {file.get('name')}, MIME: {mime_type}, Is Folder: {is_folder}")
                 
                 if is_folder:
-                    logger.info(f"FOLDER DATA: {file.get('name')}, webViewLink: {file.get('webViewLink', '')}, id: {file['id']}")
+                    logger.debug(f"FOLDER DATA: {file.get('name')}, webViewLink: {file.get('webViewLink', '')}, id: {file['id']}")
                 
                 doc = {
                     'id': file['id'],
@@ -389,13 +390,46 @@ class GoogleDocsService:
             logger.info(f"Access token available: {bool(access_token)}")
             
             folder_id = self._extract_folder_id_from_url(folder_url)
-            logger.info(f"Extracted folder ID: {folder_id}")
+            logger.info(f"Extracted ID: {folder_id}")
+            
+            # Check if it's a file or folder
+            try:
+                # Request specific fields to ensure we have all necessary data
+                fields = 'id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents'
+                file_info = await self._get_file_info(access_token, folder_id, fields=fields)
+                
+                if file_info.get('mimeType') != 'application/vnd.google-apps.folder':
+                    logger.info(f"URL points to a single file, not a folder. Returning single document.")
+                    
+                    mime_type = file_info.get('mimeType', 'unknown')
+                    file_name = file_info.get('name', '')
+                    
+                    file_extension = self._get_file_extension(file_name)
+                    if not file_extension:
+                        file_extension = self._mime_to_extension(mime_type)
+                    
+                    doc = {
+                        'id': file_info.get('id'),
+                        'name': file_name,
+                        'mime_type': mime_type,
+                        'created_time': file_info.get('createdTime'),
+                        'modified_time': file_info.get('modifiedTime'),
+                        'web_view_link': file_info.get('webViewLink'),
+                        'size': file_info.get('size'),
+                        'parent_id': None,
+                        'is_folder': False,
+                        'file_extension': file_extension,
+                        'source_subfolder': None
+                    }
+                    return [doc]
+            except Exception as e:
+                logger.warning(f"Could not verify ID type, assuming folder: {e}")
             
             all_documents = []
             await self._get_documents_recursive(folder_id, access_token, all_documents, "")
             
             logger.info(f"Found {len(all_documents)} total documents in folder and subfolders")
-            logger.info(f"Documents: {[doc.get('name') for doc in all_documents]}")
+            logger.debug(f"Documents: {[doc.get('name') for doc in all_documents]}")
             return all_documents
             
         except Exception as e:
@@ -454,13 +488,13 @@ class GoogleDocsService:
                 file_name = file.get('name', '')
                 file_id = file.get('id', '')
                 
-                logger.info(f"Processing file: {file_name} (ID: {file_id}, MIME: {mime_type})")
+                logger.debug(f"Processing file: {file_name} (ID: {file_id}, MIME: {mime_type})")
                 
                 if mime_type == 'application/vnd.google-apps.folder':
                     logger.info(f"Found subfolder: {file_name} (ID: {file_id}) - recursing...")
                     await self._get_documents_recursive(file_id, access_token, all_documents, file_name)
                 else:
-                    logger.info(f"Found document: {file_name} (ID: {file_id}) - adding to results")
+                    logger.debug(f"Found document: {file_name} (ID: {file_id}) - adding to results")
                     
                     parents = file.get('parents', [])
                     parent_id = parents[0] if parents else None
@@ -484,7 +518,7 @@ class GoogleDocsService:
                     }
                     
                     all_documents.append(document)
-                    logger.info(f"Added document to results: {file_name} from subfolder: {current_folder_name}")
+                    logger.debug(f"Added document to results: {file_name} from subfolder: {current_folder_name}")
             
         except Exception as e:
             logger.error(f"Error in recursive document fetch for folder {folder_id}: {e}", exc_info=True)
@@ -522,13 +556,16 @@ class GoogleDocsService:
             logger.error(f"Error getting document metadata for {document_id}: {e}", exc_info=True)
             return None
     
-    async def _get_file_info(self, access_token: str, file_id: str) -> Dict[str, Any]:
+    async def _get_file_info(self, access_token: str, file_id: str, fields: str = None) -> Dict[str, Any]:
         url = f"{self.drive_api_base}/files/{file_id}"
         headers = {'Authorization': f'Bearer {access_token}'}
         
         # Use connection pooling
         client = await get_http_client()
-        response = await client.get(url, headers=headers)
+        params = {}
+        if fields:
+            params['fields'] = fields
+        response = await client.get(url, headers=headers, params=params)
             
         if response.status_code != 200:
             raise Exception(f"Failed to get file info: {response.status_code}")
@@ -583,7 +620,7 @@ class GoogleDocsService:
                         text_parts = []
                         for page in pdf_reader.pages:
                             text_parts.append(page.extract_text())
-                        content = "\\n\\n".join(text_parts)
+                        content = "\n\n".join(text_parts)
                     except Exception as e:
                         logger.error(f"PDF error: {e}")
             
@@ -595,7 +632,7 @@ class GoogleDocsService:
                         docx_content = response.content
                         doc = DocxDocument(io.BytesIO(docx_content))
                         text_parts = [p.text for p in doc.paragraphs if p.text.strip()]
-                        content = "\\n\\n".join(text_parts)
+                        content = "\n\n".join(text_parts)
                     except Exception as e:
                         logger.error(f"DOCX error: {e}")
             

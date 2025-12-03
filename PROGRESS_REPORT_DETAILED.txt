@@ -1,226 +1,141 @@
 LAPORAN KEMAJUAN PENGEMBANGAN PROYEK DORA (Document Retrieval Assistant)
 Tanggal: 3 Desember 2025
-Status: Production Ready (Siap Produksi)
-Versi Laporan: 2.0 (Technical Detail with Code Snippets)
+Status: Production Ready & Stable (Tersimpan di Git)
+Versi Laporan: 3.0 (Final Stable Release)
 
 ================================================================================
 1. RINGKASAN EKSEKUTIF
 ================================================================================
-Laporan ini mendokumentasikan seluruh rangkaian modifikasi, optimasi, dan perbaikan yang dilakukan pada sistem DORA. Laporan ini dilengkapi dengan perbandingan kode (Before vs After) untuk memberikan konteks teknis yang mendalam.
+Laporan ini mendokumentasikan transformasi total sistem DORA dari tahap pengembangan awal hingga menjadi aplikasi produksi yang stabil. 
+
+Pencapaian Utama:
+- Keamanan diperketat (Rate limiting, Log redaction).
+- Performa dioptimalkan (HTTP/2 Connection Pooling, Caching).
+- Kode dibersihkan (Refactoring besar-besaran, penghapusan dead code).
+- Bug kritis teratasi (Error 500 Google Docs, Dependency issues).
+- Kode tersimpan aman (Git Commit: "stable").
 
 ================================================================================
-2. DETIL PERUBAHAN TEKNIS DENGAN KODE
+2. KRONOLOGI PERUBAHAN TEKNIS (DETAIL)
 ================================================================================
 
 --------------------------------------------------------------------------------
 A. KEAMANAN (SECURITY HARDENING)
 --------------------------------------------------------------------------------
+1. Rate Limiting
+   - Implementasi: `slowapi` membatasi 5 request/menit pada `/auth/google`.
+   - Tujuan: Mencegah brute-force attack.
 
-1. Implementasi Rate Limiting
-   - Deskripsi: Membatasi jumlah request ke endpoint sensitif.
-   - File: `backend/main.py`
+2. CORS Dinamis
+   - Implementasi: Mengganti `allow_origins=["*"]` dengan environment variable.
+   - Tujuan: Membatasi akses hanya dari frontend yang sah.
 
-   [BEFORE]
-   ```python
-   @app.get("/auth/google")
-   async def login_google(request: Request):
-       # Tidak ada batasan request
-       pass
-   ```
-
-   [AFTER]
-   ```python
-   from slowapi import Limiter
-   from slowapi.util import get_remote_address
-
-   limiter = Limiter(key_func=get_remote_address)
-
-   @app.get("/auth/google")
-   @limiter.limit("5/minute")  # Dibatasi 5 request per menit
-   async def login_google(request: Request):
-       pass
-   ```
-
-2. Konfigurasi CORS Dinamis
-   - Deskripsi: Menghindari hardcoded origin `*` yang tidak aman.
-   - File: `backend/main.py`
-
-   [BEFORE]
-   ```python
-   app.add_middleware(
-       CORSMiddleware,
-       allow_origins=["*"],  # Sangat tidak aman
-       allow_credentials=True,
-   )
-   ```
-
-   [AFTER]
-   ```python
-   # Mengambil dari environment variable
-   origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-
-   app.add_middleware(
-       CORSMiddleware,
-       allow_origins=origins,  # Dinamis dan aman
-       allow_credentials=True,
-   )
-   ```
-
-3. Redaksi Log (Log Redaction)
-   - Deskripsi: Menyensor token sensitif dari log server.
-   - File: `backend/main.py`
-
-   [BEFORE]
-   ```python
-   logging.info(f"User token: {token}")  # Token terekspos di log
-   ```
-
-   [AFTER]
-   ```python
-   class EndpointFilter(logging.Filter):
-       def filter(self, record: logging.LogRecord) -> bool:
-           # Sensor token pattern
-           record.msg = re.sub(r'ya29\.[a-zA-Z0-9_-]+', '[REDACTED]', str(record.msg))
-           return True
-
-   # Token otomatis diganti [REDACTED] sebelum ditulis ke log
-   ```
+3. Log Redaction
+   - Implementasi: Filter kustom untuk menyensor token `ya29.` di terminal.
+   - Tujuan: Mencegah kebocoran kredensial user di log server.
 
 --------------------------------------------------------------------------------
 B. PERFORMA (PERFORMANCE OPTIMIZATION)
 --------------------------------------------------------------------------------
-
 1. HTTP Connection Pooling (Refactoring GoogleDocsService)
-   - Deskripsi: Menggunakan ulang koneksi TCP/SSL alih-alih membuat baru tiap request.
-   - File: `backend/services/google_docs.py`
+   - Masalah: Pembuatan koneksi baru tiap request menyebabkan latensi tinggi.
+   - Solusi: Menggunakan `HTTPClientManager` (Singleton) dengan `httpx`.
+   - Hasil: Koneksi persisten (Keep-Alive) mengurangi overhead SSL handshake.
 
-   [BEFORE]
-   ```python
-   # Membuat client baru setiap kali fungsi dipanggil (Inefisien)
-   async with httpx.AsyncClient() as client:
-       response = await client.get(url, headers=headers)
-   ```
+2. Dukungan HTTP/2
+   - Masalah: Error `ImportError: Using http2=True` karena library `h2` hilang.
+   - Solusi: Update `requirements.txt` dengan `httpx[http2]` dan install manual.
+   - Hasil: Komunikasi dengan Google API kini menggunakan protokol HTTP/2 yang jauh lebih efisien (multiplexing).
 
-   [AFTER]
-   ```python
-   # Menggunakan client singleton yang persisten (Efisien)
-   from utils.http_client import get_http_client
-
-   client = await get_http_client()
-   response = await client.get(url, headers=headers)
-   ```
-
-2. Sistem Caching In-Memory
-   - Deskripsi: Menyimpan data user sementara di RAM.
-   - File: `backend/utils/cache.py`
-
-   [BEFORE]
-   ```python
-   # Selalu memanggil Google API
-   user_info = await fetch_google_user_info(token)
-   ```
-
-   [AFTER]
-   ```python
-   # Cek cache dulu
-   cached_user = cache.get(token)
-   if cached_user:
-       return cached_user
-   
-   # Jika tidak ada, baru panggil API dan simpan ke cache
-   user_info = await fetch_google_user_info(token)
-   cache.set(token, user_info, ttl=600)
-   ```
+3. Caching In-Memory
+   - Implementasi: Menyimpan profil user dan metadata dokumen sementara.
+   - Hasil: Respon instan untuk data yang sering diakses.
 
 --------------------------------------------------------------------------------
-C. KEANDALAN & MONITORING (RELIABILITY)
+C. KEANDALAN (RELIABILITY)
 --------------------------------------------------------------------------------
+1. Perbaikan Error 500 Google Docs
+   - Masalah: Log error kosong saat gagal fetch dokumen.
+   - Solusi: Menambahkan `exc_info=True` pada logging dan memperbaiki exception handling.
+   - Hasil: Error tertangkap dengan jelas, aplikasi tidak crash diam-diam.
 
-1. Endpoint Health Check
-   - Deskripsi: Endpoint untuk monitoring status server.
-   - File: `backend/routers/health.py`
-
-   [NEW CODE]
-   ```python
-   @router.get("/health")
-   async def health_check():
-       return {
-           "status": "healthy",
-           "timestamp": datetime.now().isoformat(),
-           "version": "1.0.0"
-       }
-   ```
-
-2. Frontend Error Boundary
-   - Deskripsi: Menangkap error React agar aplikasi tidak crash total.
-   - File: `components/ErrorBoundary.tsx`
-
-   [NEW CODE]
-   ```typescript
-   class ErrorBoundary extends React.Component {
-     componentDidCatch(error, errorInfo) {
-       // Log error ke layanan monitoring
-       console.error("Uncaught error:", error, errorInfo);
-     }
-
-     render() {
-       if (this.state.hasError) {
-         return <h1>Something went wrong. Please refresh.</h1>;
-       }
-       return this.props.children;
-     }
-   }
-   ```
+2. Perbaikan Virtual Environment
+   - Masalah: Path `venv` rusak karena pemindahan folder.
+   - Solusi: Re-create `venv` total.
+   - Hasil: Environment Python bersih dan konsisten.
 
 --------------------------------------------------------------------------------
-D. PERBAIKAN INFRASTRUKTUR (BUG FIXING)
+D. PEMBERSIHAN KODE (CODE CLEANUP & AUDIT) - TERBARU
 --------------------------------------------------------------------------------
+1. Penghapusan File Sampah
+   - File Dihapus: 
+     - `backend/apply_medium_fixes.py`, `backend/apply_security_fixes.py` (Script lama)
+     - `backend/check_model.py`, `backend/force_reset.py` (Script debug)
+     - `webserver.txt`, `webservercreden.txt` (File catatan berisiko)
+   - Hasil: Direktori proyek bersih, hanya berisi file produksi.
 
-1. Perbaikan Virtual Environment (Venv)
-   - Masalah: Error `Fatal error in launcher: ... The system cannot find the file specified`.
-   - Penyebab: Folder proyek dipindahkan, path absolut di `venv` lama menjadi invalid.
-   - Solusi: Hapus dan buat ulang.
+2. Refactoring `backend/main.py`
+   - Tindakan: 
+     - Menghapus komentar kode Supabase yang tidak terpakai (Dead Code).
+     - Menyederhanakan endpoint `/clear-all-documents` (Menghapus "Nuclear Option" yang berisi 6 metode redundan).
+     - Menghapus `print()` statements yang mengotori log produksi.
+   - Hasil: Kode lebih ramping, mudah dibaca, dan profesional.
 
-   [COMMANDS EXECUTED]
-   ```powershell
-   # 1. Hapus venv lama
-   Remove-Item -Recurse -Force venv
-
-   # 2. Buat venv baru
-   python -m venv venv
-
-   # 3. Install dependencies
-   .\venv\Scripts\pip install -r requirements.txt
-   ```
-
-2. Perbaikan Error 500 Google Docs (Terbaru)
-   - Masalah: Log error kosong `Error listing documents: ` dan status 500.
-   - Penyebab: Exception handling tidak menangkap detail error dari `httpx`.
-   - Solusi: Tambah `exc_info=True` dan gunakan connection pooling.
-
-   [BEFORE]
-   ```python
-   except Exception as e:
-       logger.error(f"Error listing documents: {e}") # Output sering kosong jika e=""
-       raise
-   ```
-
-   [AFTER]
-   ```python
-   except Exception as e:
-       # Mencetak full stack trace ke log
-       logger.error(f"Error listing documents: {e}", exc_info=True) 
-       raise
-   ```
+--------------------------------------------------------------------------------
+E. FINALISASI & DEPLOYMENT
+--------------------------------------------------------------------------------
+1. Git Version Control
+   - Status: Kode telah di-commit dengan pesan "stable" dan di-push ke `origin main`.
+   - File Berubah: 23 file (termasuk penghapusan file sampah).
+   - Statistik: +714 baris, -3942 baris (Kode jauh lebih efisien).
 
 ================================================================================
-3. KESIMPULAN
+3. SNIPPET KODE PENTING (BEFORE vs AFTER)
 ================================================================================
-Perubahan kode di atas telah mengubah arsitektur aplikasi menjadi lebih:
-1. **Aman**: Data terlindungi, akses dibatasi.
-2. **Cepat**: Koneksi digunakan ulang, data di-cache.
-3. **Stabil**: Error ditangani dengan baik, monitoring aktif.
-4. **Mudah Di-maintain**: Kode terstruktur dan terdokumentasi.
+
+[HTTP CLIENT - Mengaktifkan HTTP/2]
+Before (Error):
+```python
+cls._instance = httpx.AsyncClient(http2=True) # Error jika 'h2' tidak ada
+```
+After (Fix di requirements.txt):
+```text
+httpx[http2]>=0.25.0  # Menginstall dependensi h2 otomatis
+```
+
+[ENDPOINT CLEANUP - clear_all_documents]
+Before (Complex/Debug):
+```python
+# Nuclear Option dengan 6 metode try-except bertingkat
+# Banyak print() statement
+# Logika force delete folder manual
+```
+After (Clean/Production):
+```python
+@app.delete("/clear-all-documents")
+async def clear_all_documents(current_user = Depends(get_current_user)):
+    """Clear all documents from the user's knowledge base"""
+    try:
+        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
+        collection_name = f"user_{user_id}"
+        
+        # Simple & Robust: Delete & Recreate Collection
+        dora_pipeline.chroma_client.delete_collection(collection_name)
+        dora_pipeline.chroma_client.create_collection(name=collection_name)
+        
+        return {"message": "Knowledge base cleared successfully"}
+    except Exception as e:
+        logger.error(f"Error clearing documents: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+================================================================================
+4. KESIMPULAN
+================================================================================
+Sistem DORA kini dalam kondisi **STABIL (STABLE)**.
+Seluruh sampah kode telah dibersihkan, dependensi telah diperbaiki untuk mendukung performa maksimal (HTTP/2), dan versi kode terakhir telah diamankan di repository Git.
+
+Siap untuk pengembangan fitur selanjutnya atau deployment ke server produksi.
 
 ---
 Dibuat oleh: AI Assistant (Antigravity)
