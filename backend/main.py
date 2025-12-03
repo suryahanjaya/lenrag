@@ -8,7 +8,6 @@ import httpx
 from dotenv import load_dotenv
 import logging
 
-
 # Rate limiting
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -17,7 +16,7 @@ from slowapi.errors import RateLimitExceeded
 from services.google_auth import GoogleAuthService
 from services.google_docs import GoogleDocsService
 from services.rag_pipeline import DORAPipeline
-# from services.supabase_client import SupabaseClient
+
 from models.schemas import (
     AuthRequest, 
     DocumentResponse, 
@@ -64,7 +63,6 @@ security = HTTPBearer()
 google_auth_service = GoogleAuthService()
 google_docs_service = GoogleDocsService()
 dora_pipeline = DORAPipeline()
-# supabase_client = SupabaseClient()
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Validate JWT token and get current user"""
@@ -99,7 +97,7 @@ async def authenticate_google(request: Request, auth_request: AuthRequest):
         user_info = await google_auth_service.get_user_info(tokens['access_token'])
         logger.info(f"Got user info for: {user_info.get('email')}")
         
-        # Return user info and tokens (no Supabase integration)
+        # Return user info and tokens
         return {
             "user": user_info,
             "access_token": tokens['access_token'],
@@ -497,7 +495,7 @@ async def chat_with_documents(
 async def get_user_profile(current_user = Depends(get_current_user)):
     """Get user profile information"""
     try:
-        # Get user profile from current_user (no Supabase)
+        # Get user profile from current_user
         profile = {
             "id": current_user.get('sub'),
             "email": current_user.get('email'),
@@ -527,15 +525,12 @@ async def remove_document_from_knowledge_base(
 async def clear_all_documents(
     current_user = Depends(get_current_user)
 ):
-    """Clear all documents from the user's knowledge base - FORCE RESET METHOD"""
+    """Clear all documents from the user's knowledge base"""
     try:
         user_id = current_user.get('sub', current_user.get('id', 'default_user'))
         collection_name = f"user_{user_id}"
         
         logger.info(f"🚀 CLEAR ALL ENDPOINT CALLED FOR USER: {user_id}")
-        logger.info(f"=== FORCE RESET STARTED FOR USER: {user_id} ===")
-        print(f"🚀 CLEAR ALL ENDPOINT CALLED FOR USER: {user_id}")
-        print(f"=== FORCE RESET STARTED FOR USER: {user_id} ===")
         
         # Count documents before clearing
         collection = dora_pipeline._get_user_collection(user_id)
@@ -545,268 +540,33 @@ async def clear_all_documents(
             logger.info("Knowledge base is already empty")
             return {"message": "Knowledge base is already empty", "cleared_count": 0}
         
-        # Count unique documents
-        unique_docs = set()
-        if all_docs['metadatas']:
-            for meta in all_docs['metadatas']:
-                if 'document_id' in meta:
-                    unique_docs.add(meta['document_id'])
+        chunk_count = len(all_docs['ids'])
+        logger.info(f"Deleting {chunk_count} chunks for user {user_id}")
         
-        logger.info(f"BEFORE RESET - User: {user_id}, Chunks: {len(all_docs['ids'])}, Unique docs: {len(unique_docs)}")
-        
-        # NUCLEAR OPTION - Multiple deletion methods
+        # Delete entire collection and recreate
         try:
-            logger.info("🔥 NUCLEAR OPTION: Using multiple deletion methods")
-            print("🔥 NUCLEAR OPTION: Using multiple deletion methods")
+            dora_pipeline.chroma_client.delete_collection(collection_name)
+            logger.info(f"✅ Deleted collection: {collection_name}")
             
-            # Method 1: Delete by IDs
-            all_chunk_ids = all_docs['ids']
-            logger.info(f"💥 METHOD 1: Deleting {len(all_chunk_ids)} chunks by ID")
-            print(f"💥 METHOD 1: Deleting {len(all_chunk_ids)} chunks by ID")
-            collection.delete(ids=all_chunk_ids)
-            logger.info("✅ METHOD 1 COMPLETED")
-            print("✅ METHOD 1 COMPLETED")
-            
-            # Method 2: Skip problematic where clause delete
-            logger.info("💥 METHOD 2: Skipping where clause delete (ChromaDB doesn't allow empty where)")
-            print("💥 METHOD 2: Skipping where clause delete (ChromaDB doesn't allow empty where)")
-            logger.info("✅ METHOD 2 SKIPPED")
-            print("✅ METHOD 2 SKIPPED")
-            
-            # Method 3: Delete collection and recreate (with better error handling)
-            logger.info("💥 METHOD 3: Deleting entire collection and recreating")
-            print("💥 METHOD 3: Deleting entire collection and recreating")
-            try:
-                dora_pipeline.chroma_client.delete_collection(collection_name)
-                logger.info(f"✅ Deleted collection: {collection_name}")
-                print(f"✅ Deleted collection: {collection_name}")
-                
-                # Recreate collection immediately after deletion
-                new_collection = dora_pipeline.chroma_client.create_collection(
-                    name=collection_name,
-                    metadata={"hnsw:space": "cosine"}
-                )
-                logger.info(f"✅ Recreated collection: {collection_name}")
-                print(f"✅ Recreated collection: {collection_name}")
-                
-            except Exception as e:
-                logger.warning(f"❌ Could not delete/recreate collection: {e}")
-                print(f"❌ Could not delete/recreate collection: {e}")
-                # Continue with other methods even if this fails
-            
-            # Method 4: Direct file system deletion (if needed)
-            import os
-            import shutil
-            # Use the same path as ChromaDB client
-            chroma_base_path = os.path.join(os.path.dirname(__file__), "chroma_db")
-            chroma_path = os.path.join(chroma_base_path, collection_name)
-            if os.path.exists(chroma_path):
-                logger.info(f"💥 METHOD 4: Deleting directory {chroma_path}")
-                print(f"💥 METHOD 4: Deleting directory {chroma_path}")
-                try:
-                    shutil.rmtree(chroma_path)
-                    logger.info(f"✅ Deleted directory: {chroma_path}")
-                    print(f"✅ Deleted directory: {chroma_path}")
-                except Exception as e:
-                    logger.warning(f"❌ Could not delete directory: {e}")
-                    print(f"❌ Could not delete directory: {e}")
-            else:
-                logger.info(f"ℹ️ Directory {chroma_path} does not exist")
-                print(f"ℹ️ Directory {chroma_path} does not exist")
-            
-            # Method 5: Clear SQLite database entries for this user
-            logger.info("💥 METHOD 5: Clearing SQLite database entries")
-            print("💥 METHOD 5: Clearing SQLite database entries")
-            try:
-                import sqlite3
-                db_path = os.path.join(chroma_base_path, "chroma.sqlite3")
-                if os.path.exists(db_path):
-                    conn = sqlite3.connect(db_path)
-                    cursor = conn.cursor()
-                    
-                    # Get collection ID first
-                    cursor.execute("SELECT id FROM collections WHERE name = ?", (collection_name,))
-                    collection_result = cursor.fetchone()
-                    
-                    if collection_result:
-                        collection_id = collection_result[0]
-                        logger.info(f"Found collection ID: {collection_id} for {collection_name}")
-                        
-                        # Delete embeddings first (foreign key constraint)
-                        cursor.execute("DELETE FROM embeddings WHERE collection_id = ?", (collection_id,))
-                        embeddings_deleted = cursor.rowcount
-                        logger.info(f"Deleted {embeddings_deleted} embeddings")
-                        
-                        # Delete collection
-                        cursor.execute("DELETE FROM collections WHERE name = ?", (collection_name,))
-                        collections_deleted = cursor.rowcount
-                        logger.info(f"Deleted {collections_deleted} collections")
-                        
-                        # Also delete any related metadata
-                        cursor.execute("DELETE FROM metadata WHERE collection_id = ?", (collection_id,))
-                        metadata_deleted = cursor.rowcount
-                        logger.info(f"Deleted {metadata_deleted} metadata entries")
-                        
-                        conn.commit()
-                        conn.close()
-                        
-                        logger.info(f"✅ SQLite cleared: {embeddings_deleted} embeddings, {collections_deleted} collections, {metadata_deleted} metadata")
-                        print(f"✅ SQLite cleared: {embeddings_deleted} embeddings, {collections_deleted} collections, {metadata_deleted} metadata")
-                    else:
-                        logger.info(f"ℹ️ Collection {collection_name} not found in SQLite")
-                        print(f"ℹ️ Collection {collection_name} not found in SQLite")
-                        conn.close()
-                else:
-                    logger.info("ℹ️ SQLite database does not exist")
-                    print("ℹ️ SQLite database does not exist")
-            except Exception as e:
-                logger.warning(f"❌ Could not clear SQLite entries: {e}")
-                print(f"❌ Could not clear SQLite entries: {e}")
-            
-            logger.info("🎉 NUCLEAR OPTION COMPLETED")
-            print("🎉 NUCLEAR OPTION COMPLETED")
+            # Recreate collection immediately
+            dora_pipeline.chroma_client.create_collection(
+                name=collection_name,
+                metadata={"hnsw:space": "cosine"}
+            )
+            logger.info(f"✅ Recreated collection: {collection_name}")
             
         except Exception as e:
-            logger.error(f"Error in nuclear option: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to reset LLM data: {str(e)}")
-        
-        # Method 6: Force clear user-specific ChromaDB files if still not empty
-        try:
-            final_check = dora_pipeline._get_user_collection(user_id)
-            final_docs = final_check.get()
-            if len(final_docs['ids']) > 0:
-                logger.info("💥 METHOD 6: Force clearing user-specific ChromaDB files")
-                print("💥 METHOD 6: Force clearing user-specific ChromaDB files")
-                
-                # Delete only the user-specific folder, not the entire chroma_db
-                import shutil
-                import os
-                chroma_base_path = os.path.join(os.path.dirname(__file__), "chroma_db")
-                user_folder_path = os.path.join(chroma_base_path, collection_name)
-                
-                if os.path.exists(user_folder_path):
-                    shutil.rmtree(user_folder_path)
-                    logger.info(f"✅ Force cleared user folder: {user_folder_path}")
-                    print(f"✅ Force cleared user folder: {user_folder_path}")
-                else:
-                    logger.info(f"ℹ️ User folder does not exist: {user_folder_path}")
-                    print(f"ℹ️ User folder does not exist: {user_folder_path}")
-                    
-                # Also clear SQLite entries for this user
-                try:
-                    import sqlite3
-                    db_path = os.path.join(chroma_base_path, "chroma.sqlite3")
-                    if os.path.exists(db_path):
-                        conn = sqlite3.connect(db_path)
-                        cursor = conn.cursor()
-                        cursor.execute("DELETE FROM collections WHERE name = ?", (collection_name,))
-                        cursor.execute("DELETE FROM embeddings WHERE collection_id IN (SELECT id FROM collections WHERE name = ?)", (collection_name,))
-                        conn.commit()
-                        conn.close()
-                        logger.info(f"✅ Cleared SQLite entries for user: {collection_name}")
-                        print(f"✅ Cleared SQLite entries for user: {collection_name}")
-                except Exception as sqlite_error:
-                    logger.warning(f"⚠️ Could not clear SQLite entries: {sqlite_error}")
-                    print(f"⚠️ Could not clear SQLite entries: {sqlite_error}")
-                    
-        except Exception as e:
-            logger.warning(f"❌ Could not force clear user ChromaDB files: {e}")
-            print(f"❌ Could not force clear user ChromaDB files: {e}")
-        
-        # Final verification
-        try:
-            final_collection = dora_pipeline._get_user_collection(user_id)
-            final_docs = final_collection.get()
-            logger.info(f"FINAL VERIFICATION - Chunks remaining: {len(final_docs['ids'])}")
-            logger.info(f"FINAL VERIFICATION - Sample IDs: {final_docs['ids'][:5]}")
+            logger.error(f"Error resetting collection: {e}")
+            # Fallback: Delete by IDs if collection deletion fails
+            collection.delete(ids=all_docs['ids'])
             
-            # Check if user folder still exists
-            user_folder_path = os.path.join(os.path.dirname(__file__), "chroma_db", collection_name)
-            folder_exists = os.path.exists(user_folder_path)
-            logger.info(f"FINAL VERIFICATION - User folder exists: {folder_exists}")
-            
-            # Check SQLite database for remaining entries
-            sqlite_cleared = True
-            try:
-                import sqlite3
-                db_path = os.path.join(os.path.dirname(__file__), "chroma_db", "chroma.sqlite3")
-                if os.path.exists(db_path):
-                    conn = sqlite3.connect(db_path)
-                    cursor = conn.cursor()
-                    
-                    # Check if collection still exists
-                    cursor.execute("SELECT COUNT(*) FROM collections WHERE name = ?", (collection_name,))
-                    collection_count = cursor.fetchone()[0]
-                    
-                    # Check if embeddings still exist
-                    cursor.execute("SELECT COUNT(*) FROM embeddings WHERE collection_id IN (SELECT id FROM collections WHERE name = ?)", (collection_name,))
-                    embeddings_count = cursor.fetchone()[0]
-                    
-                    conn.close()
-                    
-                    sqlite_cleared = (collection_count == 0 and embeddings_count == 0)
-                    logger.info(f"FINAL VERIFICATION - SQLite cleared: {sqlite_cleared} (collections: {collection_count}, embeddings: {embeddings_count})")
-                else:
-                    logger.info("FINAL VERIFICATION - SQLite database does not exist")
-            except Exception as e:
-                logger.warning(f"FINAL VERIFICATION - Could not check SQLite: {e}")
-                sqlite_cleared = False
-            
-            if len(final_docs['ids']) > 0 or folder_exists:
-                logger.error(f"CRITICAL: {len(final_docs['ids'])} chunks still remain or folder still exists!")
-                logger.info(f"Remaining chunk IDs: {final_docs['ids'][:5]}")
-                logger.info(f"User folder exists: {folder_exists}")
-                
-                # Force delete user folder if it still exists
-                if folder_exists:
-                    try:
-                        shutil.rmtree(user_folder_path)
-                        logger.info(f"✅ Force deleted user folder: {user_folder_path}")
-                    except Exception as e:
-                        logger.error(f"❌ Could not delete user folder: {e}")
-                
-                # Try one more time to delete remaining chunks
-                if len(final_docs['ids']) > 0:
-                    logger.info("ATTEMPTING FINAL CLEANUP")
-                    final_collection.delete(ids=final_docs['ids'])
-                    final_cleanup = final_collection.get()
-                    logger.info(f"FINAL CLEANUP - Chunks remaining: {len(final_cleanup['ids'])}")
-                
-                return {
-                    "message": f"Reset operation completed but {len(final_docs['ids'])} chunks may still remain",
-                    "cleared_count": len(unique_docs),
-                    "total_chunks_removed": len(all_docs['ids']),
-                    "remaining_chunks": len(final_docs['ids']),
-                    "folder_deleted": not os.path.exists(user_folder_path),
-                    "sqlite_cleared": sqlite_cleared
-                }
-            else:
-                logger.info("✅ SUCCESS: All chunks and files successfully cleared - LLM data reset")
-                
-        except Exception as verify_error:
-            logger.error(f"Error in final verification: {verify_error}")
-        
-        logger.info(f"=== FORCE RESET COMPLETED FOR USER: {user_id} ===")
-        
-        response_data = {
-            "message": f"LLM data has been reset - all documents cleared from knowledge base",
-            "cleared_count": len(unique_docs),
-            "total_chunks_removed": len(all_docs['ids']),
-            "llm_status": "reset",
-            "sqlite_cleared": sqlite_cleared if 'sqlite_cleared' in locals() else True
+        return {
+            "message": "Knowledge base cleared successfully",
+            "total_chunks_removed": chunk_count
         }
         
-        logger.info(f"RETURNING RESPONSE: {response_data}")
-        print(f"RETURNING RESPONSE: {response_data}")
-        
-        return response_data
     except Exception as e:
-        logger.error(f"💥 ERROR CLEARING ALL DOCUMENTS: {e}")
-        logger.error(f"💥 ERROR TYPE: {type(e)}")
-        logger.error(f"💥 ERROR STRING: {str(e)}")
-        print(f"💥 ERROR CLEARING ALL DOCUMENTS: {e}")
-        print(f"💥 ERROR TYPE: {type(e)}")
-        print(f"💥 ERROR STRING: {str(e)}")
+        logger.error(f"Error clearing documents: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1047,22 +807,11 @@ async def get_knowledge_base_documents(current_user = Depends(get_current_user))
         all_docs = collection.get()
         
         logger.info(f"=== KNOWLEDGE BASE REQUEST FOR USER {user_id} ===")
-        logger.info(f"Raw ChromaDB data for user {user_id}:")
-        logger.info(f"Total chunks: {len(all_docs.get('ids', []))}")
-        logger.info(f"Sample IDs: {all_docs.get('ids', [])[:5]}")
-        logger.info(f"Sample metadatas: {all_docs.get('metadatas', [])[:3]}")
         
         # Check if collection is actually empty
         if len(all_docs.get('ids', [])) == 0:
             logger.info("✅ COLLECTION IS EMPTY - Returning empty documents list")
             return {"documents": []}
-        
-        # Debug: Check if metadatas exist and have document_id
-        metadatas = all_docs.get('metadatas', [])
-        logger.info(f"Total metadatas: {len(metadatas)}")
-        if metadatas:
-            logger.info(f"First metadata: {metadatas[0]}")
-            logger.info(f"Has document_id in first metadata: {'document_id' in metadatas[0] if metadatas[0] else False}")
         
         # Extract unique document IDs and their metadata
         document_metadata = {}
@@ -1084,11 +833,9 @@ async def get_knowledge_base_documents(current_user = Depends(get_current_user))
                     document_metadata[doc_id]["chunk_count"] += 1
         
         logger.info(f"Found {len(document_metadata)} unique documents in knowledge base")
-        logger.info(f"Document metadata keys: {list(document_metadata.keys())}")
         
         # Convert to list
         documents = list(document_metadata.values())
-        logger.info(f"Documents list length: {len(documents)}")
         
         return {
             "documents": documents,
@@ -1096,8 +843,7 @@ async def get_knowledge_base_documents(current_user = Depends(get_current_user))
             "total_chunks": len(all_docs.get('ids', [])),
             "debug_info": {
                 "raw_chunks": len(all_docs.get('ids', [])),
-                "unique_documents": len(document_metadata),
-                "sample_metadata": all_docs.get('metadatas', [])[:2] if all_docs.get('metadatas') else []
+                "unique_documents": len(document_metadata)
             }
         }
         
