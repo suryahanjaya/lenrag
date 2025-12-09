@@ -28,7 +28,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Memoize user object to prevent unnecessary re-renders
   const memoizedUser = useMemo(() => user, [user?.id, user?.name, user?.picture, user?.email]);
-  
+
   // Bulk upload states
   const [bulkUploadProgress, setBulkUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const [isBulkUploading, setIsBulkUploading] = useState(false);
@@ -48,48 +48,48 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Helper function to format AI response with better structure
   const formatAIResponse = (content: string) => {
-        // DORA: First, try to split by existing paragraph breaks
-        let paragraphs = content.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
-    
+    // DORA: First, try to split by existing paragraph breaks
+    let paragraphs = content.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
+
     // If no paragraph breaks exist, try to create them based on sentence patterns
     if (paragraphs.length === 1 && paragraphs[0].length > 200) {
       const text = paragraphs[0];
-      
+
       // Split by sentences that end with periods followed by capital letters
       const sentences = text.split(/(?<=\.)\s+(?=[A-Z])/);
-      
+
       // Group sentences into paragraphs (3-4 sentences per paragraph)
       const newParagraphs = [];
       let currentParagraph = [];
-      
+
       for (let i = 0; i < sentences.length; i++) {
         currentParagraph.push(sentences[i]);
-        
+
         // Create new paragraph every 3-4 sentences or at key phrases
-        if (currentParagraph.length >= 3 || 
-            sentences[i].includes('Selain itu') || 
-            sentences[i].includes('Dalam') ||
-            sentences[i].includes('Atas') ||
-            sentences[i].includes('Sumber:') ||
-            sentences[i].includes('Pembukaan') ||
-            sentences[i].includes('Perjuangan') ||
-            sentences[i].includes('Atas berkat') ||
-            sentences[i].includes('Dan perjuangan') ||
-            sentences[i].includes('Maka disusunlah') ||
-            sentences[i].includes('Undang-Undang Dasar')) {
+        if (currentParagraph.length >= 3 ||
+          sentences[i].includes('Selain itu') ||
+          sentences[i].includes('Dalam') ||
+          sentences[i].includes('Atas') ||
+          sentences[i].includes('Sumber:') ||
+          sentences[i].includes('Pembukaan') ||
+          sentences[i].includes('Perjuangan') ||
+          sentences[i].includes('Atas berkat') ||
+          sentences[i].includes('Dan perjuangan') ||
+          sentences[i].includes('Maka disusunlah') ||
+          sentences[i].includes('Undang-Undang Dasar')) {
           newParagraphs.push(currentParagraph.join(' '));
           currentParagraph = [];
         }
       }
-      
+
       // Add remaining sentences
       if (currentParagraph.length > 0) {
         newParagraphs.push(currentParagraph.join(' '));
       }
-      
+
       paragraphs = newParagraphs;
     }
-    
+
     // Enhanced formatting for DORA responses - remove bullet points and create flowing paragraphs
     let formatted = paragraphs.map(paragraph => {
       // Remove bullet points and numbering completely, convert to flowing text
@@ -98,7 +98,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         .replace(/^\s*\d+\.\s*/gm, '') // Remove numbering
         .replace(/^\s*[-•*]\s*/gm, '') // Remove any remaining bullet-like characters
         .trim();
-      
+
       // If the paragraph was originally a list, convert it to flowing text
       if (paragraph.includes('•') || paragraph.includes('-') || paragraph.includes('*') || /^\d+\./.test(paragraph)) {
         const lines = paragraph.split('\n').filter(line => line.trim());
@@ -108,7 +108,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             .replace(/^\s*\d+\.\s*/, '')
             .trim();
         }).filter(line => line.length > 0);
-        
+
         // Join with appropriate connectors
         if (cleanedLines.length > 1) {
           cleaned = cleanedLines.join('. ') + '.';
@@ -116,12 +116,12 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           cleaned = cleanedLines[0] || cleaned;
         }
       }
-      
+
       // Ensure proper sentence structure
       if (cleaned && !cleaned.endsWith('.') && !cleaned.endsWith('!') && !cleaned.endsWith('?')) {
         cleaned += '.';
       }
-      
+
       return cleaned;
     }).filter(p => p.length > 0).join('\n\n');
 
@@ -137,24 +137,24 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const detectIncompleteResponse = (content: string) => {
     const incompleteIndicators = [
       'kurang lengkap',
-      'tidak lengkap', 
+      'tidak lengkap',
       'sebagian',
       'beberapa',
       'sebagian besar',
       'umumnya'
     ];
-    
-    const hasIncompleteIndicator = incompleteIndicators.some(indicator => 
+
+    const hasIncompleteIndicator = incompleteIndicators.some(indicator =>
       content.toLowerCase().includes(indicator)
     );
-    
+
     return hasIncompleteIndicator;
   };
 
   // Helper function to suggest better questions for incomplete responses
   const getQuestionSuggestions = (content: string) => {
     const suggestions = [];
-    
+
     if (content.includes('Pembukaan UUD') || content.includes('UUD 1945')) {
       suggestions.push(
         "Coba tanyakan: 'Berikan pembukaan UUD 1945 secara lengkap dan utuh'",
@@ -162,14 +162,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         "Atau: 'Sebutkan pembukaan UUD 1945 dari awal sampai akhir'"
       );
     }
-    
+
     if (content.includes('pasal') || content.includes('Pasal')) {
       suggestions.push(
         "Coba tanyakan: 'Berikan penjelasan lengkap tentang pasal tersebut'",
         "Atau: 'Jelaskan secara detail isi pasal yang dimaksud'"
       );
     }
-    
+
     return suggestions;
   };
 
@@ -178,7 +178,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     const paragraphs = content.split('\n\n');
     const isIncomplete = detectIncompleteResponse(content);
     const suggestions = isIncomplete ? getQuestionSuggestions(content) : [];
-    
+
     return (
       <div className="formatted-message">
         {paragraphs.map((paragraph, index) => {
@@ -188,10 +188,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             .replace(/^\s*\d+\.\s*/gm, '')
             .replace(/^\s*[-•*]\s*/gm, '')
             .trim();
-          
+
           // Skip empty paragraphs
           if (!cleanedParagraph) return null;
-          
+
           // Enhanced paragraph rendering with better typography
           return (
             <div key={index} className="mb-6">
@@ -201,7 +201,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             </div>
           );
         })}
-        
+
         {/* Show suggestions for incomplete responses */}
         {isIncomplete && suggestions.length > 0 && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -246,11 +246,11 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const [isLoadingFolder, setIsLoadingFolder] = useState<boolean>(false);
   const [showFolderInput, setShowFolderInput] = useState<boolean>(false);
   const [isShowingRecentFiles, setIsShowingRecentFiles] = useState<boolean>(false);
-  
+
   // New simplified folder system
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [currentFolderName, setCurrentFolderName] = useState<string>('');
-  const [folderHistory, setFolderHistory] = useState<Array<{id: string, name: string}>>([]);
+  const [folderHistory, setFolderHistory] = useState<Array<{ id: string, name: string }>>([]);
 
   // Real-time clock - optimized to reduce re-renders
   useEffect(() => {
@@ -265,7 +265,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   // Handle chat button click with animation - optimized with useCallback
   const handleChatToggle = useCallback(() => {
     setChatAnimation('animate-chat-bounce');
-    
+
     if (!isChatExpanded) {
       // Opening chat
       setTimeout(() => {
@@ -290,41 +290,41 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const getGreeting = () => {
     const hour = currentTime.getHours();
     if (hour >= 5 && hour < 12) {
-      return { 
-        text: 'Selamat Pagi', 
-        emoji: '🌅', 
-        color: 'text-white', 
-        bgColor: 'from-pink-500 via-pink-600 to-pink-700', 
+      return {
+        text: 'Selamat Pagi',
+        emoji: '🌅',
+        color: 'text-white',
+        bgColor: 'from-pink-500 via-pink-600 to-pink-700',
         glowColor: 'shadow-pink-200/50',
         backgroundGradient: 'from-white via-pink-50 to-pink-100',
         accentColors: ['white', 'pink-50', 'pink-100']
       };
     } else if (hour >= 12 && hour < 15) {
-      return { 
-        text: 'Selamat Siang', 
-        emoji: '☀️', 
-        color: 'text-white', 
-        bgColor: 'from-yellow-500 via-yellow-600 to-yellow-700', 
+      return {
+        text: 'Selamat Siang',
+        emoji: '☀️',
+        color: 'text-white',
+        bgColor: 'from-yellow-500 via-yellow-600 to-yellow-700',
         glowColor: 'shadow-yellow-200/50',
         backgroundGradient: 'from-white via-yellow-50 to-yellow-100',
         accentColors: ['white', 'yellow-50', 'yellow-100']
       };
     } else if (hour >= 15 && hour < 18) {
-      return { 
-        text: 'Selamat Sore', 
-        emoji: '🌇', 
-        color: 'text-white', 
-        bgColor: 'from-orange-500 via-orange-600 to-orange-700', 
+      return {
+        text: 'Selamat Sore',
+        emoji: '🌇',
+        color: 'text-white',
+        bgColor: 'from-orange-500 via-orange-600 to-orange-700',
         glowColor: 'shadow-orange-200/50',
         backgroundGradient: 'from-white via-orange-50 to-orange-100',
         accentColors: ['white', 'orange-50', 'orange-100']
       };
     } else {
-      return { 
-        text: 'Selamat Malam', 
-        emoji: '🌙', 
-        color: 'text-white', 
-        bgColor: 'from-blue-500 via-blue-600 to-blue-700', 
+      return {
+        text: 'Selamat Malam',
+        emoji: '🌙',
+        color: 'text-white',
+        bgColor: 'from-blue-500 via-blue-600 to-blue-700',
         glowColor: 'shadow-blue-200/50',
         backgroundGradient: 'from-white via-blue-50 to-blue-100',
         accentColors: ['white', 'blue-50', 'blue-100']
@@ -372,7 +372,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    
+
     // Use shorter format for mobile: DD/MM/YY, HH:MM
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
@@ -390,14 +390,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     // Separate folders and documents from the current documents array
     const folders = documents.filter((doc: Document) => doc.is_folder);
     const docs = documents.filter((doc: Document) => !doc.is_folder);
-    
-    
+
+
     return { folders: folders, documents: docs };
   }, [documents]);
 
   // Filter and sort documents
   const filteredAndSortedDocuments = organizedContent.documents
-    .filter((doc: Document) => 
+    .filter((doc: Document) =>
       doc.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a: Document, b: Document) => {
@@ -416,7 +416,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Filter and sort folders
   const filteredAndSortedFolders = organizedContent.folders
-    .filter((folder: Document) => 
+    .filter((folder: Document) =>
       folder.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a: Document, b: Document) => {
@@ -434,25 +434,25 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Fungsi untuk mengambil SEMUA dokumen dari folder (termasuk subfolder)
   const fetchAllDocumentsFromFolder = async (url: string) => {
-    
+
     const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       setIsLoadingFolder(false);
       return;
     }
-    
+
     setIsLoadingFolder(true);
     setMessage('');
-    
+
     try {
       const requestBody = { folder_url: url };
-      
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
         method: 'POST',
         headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
+          'Authorization': `Bearer ${getToken()}`,
+          'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
@@ -462,7 +462,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       if (!response.ok) {
         const errorText = await response.text();
         // Silent error handling
-        
+
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
         } else if (response.status === 403) {
@@ -474,16 +474,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      
-      
+
+
       // Set documents from folder (NO FOLDERS, only documents)
       setDocuments(data || []);
-      
+
       // Clear folder state
       setCurrentFolderId(null);
       setCurrentFolderName('');
       setFolderHistory([]);
-      
+
       if (data && data.length > 0) {
         setMessage(`Berhasil memuat ${data.length} dokumen dari folder dan subfolder.`);
       } else {
@@ -506,16 +506,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       setIsLoadingFolder(false);
       return;
     }
-    
+
     setIsLoadingFolder(true);
     setMessage('');
-    
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder`, {
         method: 'POST',
         headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
+          'Authorization': `Bearer ${getToken()}`,
+          'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ folder_url: url }),
@@ -524,7 +524,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       if (!response.ok) {
         const errorText = await response.text();
         // Silent error handling
-        
+
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
         } else if (response.status === 403) {
@@ -536,19 +536,19 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      
+
       // Check if this is a fallback to recent files
       const isRecentFallback = data && data.length > 0 && data[0].is_recent_fallback;
       setIsShowingRecentFiles(isRecentFallback);
-      
+
       // Set documents from folder
       setDocuments(data || []);
-      
+
       // Clear folder state
       setCurrentFolderId(null);
       setCurrentFolderName('');
       setFolderHistory([]);
-      
+
       if (data && data.length > 0) {
         if (isRecentFallback) {
           setMessage(`Folder tidak dapat diakses. Menampilkan ${data.length} dokumen terbaru dari Google Drive Anda.`);
@@ -575,22 +575,22 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       setIsLoading(false);
       return;
     }
-    
+
     setIsLoading(true);
     setMessage('Memuat 50 dokumen terbaru dari Google Drive...');
-    
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents`, {
         headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
+          'Authorization': `Bearer ${getToken()}`,
+          'X-Google-Token': getToken(),
         },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         // Silent error handling
-        
+
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
         } else if (response.status === 403) {
@@ -602,16 +602,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      
+
       // Set documents (no folders)
       setDocuments(data || []);
-      
+
       // Clear folder state
       setCurrentFolderId(null);
       setCurrentFolderName('');
       setFolderHistory([]);
       setIsShowingRecentFiles(false);
-      
+
       if (data && data.length > 0) {
         setMessage(`Berhasil dimuat ${data.length} dokumen terbaru dari Google Drive Anda.`);
       } else {
@@ -631,7 +631,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const fetchKnowledgeBase = async () => {
     const token = getToken();
     if (!token) return;
-    
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/knowledge-base`, {
         headers: {
@@ -652,7 +652,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Jalankan fetchDocuments ketika token tersedia
   useEffect(() => {
-    
+
     const token = getToken();
     if (token) {
       fetchDocuments();
@@ -668,13 +668,13 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const handleSelectDoc = (docId: string, index?: number) => {
     setSelectedDocs((prev: Set<string>) => {
       const newSelection = new Set(prev);
-      
+
       if (isMultiSelectMode && lastSelectedIndex !== null && index !== undefined) {
         // Range selection (Shift + Click)
         const start = Math.min(lastSelectedIndex, index);
         const end = Math.max(lastSelectedIndex, index);
         const allItems = [...filteredAndSortedFolders, ...filteredAndSortedDocuments];
-        
+
         for (let i = start; i <= end; i++) {
           if (allItems[i] && 'id' in allItems[i]) {
             newSelection.add(allItems[i].id);
@@ -682,13 +682,13 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         }
       } else {
         // Single selection or Ctrl + Click
-      if (newSelection.has(docId)) {
-        newSelection.delete(docId);
-      } else {
-        newSelection.add(docId);
+        if (newSelection.has(docId)) {
+          newSelection.delete(docId);
+        } else {
+          newSelection.add(docId);
+        }
       }
-      }
-      
+
       return newSelection;
     });
     setLastSelectedIndex(index || null);
@@ -696,18 +696,18 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // New simplified folder click handler - Fetch all documents recursively
   const handleFolderClick = (folder: Document) => {
-    
+
     if (!folder.web_view_link) {
       setMessage('Folder tidak memiliki link yang valid.');
       return;
     }
-    
+
     // Add to folder history
     setFolderHistory(prev => [...prev, { id: folder.id, name: folder.name }]);
     setCurrentFolderId(folder.id);
     setCurrentFolderName(folder.name);
     setSelectedDocs(new Set()); // Clear selection when navigating
-    
+
     // Fetch ALL documents from the clicked folder (including subfolders)
     fetchAllDocumentsFromFolder(folder.web_view_link);
   };
@@ -718,14 +718,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       // Go back to previous folder
       const newHistory = [...folderHistory];
       newHistory.pop(); // Remove current folder
-      
+
       if (newHistory.length > 0) {
         // Go to previous folder
         const prevFolder = newHistory[newHistory.length - 1];
         setFolderHistory(newHistory);
         setCurrentFolderId(prevFolder.id);
         setCurrentFolderName(prevFolder.name);
-        
+
         // Fetch documents from previous folder
         const folderUrl = `https://drive.google.com/drive/folders/${prevFolder.id}`;
         fetchAllDocumentsFromFolder(folderUrl);
@@ -743,7 +743,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       // Go back to root
       fetchDocuments();
     }
-    
+
     setSelectedDocs(new Set()); // Clear selection when navigating
   };
 
@@ -762,53 +762,53 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Fungsi untuk menambahkan dokumen ke knowledge base
   const handleAddToKnowledgeBase = async () => {
-      if (selectedDocs.size === 0) {
-          setMessage('Pilih setidaknya satu dokumen.');
-          return;
-      }
-      
-      const token = getToken();
-    if (!token) {
-          setMessage('Token tidak tersedia. Silakan login ulang.');
-          return;
-      }
-      
-      setMessage('Menambahkan dokumen...');
-      setIsLoading(true);
-      
-      try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
-              method: 'POST',
-              headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ document_ids: Array.from(selectedDocs) }),
-          });
+    if (selectedDocs.size === 0) {
+      setMessage('Pilih setidaknya satu dokumen.');
+      return;
+    }
 
-          if (!response.ok) {
-              const errorText = await response.text();
-              // Silent error handling
-              throw new Error(`Failed to add documents: ${response.status}`);
-          }
-          
-          const result = await response.json();
-          setMessage(`Berhasil menambahkan ${result.processed_count || selectedDocs.size} dokumen ke knowledge base!`);
-          setSelectedDocs(new Set());
-          
-          // Refresh only knowledge base, not documents list
-          // This avoids unnecessary API calls to fetch 50 documents
-          setTimeout(() => {
-            fetchKnowledgeBase();
-          }, 2000);
-          
-      } catch (error) {
-          // Silent error handling
-          setErrorMessage('add');
-      } finally {
-          setIsLoading(false);
+    const token = getToken();
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      return;
+    }
+
+    setMessage('Menambahkan dokumen...');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'X-Google-Token': getToken(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ document_ids: Array.from(selectedDocs) }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        // Silent error handling
+        throw new Error(`Failed to add documents: ${response.status}`);
       }
+
+      const result = await response.json();
+      setMessage(`Berhasil menambahkan ${result.processed_count || selectedDocs.size} dokumen ke knowledge base!`);
+      setSelectedDocs(new Set());
+
+      // Refresh only knowledge base, not documents list
+      // This avoids unnecessary API calls to fetch 50 documents
+      setTimeout(() => {
+        fetchKnowledgeBase();
+      }, 2000);
+
+    } catch (error) {
+      // Silent error handling
+      setErrorMessage('add');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Bulk upload function for folder scanning and batch processing
@@ -817,31 +817,31 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       setMessage('Masukkan URL folder terlebih dahulu.');
       return;
     }
-    
+
     const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       return;
     }
-    
+
     setIsBulkUploading(true);
     setBulkUploadProgress({ current: 0, total: 0, percentage: 0 });
     setBulkUploadStatus('Memindai folder...');
-    
+
     try {
       // Get documents directly from folder
       const requestBody = { folder_url: folderUrl.trim() };
-      
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
         method: 'POST',
         headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
+          'Authorization': `Bearer ${getToken()}`,
+          'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
       });
-  
+
       if (!response.ok) {
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
@@ -853,49 +853,49 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         setIsBulkUploading(false);
         return;
       }
-  
+
       const allDocuments = await response.json();
-      
+
       if (!allDocuments || allDocuments.length === 0) {
         setMessage('Tidak ada dokumen yang ditemukan di folder.');
         setIsBulkUploading(false);
         return;
       }
-      
+
       // Filter only PDF, DOC, DOCX files
       const supportedFiles = allDocuments.filter((doc: any) => {
         const fileName = doc.name.toLowerCase();
         return fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx');
       });
-      
+
       if (supportedFiles.length === 0) {
         setMessage('Tidak ada file PDF, DOC, atau DOCX yang ditemukan di folder.');
         setIsBulkUploading(false);
         return;
       }
-      
+
       setBulkUploadStatus(`Ditemukan ${supportedFiles.length} file yang didukung. Memulai upload...`);
       setBulkUploadProgress({ current: 0, total: supportedFiles.length, percentage: 0 });
-      
+
       // Process files one by one for better progress tracking
       let processedCount = 0;
       let failedFiles = [];
-      
+
       for (let i = 0; i < supportedFiles.length; i++) {
         const file = supportedFiles[i];
         setBulkUploadStatus(`Memproses file ${i + 1}/${supportedFiles.length}: ${file.name}`);
-        
+
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
             method: 'POST',
             headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
+              'Authorization': `Bearer ${getToken()}`,
+              'X-Google-Token': getToken(),
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ document_ids: [file.id] }),
           });
-          
+
           if (response.ok) {
             const result = await response.json();
             console.log(`✅ File ${file.name} uploaded successfully:`, result);
@@ -905,39 +905,39 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             console.error(`❌ File ${file.name} failed:`, response.status, errorText);
             failedFiles.push({ name: file.name, error: `${response.status}: ${errorText}` });
           }
-          
+
           // Update progress
           const percentage = Math.round(((i + 1) / supportedFiles.length) * 100);
-          setBulkUploadProgress({ 
-            current: i + 1, 
-            total: supportedFiles.length, 
-            percentage 
+          setBulkUploadProgress({
+            current: i + 1,
+            total: supportedFiles.length,
+            percentage
           });
-          
+
           // Small delay between files to prevent overwhelming the server
           await new Promise(resolve => setTimeout(resolve, 500));
-          
+
         } catch (error) {
           console.error(`💥 Error processing file ${file.name}:`, error);
           failedFiles.push({ name: file.name, error: error instanceof Error ? error.message : String(error) });
         }
       }
-      
+
       // Log failed files
       if (failedFiles.length > 0) {
         console.error('❌ Failed files:', failedFiles);
         setMessage(`Bulk upload selesai! ${processedCount} berhasil, ${failedFiles.length} gagal. File yang gagal: ${failedFiles.map(f => f.name).join(', ')}`);
       }
-      
+
       setBulkUploadStatus('Upload selesai! Memuat ulang data...');
       setMessage(`Bulk upload selesai! ${processedCount} dari ${supportedFiles.length} dokumen berhasil diupload.`);
-      
+
       // Refresh only knowledge base, not documents list
       // This avoids unnecessary API calls to fetch 50 documents
       setTimeout(() => {
         fetchKnowledgeBase();
       }, 2000);
-      
+
     } catch (error) {
       console.error('Bulk upload error:', error);
       setMessage('Gagal melakukan bulk upload. Periksa koneksi dan coba lagi.');
@@ -954,34 +954,34 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
       return;
     }
-    
+
     if (knowledgeBase.length === 0) {
       setMessage('Knowledge base sudah kosong.');
       return;
     }
-    
+
     // Confirm before clearing
     const confirmed = confirm(`Apakah Anda yakin ingin RESET LLM DATA? Ini akan menghapus semua ${knowledgeBase.length} dokumen dan LLM tidak akan bisa menjawab pertanyaan apapun. Tindakan ini tidak dapat dibatalkan.`);
-    
+
     if (!confirmed) {
       return;
     }
-    
+
     // Store the count before clearing
     const documentsCount = knowledgeBase.length;
-    
+
     setMessage('Resetting LLM data...');
     setIsLoading(true);
-    
+
     // Clear Knowledge Base display immediately for visual feedback
     setKnowledgeBase([]);
-    
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/clear-all-documents`, {
         method: 'DELETE',
         headers: {
-        'Authorization': `Bearer ${getToken()}`,
-        'X-Google-Token': getToken(),
+          'Authorization': `Bearer ${getToken()}`,
+          'X-Google-Token': getToken(),
           'Content-Type': 'application/json',
         },
       });
@@ -989,68 +989,68 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       if (!response.ok) {
         throw new Error(`Failed to clear documents: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setMessage(`LLM data berhasil direset! ${result.cleared_count || documentsCount} dokumen dihapus. LLM sekarang tidak bisa menjawab pertanyaan apapun.`);
-      
+
       // Clear display and refresh data
       setKnowledgeBase([]);
       // Only refresh knowledge base, not documents list
       // This avoids unnecessary API calls to fetch 50 documents
       fetchKnowledgeBase();
-      
+
     } catch (error) {
       setMessage(`Gagal menghapus dokumen: ${error instanceof Error ? error.message : String(error)}. Periksa koneksi dan coba lagi.`);
     } finally {
       setIsLoading(false);
     }
   };
-  
-    // Fungsi untuk menghapus dokumen dari knowledge base
-    const handleRemoveFromKnowledgeBase = async (docId: string) => {
-        const token = getToken();
-        if (!token) {
-            setMessage('Token tidak tersedia. Silakan login ulang.');
-            return;
-        }
-        
-        setMessage('Menghapus dokumen...');
-        
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/${docId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                // Silent error handling
-                throw new Error(`Failed to remove document: ${response.status}`);
-            }
-            
-            setMessage('Dokumen berhasil dihapus dari knowledge base!');
-            
-            // Refresh only knowledge base, not documents list
-            // This avoids unnecessary API calls to fetch 50 documents
-            fetchKnowledgeBase();
-            
-        } catch (error) {
-            // Silent error handling
-            setErrorMessage('remove');
-        }
-    };
+
+  // Fungsi untuk menghapus dokumen dari knowledge base
+  const handleRemoveFromKnowledgeBase = async (docId: string) => {
+    const token = getToken();
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      return;
+    }
+
+    setMessage('Menghapus dokumen...');
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/${docId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        // Silent error handling
+        throw new Error(`Failed to remove document: ${response.status}`);
+      }
+
+      setMessage('Dokumen berhasil dihapus dari knowledge base!');
+
+      // Refresh only knowledge base, not documents list
+      // This avoids unnecessary API calls to fetch 50 documents
+      fetchKnowledgeBase();
+
+    } catch (error) {
+      // Silent error handling
+      setErrorMessage('remove');
+    }
+  };
 
   // Fungsi untuk mengirim pesan chat - optimized with useCallback
   const handleSendMessage = useCallback(async () => {
     const inputValue = inputRef.current?.value || '';
-    
+
     if (!inputValue.trim()) {
       setMessage('Masukkan pesan terlebih dahulu.');
       return;
     }
-    
+
     const token = getToken();
     if (!token) {
       setMessage('Token tidak tersedia. Silakan login ulang.');
@@ -1059,23 +1059,23 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
     // Check if knowledge base is empty
     if (knowledgeBase.length === 0) {
-      setChatHistory((prev: Array<{role: 'user' | 'assistant'; content: string; sources?: Array<string | {id: string; name: string; type: string; link?: string;}>; from_documents?: boolean;}>) => [...prev, { 
-        role: 'assistant', 
-        content: 'Maaf, saya tidak dapat menjawab pertanyaan karena knowledge base Anda masih kosong. Silakan tambahkan dokumen terlebih dahulu dari Google Drive untuk memulai percakapan.' 
+      setChatHistory((prev: Array<{ role: 'user' | 'assistant'; content: string; sources?: Array<string | { id: string; name: string; type: string; link?: string; }>; from_documents?: boolean; }>) => [...prev, {
+        role: 'assistant',
+        content: 'Maaf, saya tidak dapat menjawab pertanyaan karena knowledge base Anda masih kosong. Silakan tambahkan dokumen terlebih dahulu dari Google Drive untuk memulai percakapan.'
       }]);
       if (inputRef.current) inputRef.current.value = '';
       setChatMessage('');
       return;
     }
-    
+
     const userMessage = inputValue.trim();
     if (inputRef.current) inputRef.current.value = '';
     setChatMessage('');
     setIsChatLoading(true);
-    
+
     // Add user message to chat history
-    setChatHistory((prev: Array<{role: 'user' | 'assistant'; content: string; sources?: Array<string | {id: string; name: string; type: string; link?: string;}>; from_documents?: boolean;}>) => [...prev, { role: 'user', content: userMessage }]);
-    
+    setChatHistory((prev: Array<{ role: 'user' | 'assistant'; content: string; sources?: Array<string | { id: string; name: string; type: string; link?: string; }>; from_documents?: boolean; }>) => [...prev, { role: 'user', content: userMessage }]);
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
         method: 'POST',
@@ -1089,7 +1089,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       if (!response.ok) {
         const errorText = await response.text();
         // Silent error handling
-        
+
         if (response.status === 401) {
           setMessage('Sesi telah berakhir. Silakan login ulang.');
         } else {
@@ -1099,20 +1099,20 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
       const data = await response.json();
-      
+
       // Add assistant response to chat history
-      setChatHistory((prev: Array<{role: 'user' | 'assistant'; content: string; sources?: Array<string | {id: string; name: string; type: string; link?: string;}>; from_documents?: boolean;}>) => [...prev, { 
-        role: 'assistant', 
+      setChatHistory((prev: Array<{ role: 'user' | 'assistant'; content: string; sources?: Array<string | { id: string; name: string; type: string; link?: string; }>; from_documents?: boolean; }>) => [...prev, {
+        role: 'assistant',
         content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
         sources: data.sources || [],
         from_documents: data.from_documents || false
       }]);
-      
+
     } catch (error) {
       // Silent error handling
-      setChatHistory((prev: Array<{role: 'user' | 'assistant'; content: string; sources?: Array<string | {id: string; name: string; type: string; link?: string;}>; from_documents?: boolean;}>) => [...prev, { 
-        role: 'assistant', 
-        content: 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.' 
+      setChatHistory((prev: Array<{ role: 'user' | 'assistant'; content: string; sources?: Array<string | { id: string; name: string; type: string; link?: string; }>; from_documents?: boolean; }>) => [...prev, {
+        role: 'assistant',
+        content: 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.'
       }]);
     } finally {
       setIsChatLoading(false);
@@ -1131,7 +1131,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   }
 
   const greeting = getGreeting();
-  
+
   // Get background class based on time
   const backgroundClass = 'min-h-screen bg-gradient-to-br from-white via-red-50/30 to-white relative overflow-hidden';
 
@@ -1157,7 +1157,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     <div className={backgroundClass}>
       {/* Premium Background Pattern */}
       <div className="background-dots"></div>
-      
+
       {/* Dynamic Animated Background Elements */}
       <div className="background-animated">
         <div className="background-blob-1"></div>
@@ -1166,7 +1166,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         <div className="background-blob-4"></div>
       </div>
 
-      
+
       {/* LARA Navigation Bar - Premium Glass */}
       <nav className="nav-main">
         <div className="nav-container">
@@ -1174,10 +1174,11 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             {/* Logo & Brand */}
             <div className="nav-brand">
               <div className="nav-logo">
-                <div className="nav-logo-icon">
-                  <span className="nav-logo-text">D</span>
-                </div>
-                <div className="nav-logo-dot"></div>
+                <img
+                  src="/Logo.png"
+                  alt="DORA Logo"
+                  className="h-10 w-10 object-contain"
+                />
               </div>
               <div>
                 <h2 className="nav-title">
@@ -1191,8 +1192,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               {/* User Profile Picture - Glass Effect */}
               <div className="nav-profile">
                 {memoizedUser && (
-                  <ProfilePicture 
-                    user={memoizedUser} 
+                  <ProfilePicture
+                    user={memoizedUser}
                     size="md"
                     className="nav-profile-avatar"
                   />
@@ -1215,14 +1216,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                       <div className="nav-logout-line-1"></div>
                       <div className="nav-logout-line-2"></div>
                     </div>
-                    
+
                     {/* Door Opening Effect - Background */}
                     <div className="nav-logout-overlay"></div>
                   </div>
-                  
+
                   {/* Hover Effect */}
                   <div className="nav-logout-glow"></div>
-                  
+
                   {/* Tooltip */}
                   <div className="nav-tooltip">
                     Logout
@@ -1236,20 +1237,19 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
       <div className="main-content">
         {/* Header Section - Compact */}
-        <div className={`backdrop-blur-2xl rounded-2xl shadow-xl p-4 sm:p-5 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden ${
-          currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-pink-500/50 via-pink-400/40 to-pink-200/30' :
+        <div className={`backdrop-blur-2xl rounded-2xl shadow-xl p-4 sm:p-5 md:p-6 lg:p-8 animate-fade-in border border-white/30 relative overflow-hidden ${currentTime.getHours() >= 5 && currentTime.getHours() < 12 ? 'bg-gradient-to-br from-pink-500/50 via-pink-400/40 to-pink-200/30' :
           currentTime.getHours() >= 12 && currentTime.getHours() < 15 ? 'bg-gradient-to-br from-yellow-500/50 via-yellow-400/40 to-yellow-200/30' :
-          currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-orange-500/50 via-orange-400/40 to-orange-200/30' :
-          'bg-gradient-to-br from-blue-500/50 via-blue-400/40 to-blue-200/30'
-        }`}>
+            currentTime.getHours() >= 15 && currentTime.getHours() < 18 ? 'bg-gradient-to-br from-orange-500/50 via-orange-400/40 to-orange-200/30' :
+              'bg-gradient-to-br from-blue-500/50 via-blue-400/40 to-blue-200/30'
+          }`}>
           {/* Animated Background Pattern - Reduced opacity */}
           <div className="absolute inset-0 opacity-2">
             <div className="header-bg-pattern-1"></div>
             <div className="header-bg-pattern-2"></div>
             <div className="header-bg-pattern-3"></div>
           </div>
-          
-          
+
+
           {/* Content - Compact */}
           {/* Mobile Layout */}
           <div className="header-mobile">
@@ -1257,14 +1257,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               {/* Top Row: Greeting + Time */}
               <div className="header-mobile-content">
                 <div className="w-full">
-                    <h1 className={`mobile-greeting-text ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
-                      {greeting.text}, {user.name || 'Pengguna'}!
-                    </h1>
+                  <h1 className={`mobile-greeting-text ${greeting.color} animate-fade-in drop-shadow-lg tracking-tight`}>
+                    {greeting.text}, {user.name || 'Pengguna'}!
+                  </h1>
                 </div>
                 {/* Time - Full width on mobile */}
                 <TimeDisplay currentTime={currentTime} greeting={greeting} variant="mobile" />
               </div>
-              
+
               {/* Description */}
               <div className="text-center">
                 <div className="description-box-mobile">
@@ -1284,10 +1284,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                     {greeting.text}, {user.name || 'Pengguna'}!
                   </h1>
                 </div>
-                
+
                 {/* Time - Full width on tablet */}
                 <TimeDisplay currentTime={currentTime} greeting={greeting} variant="tablet" />
-                
+
                 {/* Description */}
                 <div className="description-box-tablet">
                   <p className="description-text-tablet">Kelola dokumen Anda dan mulailah bertanya dengan AI</p>
@@ -1310,7 +1310,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                   </div>
                 </div>
               </div>
-              
+
               {/* Right: Time & Date */}
               <div className="ml-8">
                 <TimeDisplay currentTime={currentTime} greeting={greeting} variant="desktop" />
@@ -1332,7 +1332,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                   <div className="chat-bg-pattern-1"></div>
                   <div className="chat-bg-pattern-2"></div>
                 </div>
-                
+
                 <div className="relative z-10">
                   {/* Mobile Layout - Stacked */}
                   <div className="chat-mobile">
@@ -1346,7 +1346,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                         <p className="chat-subtitle-mobile">DORA dapat memahami berbagai jenis dokumen</p>
                       </div>
                     </div>
-                    
+
                     {/* Bottom Row - Status and Button */}
                     <div className="chat-status-mobile">
                       <div className="flex-center-wrap gap-2 sm:gap-3">
@@ -1384,7 +1384,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                         <p className="chat-subtitle-tablet">DORA dapat memahami berbagai jenis dokumen</p>
                       </div>
                     </div>
-                    
+
                     {/* Right Side - Status and Button */}
                     <div className="chat-status-tablet">
                       <div className="chat-status-content-tablet">
@@ -1422,7 +1422,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                         <p className="chat-subtitle-desktop">DORA dapat memahami berbagai jenis dokumen</p>
                       </div>
                     </div>
-                    
+
                     {/* Right Side - Status and Button */}
                     <div className="chat-status-desktop">
                       <div className="chat-status-content-desktop">
@@ -1452,142 +1452,138 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               {showChatWindow && (
                 <div className={`p-4 sm:p-6 lg:p-8 ${chatWindowAnimation}`}>
                   <div className="h-[450px] sm:h-[550px] bg-white/30 backdrop-blur-xl rounded-3xl overflow-y-auto mb-6 border border-white/40 shadow-xl">
-                  <div className="p-4 space-y-4">
-                    {chatHistory.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-400 to-blue-500 rounded-2xl flex-center mx-auto mb-4 animate-float">
-                          <span className="text-2xl sm:text-3xl">💬</span>
-                        </div>
-                        <p className="text-gray-800 font-medium mb-2 text-lg">Mulai bertanya tentang dokumen Anda!</p>
-                        <p className="text-sm text-gray-600">AI akan menjawab berdasarkan dokumen di knowledge base</p>
-                        {knowledgeBase.length === 0 && (
-                          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                            <p className="text-sm text-red-800">
-                              ⚠️ Knowledge base kosong. Tambahkan dokumen terlebih dahulu.
-                            </p>
+                    <div className="p-4 space-y-4">
+                      {chatHistory.length === 0 ? (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-400 to-blue-500 rounded-2xl flex-center mx-auto mb-4 animate-float">
+                            <span className="text-2xl sm:text-3xl">💬</span>
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      chatHistory.map((msg: {role: 'user' | 'assistant'; content: string; sources?: Array<string | {id: string; name: string; type: string; link?: string;}>; from_documents?: boolean;}, index: number) => (
-                        <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`px-4 py-3 rounded-2xl ${
-                            msg.role === 'user' 
-                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white max-w-xs sm:max-w-md lg:max-w-lg shadow-md' 
+                          <p className="text-gray-800 font-medium mb-2 text-lg">Mulai bertanya tentang dokumen Anda!</p>
+                          <p className="text-sm text-gray-600">AI akan menjawab berdasarkan dokumen di knowledge base</p>
+                          {knowledgeBase.length === 0 && (
+                            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                              <p className="text-sm text-red-800">
+                                ⚠️ Knowledge base kosong. Tambahkan dokumen terlebih dahulu.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        chatHistory.map((msg: { role: 'user' | 'assistant'; content: string; sources?: Array<string | { id: string; name: string; type: string; link?: string; }>; from_documents?: boolean; }, index: number) => (
+                          <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`px-4 py-3 rounded-2xl ${msg.role === 'user'
+                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white max-w-xs sm:max-w-md lg:max-w-lg shadow-md'
                               : 'glass-dark text-gray-800 shadow-md w-full max-w-4xl border border-white/20'
-                          }`}>
-                            <div className="flex items-start space-x-3">
-                              <div className={`w-8 h-8 rounded-full flex-center text-sm ${
-                                msg.role === 'user' 
-                                  ? 'bg-white bg-opacity-20' 
-                                  : 'bg-blue-100'
                               }`}>
-                                {msg.role === 'user' ? '👤' : '🤖'}
-                              </div>
-                              <div className="flex-1">
-                                {msg.role === 'assistant' ? (
-                                  renderFormattedMessage(msg.content)
-                                ) : (
-                                  <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
-                                )}
-                                {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
-                                  <div className="mt-3 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                    <p className="font-medium text-gray-800 mb-2">
-                                      📚 Sumber Referensi ({msg.sources.length} dokumen):
-                                    </p>
-                                    <div className="space-y-2">
-                                      {msg.sources.map((source: string | {id: string; name: string; type: string; link?: string;}, index: number) => (
-                                        <div key={index} className="flex items-center justify-between glass-dark p-3 rounded-lg border border-white/20 shadow-sm">
-                                          <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                              <span className="text-sm">
-                                                {typeof source === 'object' && source.type ? getFileIcon(source.type) : '📄'}
-                                              </span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="font-medium text-gray-900 truncate">
-                                                {typeof source === 'string' ? source : source.name || source.id}
-                                              </p>
-                                              {typeof source === 'object' && source.type && (
-                                                <p className="text-gray-500 text-xs mt-1">
-                                                  {getFileTypeName(source.type)}
+                              <div className="flex items-start space-x-3">
+                                <div className={`w-8 h-8 rounded-full flex-center text-sm ${msg.role === 'user'
+                                  ? 'bg-white bg-opacity-20'
+                                  : 'bg-blue-100'
+                                  }`}>
+                                  {msg.role === 'user' ? '👤' : '🤖'}
+                                </div>
+                                <div className="flex-1">
+                                  {msg.role === 'assistant' ? (
+                                    renderFormattedMessage(msg.content)
+                                  ) : (
+                                    <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                                  )}
+                                  {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
+                                    <div className="mt-3 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                      <p className="font-medium text-gray-800 mb-2">
+                                        📚 Sumber Referensi ({msg.sources.length} dokumen):
+                                      </p>
+                                      <div className="space-y-2">
+                                        {msg.sources.map((source: string | { id: string; name: string; type: string; link?: string; }, index: number) => (
+                                          <div key={index} className="flex items-center justify-between glass-dark p-3 rounded-lg border border-white/20 shadow-sm">
+                                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span className="text-sm">
+                                                  {typeof source === 'object' && source.type ? getFileIcon(source.type) : '📄'}
+                                                </span>
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-gray-900 truncate">
+                                                  {typeof source === 'string' ? source : source.name || source.id}
                                                 </p>
-                                              )}
+                                                {typeof source === 'object' && source.type && (
+                                                  <p className="text-gray-500 text-xs mt-1">
+                                                    {getFileTypeName(source.type)}
+                                                  </p>
+                                                )}
+                                              </div>
                                             </div>
+                                            {typeof source === 'object' && source.link && (
+                                              <a
+                                                href={source.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="ml-3 text-blue-600 hover:text-blue-800 text-xs font-medium bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors"
+                                              >
+                                                🔗 Buka di Drive
+                                              </a>
+                                            )}
                                           </div>
-                                          {typeof source === 'object' && source.link && (
-                                            <a 
-                                              href={source.link} 
-                                              target="_blank" 
-                                              rel="noopener noreferrer"
-                                              className="ml-3 text-blue-600 hover:text-blue-800 text-xs font-medium bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors"
-                                            >
-                                              🔗 Buka di Drive
-                                            </a>
-                                          )}
-                                        </div>
-                                      ))}
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))
-                    )}
-                    {isChatLoading && (
-                      <div className="flex justify-start">
-                        <div className="glass-dark text-gray-800 px-4 py-3 rounded-xl border border-white/20 shadow-sm w-full max-w-4xl">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex-center">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        ))
+                      )}
+                      {isChatLoading && (
+                        <div className="flex justify-start">
+                          <div className="glass-dark text-gray-800 px-4 py-3 rounded-xl border border-white/20 shadow-sm w-full max-w-4xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              </div>
+                              <span className="text-sm font-medium">AI sedang berpikir...</span>
                             </div>
-                            <span className="text-sm font-medium">AI sedang berpikir...</span>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      {...inputProps}
+                      className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 shadow-lg text-base sm:text-lg font-medium"
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!chatMessage.trim() || isChatLoading || knowledgeBase.length === 0}
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none border border-white/30"
+                    >
+                      {isChatLoading ? '⏳' : '📤'} Kirim
+                    </Button>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    {...inputProps}
-                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 placeholder-gray-600 shadow-lg text-base sm:text-lg font-medium"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={!chatMessage.trim() || isChatLoading || knowledgeBase.length === 0}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none border border-white/30"
-                  >
-                    {isChatLoading ? '⏳' : '📤'} Kirim
-                  </Button>
-                </div>
-              </div>
               )}</div>
-        </div>
+          </div>
 
           {/* Message Display - Below Chat */}
           {message && (
             <div className="bg-white/25 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 animate-fade-in">
               <div className="p-3 sm:p-6 lg:p-8">
                 <div className="flex items-center space-x-2 sm:space-x-4">
-                  <div className={`w-4 h-4 rounded-full animate-pulse shadow-lg ${
-                    message.includes('berhasil') || message.includes('dimuat') 
-                      ? 'bg-red-400 shadow-red-400/60' 
-                      : message.includes('gagal') || message.includes('error')
+                  <div className={`w-4 h-4 rounded-full animate-pulse shadow-lg ${message.includes('berhasil') || message.includes('dimuat')
+                    ? 'bg-red-400 shadow-red-400/60'
+                    : message.includes('gagal') || message.includes('error')
                       ? 'bg-red-400 shadow-red-400/60'
                       : 'bg-blue-400 shadow-blue-400/60'
-                  }`}></div>
-                  <p className={`font-semibold text-sm sm:text-lg lg:text-xl ${
-                    message.includes('berhasil') || message.includes('dimuat') 
-                      ? 'text-red-800' 
-                      : message.includes('gagal') || message.includes('error')
+                    }`}></div>
+                  <p className={`font-semibold text-sm sm:text-lg lg:text-xl ${message.includes('berhasil') || message.includes('dimuat')
+                    ? 'text-red-800'
+                    : message.includes('gagal') || message.includes('error')
                       ? 'text-red-800'
                       : 'text-blue-800'
-                  }`}>
+                    }`}>
                     {message}
                   </p>
                 </div>
@@ -1599,551 +1595,548 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* Google Drive Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-10">
-                        <div className="documents-bg-pattern-1"></div>
-                        <div className="documents-bg-pattern-2"></div>
-                    </div>
-                    
-                    <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                        <div className="documents-header">
-                            <div className="documents-icon">
-                                <span className="text-white text-2xl sm:text-3xl">📁</span>
-                            </div>
-                            <div>
-                                <h2 className="documents-title">Google Drive Documents</h2>
-                                <p className="documents-subtitle">
-                                    {isShowingRecentFiles ? (
-                                        <span className="flex items-center space-x-2">
-                                            <span>📄</span>
-                                            <span>Dokumen Terbaru (Fallback)</span>
-                                        </span>
-                                    ) : currentFolderName ? (
-                                        `📁 ${currentFolderName}`
-                                    ) : (
-                                        'Kelola dokumen dari Google Drive Anda'
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="documents-actions">
-                            {isShowingRecentFiles && (
-                                <Button
-                                    onClick={() => {
-                                        setIsShowingRecentFiles(false);
-                                        setFolderUrl('');
-                                        fetchDocuments();
-                                        fetchKnowledgeBase();
-                                    }}
-                                    className="documents-button"
-                                >
-                                    🔄 Kembali ke Normal
-                                </Button>
-                            )}
-                            <Button
-                                onClick={() => setShowFolderInput(!showFolderInput)}
-                                className="documents-button"
-                            >
-                                📁 Folder URL
-                            </Button>
-                            {(currentFolderId || folderHistory.length > 0) && (
-                                <Button
-                                    onClick={handleBackToParent}
-                                    className="documents-button flex items-center space-x-2"
-                                >
-                                    <span>←</span>
-                                    <span>Back</span>
-                                </Button>
-                            )}
-                            <Button
-                                onClick={() => {
-                                    fetchDocuments();
-                                    fetchKnowledgeBase();
-                                }}
-                                disabled={isLoading}
-                                className="documents-button"
-                            >
-                                {isLoading ? '⏳ Loading...' : '🔄 Refresh'}
-                            </Button>
-                        </div>
-                    </div>
+              <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="documents-bg-pattern-1"></div>
+                  <div className="documents-bg-pattern-2"></div>
                 </div>
-                <div className="documents-content">
-                    {/* Folder URL Input */}
-                    {showFolderInput && (
-                        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
-                            <div className="space-y-4">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
-                                        <span className="text-white text-lg">📁</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-red-800">Akses Folder Google Drive</h3>
-                                        <p className="text-sm text-red-600">Masukkan URL folder Google Drive yang sudah di-set public</p>
-                                    </div>
-                                </div>
-                                
-                                <div className="space-y-3">
-                                    <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-                                        <input
-                                            type="text"
-                                            placeholder="https://drive.google.com/drive/folders/1ABC123..."
-                                            value={folderUrl}
-                                            onChange={(e) => setFolderUrl(e.target.value)}
-                                            className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg"
-                                        />
-                                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                                            <Button
-                                                onClick={() => {
-                                                    if (folderUrl.trim()) {
-                                                        fetchAllDocumentsFromFolder(folderUrl.trim());
-                                                    } else {
-                                                        setMessage('Masukkan URL folder terlebih dahulu.');
-                                                    }
-                                                }}
-                                                disabled={isLoadingFolder || !folderUrl.trim()}
-                                                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                                            >
-                                                {isLoadingFolder ? '⏳ Loading...' : '🔍 Buka Folder'}
-                                            </Button>
-                                            
-                            <Button
-                                onClick={handleBulkUploadFromFolder}
-                                disabled={isBulkUploading || !folderUrl.trim()}
-                                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                            >
-                                {isBulkUploading ? '⏳ Uploading...' : '📁 Upload Semua File'}
-                            </Button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="text-xs text-gray-600 bg-red-50/80 p-3 rounded-xl border border-red-200/50">
-                                        <p className="font-medium text-red-800 mb-1">💡 Cara mendapatkan URL folder:</p>
-                                        <ol className="list-decimal list-inside space-y-1 text-red-700">
-                                            <li>Buka Google Drive di browser</li>
-                                            <li>Klik kanan pada folder yang ingin diakses</li>
-                                            <li>Pilih "Get link" atau "Dapatkan link"</li>
-                                            <li>Set sharing ke "Anyone with the link can view"</li>
-                                            <li>Copy URL yang muncul</li>
-                                        </ol>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* Bulk Upload Progress */}
-                    {isBulkUploading && (
-                        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 mb-4 border border-white/50 shadow-lg">
+                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                  <div className="documents-header">
+                    <div className="documents-icon">
+                      <span className="text-white text-2xl sm:text-3xl">📁</span>
+                    </div>
+                    <div>
+                      <h2 className="documents-title">Google Drive Documents</h2>
+                      <p className="documents-subtitle">
+                        {isShowingRecentFiles ? (
+                          <span className="flex items-center space-x-2">
+                            <span>📄</span>
+                            <span>Dokumen Terbaru (Fallback)</span>
+                          </span>
+                        ) : currentFolderName ? (
+                          `📁 ${currentFolderName}`
+                        ) : (
+                          'Kelola dokumen dari Google Drive Anda'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="documents-actions">
+                    {isShowingRecentFiles && (
+                      <Button
+                        onClick={() => {
+                          setIsShowingRecentFiles(false);
+                          setFolderUrl('');
+                          fetchDocuments();
+                          fetchKnowledgeBase();
+                        }}
+                        className="documents-button"
+                      >
+                        🔄 Kembali ke Normal
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => setShowFolderInput(!showFolderInput)}
+                      className="documents-button"
+                    >
+                      📁 Folder URL
+                    </Button>
+                    {(currentFolderId || folderHistory.length > 0) && (
+                      <Button
+                        onClick={handleBackToParent}
+                        className="documents-button flex items-center space-x-2"
+                      >
+                        <span>←</span>
+                        <span>Back</span>
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => {
+                        fetchDocuments();
+                        fetchKnowledgeBase();
+                      }}
+                      disabled={isLoading}
+                      className="documents-button"
+                    >
+                      {isLoading ? '⏳ Loading...' : '🔄 Refresh'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="documents-content">
+                {/* Folder URL Input */}
+                {showFolderInput && (
+                  <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
                     <div className="space-y-4">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
-                                <span className="text-white text-lg">📁</span>
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold text-red-800">Bulk Upload Progress</h3>
-                                <p className="text-sm text-red-600">{bulkUploadStatus}</p>
-                            </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
+                          <span className="text-white text-lg">📁</span>
                         </div>
-                                
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm text-gray-700">
-                                        <span>Progress: {bulkUploadProgress.current} / {bulkUploadProgress.total}</span>
-                                        <span>{bulkUploadProgress.percentage}%</span>
-                                    </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div 
-                                className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-300"
-                                style={{ width: `${bulkUploadProgress.percentage}%` }}
-                            ></div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-red-800">Akses Folder Google Drive</h3>
+                          <p className="text-sm text-red-600">Masukkan URL folder Google Drive yang sudah di-set public</p>
                         </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                      </div>
 
-                    {/* Search and Sort Controls */}
-                    <div className="search-controls">
+                      <div className="space-y-3">
                         <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-                            <div className="search-input-container">
-                                <input
-                                    type="text"
-                                    placeholder="Cari dokumen..."
-                                    value={searchTerm}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                    className="search-input"
-                                />
-                                <div className="search-icon">
-                                    🔍
-                                </div>
-                            </div>
-                            <select
-                                value={sortBy}
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as 'name' | 'modified' | 'size')}
-                                className="px-4 py-3 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm sm:text-base text-gray-800 transition-all duration-200"
+                          <input
+                            type="text"
+                            placeholder="https://drive.google.com/drive/folders/1ABC123..."
+                            value={folderUrl}
+                            onChange={(e) => setFolderUrl(e.target.value)}
+                            className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-800 placeholder-gray-600 transition-all duration-300 shadow-lg"
+                          />
+                          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                            <Button
+                              onClick={() => {
+                                if (folderUrl.trim()) {
+                                  fetchAllDocumentsFromFolder(folderUrl.trim());
+                                } else {
+                                  setMessage('Masukkan URL folder terlebih dahulu.');
+                                }
+                              }}
+                              disabled={isLoadingFolder || !folderUrl.trim()}
+                              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
                             >
-                                <option value="modified" className="bg-white text-gray-800">📅 Terbaru</option>
-                                <option value="name" className="bg-white text-gray-800">🔤 Nama</option>
-                                <option value="size" className="bg-white text-gray-800">📏 Ukuran</option>
-                            </select>
+                              {isLoadingFolder ? '⏳ Loading...' : '🔍 Buka Folder'}
+                            </Button>
+
+                            <Button
+                              onClick={handleBulkUploadFromFolder}
+                              disabled={isBulkUploading || !folderUrl.trim()}
+                              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                            >
+                              {isBulkUploading ? '⏳ Uploading...' : '📁 Upload Semua File'}
+                            </Button>
+                          </div>
                         </div>
-                        
-                        {/* Status Bar */}
-                        <div className="flex flex-col space-y-3">
-                            {/* File Count and Selection Status */}
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
-                                        📁 {filteredAndSortedFolders.length} folder
-                                    </span>
-                                    <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
-                                        📄 {filteredAndSortedDocuments.length} dokumen
-                                    </span>
-                                </div>
-                                
-                                {selectedDocs.size > 0 && (
-                                    <span className="text-xs sm:text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-red-200/50">
-                                        ✅ {selectedDocs.size} dipilih
-                                    </span>
-                                )}
-                                
-                                {isMultiSelectMode && (
-                                    <span className="text-xs sm:text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-200/50">
-                                        🔄 Multi-select mode
-                                    </span>
-                                )}
-                                
-                                {isShowingRecentFiles && (
-                                    <span className="text-xs sm:text-sm text-orange-700 bg-orange-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-orange-200/50">
-                                        📄 Menampilkan dokumen terbaru
-                                    </span>
-                                )}
-                            </div>
-                            
-                            {/* Action Buttons */}
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <Button 
-                                  onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
-                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 ${
-                                    isMultiSelectMode 
-                                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                      : 'bg-white/90 hover:bg-white text-gray-800 border border-white/30'
-                                  }`}
-                                >
-                                  {isMultiSelectMode ? '🔘 Multi-select ON' : '☐ Multi-select OFF'}
-                                </Button>
-                                
-                                <Button 
-                                  onClick={handleAddToKnowledgeBase} 
-                                  disabled={selectedDocs.size === 0}
-                                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                                >
-                                  ➕ Tambahkan ke KB ({selectedDocs.size})
-                                </Button>
-                            </div>
+
+                        <div className="text-xs text-gray-600 bg-red-50/80 p-3 rounded-xl border border-red-200/50">
+                          <p className="font-medium text-red-800 mb-1">💡 Cara mendapatkan URL folder:</p>
+                          <ol className="list-decimal list-inside space-y-1 text-red-700">
+                            <li>Buka Google Drive di browser</li>
+                            <li>Klik kanan pada folder yang ingin diakses</li>
+                            <li>Pilih "Get link" atau "Dapatkan link"</li>
+                            <li>Set sharing ke "Anyone with the link can view"</li>
+                            <li>Copy URL yang muncul</li>
+                          </ol>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bulk Upload Progress */}
+                {isBulkUploading && (
+                  <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 mb-4 border border-white/50 shadow-lg">
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
+                          <span className="text-white text-lg">📁</span>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-red-800">Bulk Upload Progress</h3>
+                          <p className="text-sm text-red-600">{bulkUploadStatus}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-gray-700">
+                          <span>Progress: {bulkUploadProgress.current} / {bulkUploadProgress.total}</span>
+                          <span>{bulkUploadProgress.percentage}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${bulkUploadProgress.percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Search and Sort Controls */}
+                <div className="search-controls">
+                  <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                    <div className="search-input-container">
+                      <input
+                        type="text"
+                        placeholder="Cari dokumen..."
+                        value={searchTerm}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                      />
+                      <div className="search-icon">
+                        🔍
+                      </div>
+                    </div>
+                    <select
+                      value={sortBy}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as 'name' | 'modified' | 'size')}
+                      className="px-4 py-3 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm sm:text-base text-gray-800 transition-all duration-200"
+                    >
+                      <option value="modified" className="bg-white text-gray-800">📅 Terbaru</option>
+                      <option value="name" className="bg-white text-gray-800">🔤 Nama</option>
+                      <option value="size" className="bg-white text-gray-800">📏 Ukuran</option>
+                    </select>
+                  </div>
+
+                  {/* Status Bar */}
+                  <div className="flex flex-col space-y-3">
+                    {/* File Count and Selection Status */}
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
+                          📁 {filteredAndSortedFolders.length} folder
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-700 bg-white/40 backdrop-blur-xl px-3 py-2 rounded-lg border border-white/50">
+                          📄 {filteredAndSortedDocuments.length} dokumen
+                        </span>
+                      </div>
+
+                      {selectedDocs.size > 0 && (
+                        <span className="text-xs sm:text-sm text-red-700 bg-red-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-red-200/50">
+                          ✅ {selectedDocs.size} dipilih
+                        </span>
+                      )}
+
+                      {isMultiSelectMode && (
+                        <span className="text-xs sm:text-sm text-blue-700 bg-blue-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-200/50">
+                          🔄 Multi-select mode
+                        </span>
+                      )}
+
+                      {isShowingRecentFiles && (
+                        <span className="text-xs sm:text-sm text-orange-700 bg-orange-100/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-orange-200/50">
+                          📄 Menampilkan dokumen terbaru
+                        </span>
+                      )}
                     </div>
 
-                    {/* Documents List */}
-                    <div className="h-[350px] sm:h-[450px] lg:h-[500px] bg-white/30 backdrop-blur-xl rounded-2xl overflow-y-auto border border-white/40 shadow-lg">
-                        <div className="p-4">
-                            {isLoading ? (
-                                <div className="flex items-center justify-center h-32">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-400"></div>
-                                    <span className="ml-3 text-gray-700 font-medium">Memuat dokumen...</span>
-                                </div>
-                            ) : (filteredAndSortedFolders.length > 0 || filteredAndSortedDocuments.length > 0) ? (
-                                <div className="space-y-3">
-                                    {/* Breadcrumb Navigation - New System */}
-                                    {(currentFolderId || folderHistory.length > 0) && (
-                                        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-3">
-                                                    <Button
-                                                        onClick={handleBackToParent}
-                                                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/30 flex items-center space-x-2"
-                                                    >
-                                                        <span>←</span>
-                                                        <span>Kembali</span>
-                                                    </Button>
-                                                    <div className="flex items-center space-x-2 text-gray-700">
-                                                        <span className="text-lg">📁</span>
-                                                        <div className="flex items-center space-x-1">
-                                                            <span className="text-sm font-medium">Root</span>
-                                                            {folderHistory.map((folder, index) => (
-                                                                <div key={index} className="flex items-center space-x-1">
-                                                                    <span className="text-gray-400">/</span>
-                                                                    <span className="text-sm font-medium text-gray-800">{folder.name}</span>
-                                                                </div>
-                                                            ))}
-                                                            {currentFolderName && (
-                                                                <div className="flex items-center space-x-1">
-                                                                    <span className="text-gray-400">/</span>
-                                                                    <span className="text-sm font-medium text-red-600">{currentFolderName}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-xs text-gray-500 bg-white/30 px-3 py-1 rounded-lg">
-                                                    {filteredAndSortedFolders.length} folder, {filteredAndSortedDocuments.length} dokumen
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Folders Section - Only show when NOT in "all documents" mode */}
-                                    {filteredAndSortedFolders.length > 0 && !currentFolderId && (
-                                        <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50/20 to-orange-50/20 rounded-2xl border-2 border-yellow-200/30">
-                                            <h3 className="text-lg font-bold text-yellow-800 mb-4 flex items-center">
-                                                <span className="text-2xl mr-2">📁</span>
-                                                Folders ({filteredAndSortedFolders.length})
-                                            </h3>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {filteredAndSortedFolders.map((folder: Document, index: number) => {
-                                                    
-                                                    return (
-                                                        <div 
-                                                            key={folder.id} 
-                                                            className="bg-white/60 backdrop-blur-xl rounded-xl p-4 border-2 border-yellow-300/40 hover:border-yellow-400/60 transition-all duration-300 cursor-pointer hover:shadow-lg group"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                handleFolderClick(folder);
-                                                            }}
-                                                        >
-                                                            <div className="flex items-center space-x-3">
-                                                                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200">
-                                                                    <span className="text-xl">📁</span>
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="text-sm font-semibold text-yellow-800 truncate group-hover:text-yellow-900">
-                                                                        {folder.name}
-                                                                    </p>
-                                                                    <p className="text-xs text-yellow-600">
-                                                                        Click to open all documents
-                                                                    </p>
-                                                                    <p className="text-xs text-red-600 font-bold">
-                                                                    </p>
-                                                                </div>
-                                                                <div 
-                                                                    className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center group-hover:bg-yellow-600 transition-colors duration-200"
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        e.stopPropagation();
-                                                                        handleFolderClick(folder);
-                                                                    }}
-                                                                >
-                                                                    <span className="text-white text-sm">→</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Documents Section - Show all documents (no folders) */}
-                                    {filteredAndSortedDocuments.filter(doc => !doc.is_folder).length > 0 && (
-                                        <div className="p-4 bg-gradient-to-r from-red-50/20 to-pink-50/20 rounded-2xl border-2 border-red-200/30">
-                                            <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center">
-                                                <span className="text-2xl mr-2">📄</span>
-                                                {currentFolderId ? 'All Documents from Folder' : 'Documents'} ({filteredAndSortedDocuments.filter(doc => !doc.is_folder).length})
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {filteredAndSortedDocuments.filter(doc => !doc.is_folder).map((doc: Document, index: number) => (
-                                                    <div 
-                                                        key={doc.id} 
-                                                        className={`flex items-center space-x-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                                                            selectedDocs.has(doc.id) 
-                                                                ? 'bg-red-100/80 border-red-400 shadow-md' 
-                                                                : 'bg-white/60 border-red-200/40 hover:border-red-300/60 hover:shadow-md'
-                                                        }`}
-                                                        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                                                            if (e.ctrlKey || e.metaKey) {
-                                                                handleSelectDoc(doc.id, filteredAndSortedFolders.length + index);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            id={doc.id}
-                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectDoc(doc.id, filteredAndSortedFolders.length + index)}
-                                                            checked={selectedDocs.has(doc.id)}
-                                                            className="h-5 w-5 text-red-600 rounded focus:ring-red-500"
-                                                            onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
-                                                        />
-                                                        <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
-                                                            <span className="text-xl">{getFileIcon(doc.mime_type || doc.mimeType)}</span>
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <label htmlFor={doc.id} className="block text-sm font-semibold text-red-800 truncate cursor-pointer">
-                                                                {doc.name}
-                                                            </label>
-                                                             <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-red-600 mt-1">
-                                                                 <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs">
-                                                                     {getFileTypeName(doc.mime_type || doc.mimeType)}
-                                                                 </span>
-                                                                 {doc.size && (
-                                                                     <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs">
-                                                                         {formatFileSize(doc.size)}
-                                                                     </span>
-                                                                 )}
-                                                                 {doc.modified_time && (
-                                                                     <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs break-words max-w-full">
-                                                                         📅 {formatDate(doc.modified_time)}
-                                                                     </span>
-                                                                 )}
-                                                                 {doc.source_subfolder && (
-                                                                     <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-red-700 text-xs">
-                                                                         📁 {doc.source_subfolder}
-                                                                     </span>
-                                                                 )}
-                                                             </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12">
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
-                                        <span className="text-2xl sm:text-3xl">📄</span>
-                                    </div>
-                                    <p className="text-gray-700 font-medium text-lg">
-                                        {searchTerm ? 'Tidak ada dokumen yang cocok dengan pencarian.' : 'Tidak ada dokumen yang ditemukan di Google Drive Anda.'}
-                                    </p>
-                                    {searchTerm && (
-                                        <Button
-                                            onClick={() => setSearchTerm('')}
-                                            className="mt-4 text-red-600 hover:text-red-700 text-sm font-medium bg-white/90 hover:bg-white border border-white/30 px-4 py-2 rounded-2xl transition-all duration-200 hover:shadow-md"
-                                        >
-                                            Hapus filter pencarian
-                                        </Button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 ${isMultiSelectMode
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-white/90 hover:bg-white text-gray-800 border border-white/30'
+                          }`}
+                      >
+                        {isMultiSelectMode ? '🔘 Multi-select ON' : '☐ Multi-select OFF'}
+                      </Button>
+
+                      <Button
+                        onClick={handleAddToKnowledgeBase}
+                        disabled={selectedDocs.size === 0}
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                      >
+                        ➕ Tambahkan ke KB ({selectedDocs.size})
+                      </Button>
                     </div>
+                  </div>
                 </div>
+
+                {/* Documents List */}
+                <div className="h-[350px] sm:h-[450px] lg:h-[500px] bg-white/30 backdrop-blur-xl rounded-2xl overflow-y-auto border border-white/40 shadow-lg">
+                  <div className="p-4">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-400"></div>
+                        <span className="ml-3 text-gray-700 font-medium">Memuat dokumen...</span>
+                      </div>
+                    ) : (filteredAndSortedFolders.length > 0 || filteredAndSortedDocuments.length > 0) ? (
+                      <div className="space-y-3">
+                        {/* Breadcrumb Navigation - New System */}
+                        {(currentFolderId || folderHistory.length > 0) && (
+                          <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 mb-4 border border-white/50 shadow-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <Button
+                                  onClick={handleBackToParent}
+                                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/30 flex items-center space-x-2"
+                                >
+                                  <span>←</span>
+                                  <span>Kembali</span>
+                                </Button>
+                                <div className="flex items-center space-x-2 text-gray-700">
+                                  <span className="text-lg">📁</span>
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-sm font-medium">Root</span>
+                                    {folderHistory.map((folder, index) => (
+                                      <div key={index} className="flex items-center space-x-1">
+                                        <span className="text-gray-400">/</span>
+                                        <span className="text-sm font-medium text-gray-800">{folder.name}</span>
+                                      </div>
+                                    ))}
+                                    {currentFolderName && (
+                                      <div className="flex items-center space-x-1">
+                                        <span className="text-gray-400">/</span>
+                                        <span className="text-sm font-medium text-red-600">{currentFolderName}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-xs text-gray-500 bg-white/30 px-3 py-1 rounded-lg">
+                                {filteredAndSortedFolders.length} folder, {filteredAndSortedDocuments.length} dokumen
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Folders Section - Only show when NOT in "all documents" mode */}
+                        {filteredAndSortedFolders.length > 0 && !currentFolderId && (
+                          <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50/20 to-orange-50/20 rounded-2xl border-2 border-yellow-200/30">
+                            <h3 className="text-lg font-bold text-yellow-800 mb-4 flex items-center">
+                              <span className="text-2xl mr-2">📁</span>
+                              Folders ({filteredAndSortedFolders.length})
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {filteredAndSortedFolders.map((folder: Document, index: number) => {
+
+                                return (
+                                  <div
+                                    key={folder.id}
+                                    className="bg-white/60 backdrop-blur-xl rounded-xl p-4 border-2 border-yellow-300/40 hover:border-yellow-400/60 transition-all duration-300 cursor-pointer hover:shadow-lg group"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleFolderClick(folder);
+                                    }}
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200">
+                                        <span className="text-xl">📁</span>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-yellow-800 truncate group-hover:text-yellow-900">
+                                          {folder.name}
+                                        </p>
+                                        <p className="text-xs text-yellow-600">
+                                          Click to open all documents
+                                        </p>
+                                        <p className="text-xs text-red-600 font-bold">
+                                        </p>
+                                      </div>
+                                      <div
+                                        className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center group-hover:bg-yellow-600 transition-colors duration-200"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          handleFolderClick(folder);
+                                        }}
+                                      >
+                                        <span className="text-white text-sm">→</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Documents Section - Show all documents (no folders) */}
+                        {filteredAndSortedDocuments.filter(doc => !doc.is_folder).length > 0 && (
+                          <div className="p-4 bg-gradient-to-r from-red-50/20 to-pink-50/20 rounded-2xl border-2 border-red-200/30">
+                            <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center">
+                              <span className="text-2xl mr-2">📄</span>
+                              {currentFolderId ? 'All Documents from Folder' : 'Documents'} ({filteredAndSortedDocuments.filter(doc => !doc.is_folder).length})
+                            </h3>
+                            <div className="space-y-3">
+                              {filteredAndSortedDocuments.filter(doc => !doc.is_folder).map((doc: Document, index: number) => (
+                                <div
+                                  key={doc.id}
+                                  className={`flex items-center space-x-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${selectedDocs.has(doc.id)
+                                    ? 'bg-red-100/80 border-red-400 shadow-md'
+                                    : 'bg-white/60 border-red-200/40 hover:border-red-300/60 hover:shadow-md'
+                                    }`}
+                                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                                    if (e.ctrlKey || e.metaKey) {
+                                      handleSelectDoc(doc.id, filteredAndSortedFolders.length + index);
+                                    }
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    id={doc.id}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectDoc(doc.id, filteredAndSortedFolders.length + index)}
+                                    checked={selectedDocs.has(doc.id)}
+                                    className="h-5 w-5 text-red-600 rounded focus:ring-red-500"
+                                    onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
+                                  />
+                                  <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
+                                    <span className="text-xl">{getFileIcon(doc.mime_type || doc.mimeType)}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <label htmlFor={doc.id} className="block text-sm font-semibold text-red-800 truncate cursor-pointer">
+                                      {doc.name}
+                                    </label>
+                                    <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-red-600 mt-1">
+                                      <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs">
+                                        {getFileTypeName(doc.mime_type || doc.mimeType)}
+                                      </span>
+                                      {doc.size && (
+                                        <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs">
+                                          {formatFileSize(doc.size)}
+                                        </span>
+                                      )}
+                                      {doc.modified_time && (
+                                        <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-xs break-words max-w-full">
+                                          📅 {formatDate(doc.modified_time)}
+                                        </span>
+                                      )}
+                                      {doc.source_subfolder && (
+                                        <span className="bg-red-100/80 px-1.5 sm:px-2 py-1 rounded-full border border-red-200/50 text-red-700 text-xs">
+                                          📁 {doc.source_subfolder}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
+                          <span className="text-2xl sm:text-3xl">📄</span>
+                        </div>
+                        <p className="text-gray-700 font-medium text-lg">
+                          {searchTerm ? 'Tidak ada dokumen yang cocok dengan pencarian.' : 'Tidak ada dokumen yang ditemukan di Google Drive Anda.'}
+                        </p>
+                        {searchTerm && (
+                          <Button
+                            onClick={() => setSearchTerm('')}
+                            className="mt-4 text-red-600 hover:text-red-700 text-sm font-medium bg-white/90 hover:bg-white border border-white/30 px-4 py-2 rounded-2xl transition-all duration-200 hover:shadow-md"
+                          >
+                            Hapus filter pencarian
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Knowledge Base Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-                <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-10">
-                        <div className="knowledge-bg-pattern-1"></div>
-                        <div className="knowledge-bg-pattern-2"></div>
-                    </div>
-                    
-                    <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                        <div className="knowledge-header">
-                            <div className="knowledge-icon">
-                                <span className="text-white text-2xl sm:text-3xl">🧠</span>
-                            </div>
-                            <div>
-                                <h2 className="knowledge-title">DORA Knowledge</h2>
-                                <p className="knowledge-subtitle">Dokumen yang siap untuk DORA</p>
-                            </div>
-                        </div>
-                        <div className="knowledge-actions">
-                            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                                
-                                <Button
-                                    onClick={handleClearAllDocuments}
-                                    disabled={knowledgeBase.length === 0 || isLoading}
-                                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                                >
-                                    {isLoading ? '⏳ Resetting...' : '🔄 Reset LLM Data'}
-                                </Button>
-                                
-                            </div>
-                            
-                            <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">
-                                <span className="text-sm text-white font-semibold">
-                                    {knowledgeBase.length} dokumen
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+              <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-6 sm:px-8 py-6 sm:py-8 backdrop-blur-sm relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="knowledge-bg-pattern-1"></div>
+                  <div className="knowledge-bg-pattern-2"></div>
                 </div>
-                <div className="knowledge-content">
-                    <div className="knowledge-list">
-                        <div className="knowledge-list-content">
-                        {knowledgeBase.length > 0 ? (
-                                <div className="space-y-3">
-                                    {knowledgeBase.map(doc => (
-                                        <div key={doc.id} className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/50 shadow-md hover:shadow-lg transition-all duration-300 p-4 hover:border-white/60">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-4 flex-1 min-w-0">
-                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
-                                                        <span className="text-lg">{getFileIcon(doc.mime_type)}</span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-gray-800 break-words leading-tight">{doc.name}</p>
-                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mt-2">
-                                                            <span className="glass-badge px-2 py-1 rounded-full border border-white/20">
-                                                                {getFileTypeName(doc.mime_type)}
-                                                            </span>
-                                                            <span className="bg-red-100/80 backdrop-blur-sm text-red-700 px-2 py-1 rounded-full border border-red-200/50">
-                                                                {doc.chunk_count} chunks
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                    <Button 
-                                      onClick={() => handleRemoveFromKnowledgeBase(doc.id)}
-                                                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-2 text-xs rounded-2xl font-medium transition-all duration-300 shadow-md hover:shadow-lg ml-3 flex-shrink-0 transform hover:scale-105"
-                                    >
-                                                    🗑️ Hapus
-                                    </Button>
-                                </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12">
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
-                                        <span className="text-2xl sm:text-3xl">🧠</span>
-                                    </div>
-                                    <p className="text-gray-700 font-medium mb-2 text-lg">Knowledge base masih kosong</p>
-                                    <p className="text-sm text-gray-600">Tambahkan dokumen dari Google Drive untuk memulai</p>
-                                </div>
-                        )}
-                        </div>
-                    </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        {/* LARA Footer - Compact with Logo Side by Side */}
-        <footer className="footer-main">
-          <div className="footer-content">
-            <div className="footer-brand-container">
-              <div className="footer-logo">
-                <div className="footer-logo-icon">
-                  <span className="footer-logo-text">D</span>
+                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                  <div className="knowledge-header">
+                    <div className="knowledge-icon">
+                      <span className="text-white text-2xl sm:text-3xl">🧠</span>
+                    </div>
+                    <div>
+                      <h2 className="knowledge-title">DORA Knowledge</h2>
+                      <p className="knowledge-subtitle">Dokumen yang siap untuk DORA</p>
+                    </div>
+                  </div>
+                  <div className="knowledge-actions">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+
+                      <Button
+                        onClick={handleClearAllDocuments}
+                        disabled={knowledgeBase.length === 0 || isLoading}
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
+                      >
+                        {isLoading ? '⏳ Resetting...' : '🔄 Reset LLM Data'}
+                      </Button>
+
+                    </div>
+
+                    <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30">
+                      <span className="text-sm text-white font-semibold">
+                        {knowledgeBase.length} dokumen
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="footer-logo-dot"></div>
               </div>
-              <div className="footer-brand-text">
-                <h3 className="footer-title">DORA</h3>
-                <p className="footer-subtitle">Document Retrieval Assistant</p>
+              <div className="knowledge-content">
+                <div className="knowledge-list">
+                  <div className="knowledge-list-content">
+                    {knowledgeBase.length > 0 ? (
+                      <div className="space-y-3">
+                        {knowledgeBase.map(doc => (
+                          <div key={doc.id} className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/50 shadow-md hover:shadow-lg transition-all duration-300 p-4 hover:border-white/60">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
+                                  <span className="text-lg">{getFileIcon(doc.mime_type)}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-gray-800 break-words leading-tight">{doc.name}</p>
+                                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mt-2">
+                                    <span className="glass-badge px-2 py-1 rounded-full border border-white/20">
+                                      {getFileTypeName(doc.mime_type)}
+                                    </span>
+                                    <span className="bg-red-100/80 backdrop-blur-sm text-red-700 px-2 py-1 rounded-full border border-red-200/50">
+                                      {doc.chunk_count} chunks
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => handleRemoveFromKnowledgeBase(doc.id)}
+                                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-2 text-xs rounded-2xl font-medium transition-all duration-300 shadow-md hover:shadow-lg ml-3 flex-shrink-0 transform hover:scale-105"
+                              >
+                                🗑️ Hapus
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
+                          <span className="text-2xl sm:text-3xl">🧠</span>
+                        </div>
+                        <p className="text-gray-700 font-medium mb-2 text-lg">Knowledge base masih kosong</p>
+                        <p className="text-sm text-gray-600">Tambahkan dokumen dari Google Drive untuk memulai</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="footer-description">
-              Transform your documents into an intelligent knowledge base with DORA.
-            </p>
           </div>
-        </footer>
+        </div>
       </div>
+
+      {/* DORA Footer - Compact with Logo */}
+      <footer className="bg-gradient-radial from-white via-red-100 to-red-600 py-4 px-4 mt-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img
+              src="/Logo.png"
+              alt="DORA Logo"
+              className="h-8 w-8 object-contain"
+            />
+            <div className="text-left">
+              <h3 className="text-lg font-bold text-gray-900 leading-tight">DORA</h3>
+              <p className="text-xs text-gray-700">Document Retrieval Assistant</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-600 max-w-xl mx-auto">
+            Transform your documents into an intelligent knowledge base with DORA.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }
 

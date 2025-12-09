@@ -16,6 +16,7 @@ from slowapi.errors import RateLimitExceeded
 from services.google_auth import GoogleAuthService
 from services.google_docs import GoogleDocsService
 from services.rag_pipeline import DORAPipeline
+from config import settings
 
 from models.schemas import (
     AuthRequest, 
@@ -36,8 +37,18 @@ ALLOWED_ORIGINS = os.getenv(
 
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format='%(levelname)s:%(name)s:%(message)s'
+)
 logger = logging.getLogger(__name__)
+
+# Reduce verbosity of httpx and other noisy loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("services.google_auth").setLevel(logging.WARNING)
+logging.getLogger("services.google_docs").setLevel(logging.WARNING)
+logging.getLogger("services.rag_pipeline").setLevel(logging.INFO)  # Keep RAG pipeline logs
 
 app = FastAPI(title="DORA - Document Retrieval Assistant", version="2.0.0")
 
@@ -272,7 +283,9 @@ async def bulk_upload_from_folder(
     x_google_token: Optional[str] = Header(None),
     current_user = Depends(get_current_user)
 ):
-    """Bulk upload ALL documents from a folder and its subfolders - SEQUENTIAL PROCESSING"""
+    """Bulk upload ALL documents from a folder and its subfolders - PARALLEL BATCH PROCESSING"""
+    import asyncio
+    
     try:
         # Get access token from header
         access_token = x_google_token
@@ -295,16 +308,19 @@ async def bulk_upload_from_folder(
                 "failed_documents": []
             }
         
-        # Step 2: Process documents SEQUENTIALLY (one by one)
+        # Step 2: Process documents in PARALLEL BATCHES for faster processing
         processed_count = 0
         failed_documents = []
         
-        logger.info("🔄 STEP 2: Processing documents sequentially...")
-        for i, doc in enumerate(all_documents, 1):
+        # Configuration for parallel processing (from config.py or environment variable)
+        BATCH_SIZE = settings.bulk_upload_batch_size  # Default: 5, configurable via BULK_UPLOAD_BATCH_SIZE env var
+        
+        async def process_single_document(doc, index, total):
+            """Process a single document with error handling"""
             try:
                 doc_id = doc['id']
                 doc_name = doc['name']
-                logger.debug(f"📄 [{i}/{len(all_documents)}] Processing: {doc_name}")
+                logger.info(f"📄 [{index}/{total}] Processing: {doc_name}")
                 
                 # Get document content
                 content = await google_docs_service.get_document_content(access_token, doc_id)
@@ -314,8 +330,10 @@ async def bulk_upload_from_folder(
                 
                 if not content or content_len < 10:
                     logger.warning(f"⚠️ Document {doc_name} has very little content ({content_len} chars)")
-                    failed_documents.append({"id": doc_id, "name": doc_name, "error": f"Very little content ({content_len} chars)"})
-                    continue
+                    return {
+                        "success": False,
+                        "doc": {"id": doc_id, "name": doc_name, "error": f"Very little content ({content_len} chars)"}
+                    }
                 
                 # Add to DORA pipeline (this will chunk and store)
                 chunks_added = await dora_pipeline.add_document(
@@ -327,23 +345,62 @@ async def bulk_upload_from_folder(
                 )
                 
                 if chunks_added > 0:
-                    logger.debug(f"✅ [{i}/{len(all_documents)}] Successfully processed: {doc_name} ({chunks_added} chunks)")
-                    processed_count += 1
+                    logger.info(f"✅ [{index}/{total}] Successfully processed: {doc_name} ({chunks_added} chunks)")
+                    return {"success": True, "chunks": chunks_added}
                 else:
-                    logger.warning(f"⚠️ [{i}/{len(all_documents)}] Failed to generate chunks for: {doc_name}")
-                    failed_documents.append({
-                        "id": doc_id, 
-                        "name": doc_name, 
-                        "error": "No chunks generated (possible empty or unreadable content)"
-                    })
+                    logger.warning(f"⚠️ [{index}/{total}] Failed to generate chunks for: {doc_name}")
+                    return {
+                        "success": False,
+                        "doc": {
+                            "id": doc_id, 
+                            "name": doc_name, 
+                            "error": "No chunks generated (possible empty or unreadable content)"
+                        }
+                    }
                 
             except Exception as e:
                 logger.error(f"❌ Failed to process document {doc.get('name', 'Unknown')}: {e}")
-                failed_documents.append({
-                    "id": doc.get('id', 'unknown'),
-                    "name": doc.get('name', 'Unknown'),
-                    "error": str(e)
-                })
+                return {
+                    "success": False,
+                    "doc": {
+                        "id": doc.get('id', 'unknown'),
+                        "name": doc.get('name', 'Unknown'),
+                        "error": str(e)
+                    }
+                }
+        
+        # Process documents in batches
+        logger.info(f"🚀 STEP 2: Processing documents in parallel batches of {BATCH_SIZE}...")
+        total_docs = len(all_documents)
+        
+        for batch_start in range(0, total_docs, BATCH_SIZE):
+            batch_end = min(batch_start + BATCH_SIZE, total_docs)
+            batch = all_documents[batch_start:batch_end]
+            
+            logger.info(f"🔄 Processing batch {batch_start//BATCH_SIZE + 1}: documents {batch_start+1}-{batch_end} of {total_docs}")
+            
+            # Process batch in parallel using asyncio.gather
+            tasks = [
+                process_single_document(doc, batch_start + i + 1, total_docs) 
+                for i, doc in enumerate(batch)
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Collect results
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error(f"❌ Exception in batch processing: {result}")
+                    failed_documents.append({
+                        "id": "unknown",
+                        "name": "Unknown",
+                        "error": str(result)
+                    })
+                elif result.get("success"):
+                    processed_count += 1
+                else:
+                    failed_documents.append(result.get("doc", {}))
+            
+            logger.info(f"✅ Batch {batch_start//BATCH_SIZE + 1} completed: {processed_count}/{batch_end} successful so far")
         
         # Step 3: Refresh Google Drive documents list
         logger.info("🔄 STEP 3: Refreshing Google Drive documents list...")
@@ -353,12 +410,15 @@ async def bulk_upload_from_folder(
         except Exception as e:
             logger.warning(f"⚠️ Could not refresh documents list: {e}")
         
+        logger.info(f"🎉 BULK UPLOAD COMPLETED: {processed_count}/{total_docs} successful, {len(failed_documents)} failed")
+        
         return {
-            "message": f"Bulk upload completed: {processed_count} documents processed successfully",
+            "message": f"Bulk upload completed: {processed_count} documents processed successfully out of {total_docs}",
             "processed_count": processed_count,
             "total_found": len(all_documents),
             "failed_documents": failed_documents,
-            "refreshed_documents_count": len(refreshed_documents) if 'refreshed_documents' in locals() else 0
+            "refreshed_documents_count": len(refreshed_documents) if 'refreshed_documents' in locals() else 0,
+            "batch_size": BATCH_SIZE
         }
         
     except Exception as e:

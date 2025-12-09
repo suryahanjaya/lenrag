@@ -56,18 +56,19 @@ class GoogleAuthService:
             
             async with httpx.AsyncClient() as client:
                 response = await client.get(user_info_url)
-            
-            if response.status_code != 200:
-                logger.warning(f"v3 endpoint failed, trying v2: {response.text}")
-                # Fallback to v2 endpoint
-                user_info_url = f"https://www.googleapis.com/oauth2/v2/userinfo?access_token={access_token}"
-                response = await client.get(user_info_url)
                 
                 if response.status_code != 200:
-                    logger.error(f"Failed to get user info from both endpoints: {response.text}")
-                    raise Exception(f"Failed to get user info: {response.text}")
+                    logger.warning(f"v3 endpoint failed, trying v2: {response.text}")
+                    # Fallback to v2 endpoint (still within same client context)
+                    user_info_url = f"https://www.googleapis.com/oauth2/v2/userinfo?access_token={access_token}"
+                    response = await client.get(user_info_url)
+                    
+                    if response.status_code != 200:
+                        logger.error(f"Failed to get user info from both endpoints: {response.text}")
+                        raise Exception(f"Failed to get user info: {response.text}")
+                
+                user_info = response.json()
             
-            user_info = response.json()
             logger.info(f"Google user info received: {user_info}")
             
             # Ensure picture field exists

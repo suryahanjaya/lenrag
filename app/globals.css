@@ -101,3 +101,10 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom radial gradient for footer */
+@layer utilities {
+  .bg-gradient-radial {
+    background: radial-gradient(circle at center, var(--tw-gradient-stops));
+  }
+}

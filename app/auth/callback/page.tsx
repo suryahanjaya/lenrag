@@ -30,7 +30,7 @@ export default function AuthCallback() {
   const handleAuthCallback = async (code: string) => {
     try {
       console.log('Exchanging authorization code for tokens...')
-      
+
       const response = await fetch('http://localhost:8000/auth/google', {
         method: 'POST',
         headers: {
@@ -57,14 +57,11 @@ export default function AuthCallback() {
       // Store Google token for API calls
       localStorage.setItem('google_token', data.access_token)
 
-      // Add a small delay to ensure localStorage is written
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Redirect to dashboard with a flag to indicate successful auth
-      router.push('/?auth=success')
+      // Use window.location.replace for immediate navigation without adding to history
+      window.location.replace('/?auth=success')
     } catch (error) {
       console.error('Authentication error:', error)
-      router.push('/?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Authentication failed'))
+      window.location.replace('/?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Authentication failed'))
     }
   }
 

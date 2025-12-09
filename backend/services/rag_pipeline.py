@@ -5,20 +5,62 @@ import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions
+from groq import Groq
 import json
 import re
 from datetime import datetime
+import time
+from config import RAGConfig
 
 logger = logging.getLogger(__name__)
 
 class DORAPipeline:
     def __init__(self):
-        # Initialize Gemini API
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        if not self.gemini_api_key:
-            raise ValueError("GEMINI_API_KEY environment variable not set")
-        genai.configure(api_key=self.gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        # Determine which LLM provider to use
+        self.llm_provider = RAGConfig.LLM_PROVIDER.lower()
+        logger.info(f"🤖 Initializing DORA with LLM provider: {self.llm_provider}")
+        
+        if self.llm_provider == "groq":
+            # Initialize Groq API
+            self.groq_api_key = os.getenv("GROQ_API_KEY")
+            if not self.groq_api_key:
+                raise ValueError("GROQ_API_KEY environment variable not set")
+            self.groq_client = Groq(api_key=self.groq_api_key)
+            
+            # Primary model (configurable via GROQ_MODEL env var)
+            self.primary_model_name = RAGConfig.GROQ_MODEL
+            logger.info(f"✅ Initialized Groq with model: {self.primary_model_name}")
+            
+            # Fallback models for Groq
+            self.fallback_models = [
+                'llama-3.1-70b-versatile',
+                'mixtral-8x7b-32768',
+                'llama-3.1-8b-instant',
+            ]
+        else:  # Default to Gemini
+            # Initialize Gemini API
+            self.gemini_api_key = os.getenv("GEMINI_API_KEY")
+            if not self.gemini_api_key:
+                raise ValueError("GEMINI_API_KEY environment variable not set")
+            genai.configure(api_key=self.gemini_api_key)
+            
+            # Primary model (configurable via GEMINI_MODEL env var)
+            self.primary_model_name = RAGConfig.GEMINI_MODEL
+            self.model = genai.GenerativeModel(self.primary_model_name)
+            
+            # Fallback models in case of quota exceeded
+            # Using models without 'models/' prefix (based on API key version)
+            self.fallback_models = [
+                'gemini-1.5-pro-exp-0827',  # Experimental pro version
+                'gemini-exp-1206',          # Latest experimental
+            ]
+        
+        # Remove primary model from fallbacks if it's already in the list
+        self.fallback_models = [m for m in self.fallback_models if m != self.primary_model_name]
+        
+        logger.info(f"✅ Initialized primary model: {self.primary_model_name}")
+        logger.info(f"🔄 Fallback models available: {', '.join(self.fallback_models)}")
         
         # Initialize embedding model - using multilingual model for better document understanding
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -75,6 +117,113 @@ class DORAPipeline:
     def _generate_chunk_id(self, document_id: str, chunk_index: int) -> str:
         """Generate a unique ID for a document chunk"""
         return f"{document_id}_chunk_{chunk_index}"
+    
+    def _generate_content_with_retry(self, prompt: str, max_retries: int = 3) -> str:
+        """
+        Generate content with automatic retry and fallback to other models if quota exceeded.
+        This prevents quota exceeded errors from breaking the application.
+        Supports both Groq and Gemini providers.
+        """
+        models_to_try = [self.primary_model_name] + self.fallback_models
+        
+        for model_index, model_name in enumerate(models_to_try):
+            for retry in range(max_retries):
+                try:
+                    if self.llm_provider == "groq":
+                        # Use Groq API
+                        if model_name != self.primary_model_name:
+                            logger.warning(f"🔄 Trying fallback Groq model: {model_name}")
+                        
+                        response = self.groq_client.chat.completions.create(
+                            model=model_name,
+                            messages=[
+                                {"role": "system", "content": "You are DORA (Document Retrieval Assistant), a helpful AI assistant that answers questions based on document context."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=RAGConfig.GROQ_TEMPERATURE,
+                            max_tokens=RAGConfig.GROQ_MAX_TOKENS
+                        )
+                        
+                        # Success!
+                        if model_name != self.primary_model_name:
+                            logger.info(f"✅ Successfully generated response using fallback Groq model: {model_name}")
+                        
+                        return response.choices[0].message.content
+                        
+                    else:  # Gemini
+                        # Use current model
+                        if model_name != self.primary_model_name:
+                            logger.warning(f"🔄 Trying fallback Gemini model: {model_name}")
+                            current_model = genai.GenerativeModel(model_name)
+                        else:
+                            current_model = self.model
+                        
+                        # Generate content
+                        response = current_model.generate_content(prompt)
+                        
+                        # Success!
+                        if model_name != self.primary_model_name:
+                            logger.info(f"✅ Successfully generated response using fallback Gemini model: {model_name}")
+                        
+                        return response.text
+                    
+                except google_exceptions.ResourceExhausted as e:
+                    # Quota exceeded for Gemini
+                    logger.warning(f"⚠️ Quota exceeded for Gemini model: {model_name}")
+                    
+                    if retry < max_retries - 1:
+                        # Retry with exponential backoff (only for same model)
+                        wait_time = (2 ** retry) * 1  # 1s, 2s, 4s
+                        logger.info(f"⏱️ Retrying in {wait_time}s... (attempt {retry + 2}/{max_retries})")
+                        time.sleep(wait_time)
+                    else:
+                        # Move to next model
+                        if model_index < len(models_to_try) - 1:
+                            logger.info(f"🔄 Moving to next fallback model...")
+                            break
+                        else:
+                            # All models exhausted
+                            logger.error(f"❌ All Gemini models quota exceeded. Please wait or upgrade to paid plan.")
+                            raise Exception(
+                                "Quota exceeded for all available Gemini models. "
+                                "Please wait a few minutes for quota reset, or upgrade to a paid plan at https://ai.google.dev/"
+                            )
+                
+                except Exception as e:
+                    # Other errors (including Groq errors)
+                    error_msg = str(e).lower()
+                    
+                    # Check if it's a rate limit error for Groq
+                    if "rate" in error_msg or "limit" in error_msg or "quota" in error_msg:
+                        logger.warning(f"⚠️ Rate limit/quota exceeded for {self.llm_provider} model: {model_name}")
+                        
+                        if retry < max_retries - 1:
+                            wait_time = (2 ** retry) * 1
+                            logger.info(f"⏱️ Retrying in {wait_time}s...")
+                            time.sleep(wait_time)
+                        else:
+                            # Move to next model
+                            if model_index < len(models_to_try) - 1:
+                                logger.info(f"🔄 Moving to next fallback model...")
+                                break
+                            else:
+                                logger.error(f"❌ All {self.llm_provider} models quota exceeded.")
+                                raise Exception(
+                                    f"Quota exceeded for all available {self.llm_provider} models. "
+                                    "Please wait a few minutes for quota reset."
+                                )
+                    else:
+                        # Other errors
+                        logger.error(f"❌ Error generating content with {model_name}: {e}")
+                        if retry < max_retries - 1:
+                            wait_time = (2 ** retry) * 1
+                            logger.info(f"⏱️ Retrying in {wait_time}s...")
+                            time.sleep(wait_time)
+                        else:
+                            raise
+        
+        # Should not reach here
+        raise Exception(f"Failed to generate content with all available {self.llm_provider} models")
     
     def _detect_document_type(self, text: str, mime_type: str = None) -> str:
         """Detect document type based on content and MIME type"""
@@ -466,8 +615,8 @@ PANDUAN PENULISAN:
 
 Jawaban:"""
                 
-                response = self.model.generate_content(prompt)
-                raw_answer = response.text
+                # Use retry mechanism with fallback models
+                raw_answer = self._generate_content_with_retry(prompt)
                 
                 # Clean up the response
                 answer = self._clean_response(raw_answer)

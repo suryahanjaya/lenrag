@@ -17,7 +17,7 @@ export default function Home() {
     const checkAuth = () => {
       const storedUser = localStorage.getItem('user')
       const storedToken = localStorage.getItem('access_token')
-      
+
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser)
@@ -39,21 +39,16 @@ export default function Home() {
     // Check for auth success parameter
     const urlParams = new URLSearchParams(window.location.search)
     const authSuccess = urlParams.get('auth')
-    
+
     if (authSuccess === 'success') {
-      // Clean up URL parameter
+      // Clean up URL parameter immediately
       window.history.replaceState({}, document.title, window.location.pathname)
-      // Force a re-check of auth state
-      setTimeout(checkAuth, 100)
+      // Check auth state immediately
+      checkAuth()
     } else {
       // Check auth immediately
       checkAuth()
     }
-
-    // Also check auth after a short delay to handle race conditions
-    const timeoutId = setTimeout(checkAuth, 200)
-
-    return () => clearTimeout(timeoutId)
   }, [])
 
   const handleAuthSuccess = (userData: User) => {
@@ -83,15 +78,23 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-rose-100">
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-16">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <img
+              src="/Logo.png"
+              alt="DORA Logo"
+              className="h-24 w-24 object-contain"
+            />
+          </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             DORA - Document Retrieval Assistant
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Transform your documents into an intelligent knowledge base. 
+            Transform your documents into an intelligent knowledge base.
             DORA can understand legal, academic, technical, business, medical, and financial documents.
           </p>
           <GoogleAuthButton onSuccess={handleAuthSuccess} />
@@ -101,7 +104,7 @@ export default function Home() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <Card>
             <CardHeader>
-              <Shield className="h-8 w-8 text-blue-600 mb-2" />
+              <Shield className="h-8 w-8 text-red-600 mb-2" />
               <CardTitle className="text-lg">Secure Authentication</CardTitle>
             </CardHeader>
             <CardContent>
@@ -113,7 +116,7 @@ export default function Home() {
 
           <Card>
             <CardHeader>
-              <FileText className="h-8 w-8 text-green-600 mb-2" />
+              <FileText className="h-8 w-8 text-red-500 mb-2" />
               <CardTitle className="text-lg">Document Integration</CardTitle>
             </CardHeader>
             <CardContent>
@@ -125,7 +128,7 @@ export default function Home() {
 
           <Card>
             <CardHeader>
-              <Brain className="h-8 w-8 text-purple-600 mb-2" />
+              <Brain className="h-8 w-8 text-rose-600 mb-2" />
               <CardTitle className="text-lg">DORA Intelligence</CardTitle>
             </CardHeader>
             <CardContent>
@@ -137,7 +140,7 @@ export default function Home() {
 
           <Card>
             <CardHeader>
-              <MessageSquare className="h-8 w-8 text-orange-600 mb-2" />
+              <MessageSquare className="h-8 w-8 text-red-700 mb-2" />
               <CardTitle className="text-lg">Smart Fallback</CardTitle>
             </CardHeader>
             <CardContent>
@@ -153,28 +156,28 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-blue-600">1</span>
+              <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-red-600">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Connect & Select</h3>
               <p className="text-gray-600">
                 Sign in with Google and choose which documents to add to your knowledge base
               </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-green-600">2</span>
+              <div className="bg-rose-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-rose-600">2</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">DORA Processing</h3>
               <p className="text-gray-600">
                 DORA intelligently processes various document types and creates smart embeddings for universal retrieval
               </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-purple-600">3</span>
+              <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-red-700">3</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Ask & Learn</h3>
               <p className="text-gray-600">

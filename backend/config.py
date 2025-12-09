@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     google_client_id: str = Field(..., env="GOOGLE_CLIENT_ID")
     google_client_secret: str = Field(..., env="GOOGLE_CLIENT_SECRET")
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
+    groq_api_key: str = Field(default="", env="GROQ_API_KEY")
     
     # Optional Supabase (for future use)
     supabase_url: str = Field(default="", env="SUPABASE_URL")
@@ -71,6 +72,13 @@ class Settings(BaseSettings):
     max_bulk_upload_documents: int = Field(default=100, env="MAX_BULK_UPLOAD_DOCUMENTS")
     concurrent_processing_limit: int = Field(default=5, env="CONCURRENT_PROCESSING_LIMIT")
     
+    # Bulk Upload Optimization
+    bulk_upload_batch_size: int = Field(
+        default=5, 
+        env="BULK_UPLOAD_BATCH_SIZE",
+        description="Number of documents to process in parallel per batch. Increase for faster processing (requires more resources), decrease for more stable processing."
+    )
+    
     # Cache Configuration
     cache_ttl_seconds: int = Field(default=300, env="CACHE_TTL_SECONDS")
     
@@ -108,10 +116,21 @@ class RAGConfig:
     EMBEDDING_MODEL = "all-MiniLM-L6-v2"
     EMBEDDING_DIMENSION = 384
     
-    # Gemini model
-    GEMINI_MODEL = "gemini-2.0-flash-exp"
+    # Gemini model (configurable via environment variable)
+    # Using gemini-2.0-flash-exp (the model that was working before)
+    # NOTE: This is an experimental model with limited quota (50 req/day)
+    # If you get quota exceeded, wait for reset or upgrade to paid plan
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
     GEMINI_TEMPERATURE = 0.7
     GEMINI_MAX_TOKENS = 2048
+    
+    # Groq model configuration
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    GROQ_TEMPERATURE = 0.7
+    GROQ_MAX_TOKENS = 2048
+    
+    # LLM Provider: "gemini" or "groq"
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
 
 
 # Logging configuration
