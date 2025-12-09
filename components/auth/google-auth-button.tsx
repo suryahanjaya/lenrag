@@ -13,7 +13,7 @@ export function GoogleAuthButton({ onSuccess }: GoogleAuthButtonProps) {
 
   const handleGoogleAuth = () => {
     setLoading(true)
-    
+
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
     const redirectUri = `${window.location.origin}/auth/callback`
     const scopes = [
@@ -51,7 +51,7 @@ export function GoogleAuthButton({ onSuccess }: GoogleAuthButtonProps) {
       onClick={handleGoogleAuth}
       disabled={loading}
       size="lg"
-      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+      className="bg-red-600 hover:bg-red-700 text-white px-8 py-3"
     >
       {loading ? (
         <>

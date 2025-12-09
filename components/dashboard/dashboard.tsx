@@ -1326,7 +1326,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           <div className="w-full">
             {/* Chat Section */}
             <div className="bg-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/40">
-              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                   <div className="chat-bg-pattern-1"></div>
@@ -1472,7 +1472,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                         chatHistory.map((msg: { role: 'user' | 'assistant'; content: string; sources?: Array<string | { id: string; name: string; type: string; link?: string; }>; from_documents?: boolean; }, index: number) => (
                           <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`px-4 py-3 rounded-2xl ${msg.role === 'user'
-                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white max-w-xs sm:max-w-md lg:max-w-lg shadow-md'
+                              ? 'bg-gradient-to-r from-red-600 to-red-700 text-white max-w-xs sm:max-w-md lg:max-w-lg shadow-md'
                               : 'glass-dark text-gray-800 shadow-md w-full max-w-4xl border border-white/20'
                               }`}>
                               <div className="flex items-start space-x-3">
@@ -1558,7 +1558,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                     <Button
                       onClick={handleSendMessage}
                       disabled={!chatMessage.trim() || isChatLoading || knowledgeBase.length === 0}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none border border-white/30"
+                      className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-500 disabled:to-gray-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none border border-white/30"
                     >
                       {isChatLoading ? '⏳' : '📤'} Kirim
                     </Button>
@@ -1822,7 +1822,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                       <Button
                         onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 ${isMultiSelectMode
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
                           : 'bg-white/90 hover:bg-white text-gray-800 border border-white/30'
                           }`}
                       >
