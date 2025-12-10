@@ -160,31 +160,31 @@
    GLASSMORPHISM EFFECTS
    ======================================== */
 .glass {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 240, 240, 0.4);
   backdrop-filter: blur(15px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 200, 200, 0.5);
+  box-shadow: 0 4px 16px 0 rgba(220, 38, 38, 0.1);
 }
 
 .glass-dark {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 235, 235, 0.5);
   backdrop-filter: blur(15px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 180, 180, 0.6);
+  box-shadow: 0 4px 16px 0 rgba(220, 38, 38, 0.15);
 }
 
 .glass-premium {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 230, 230, 0.6);
   backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 6px 20px 0 rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 160, 160, 0.7);
+  box-shadow: 0 6px 20px 0 rgba(220, 38, 38, 0.2);
 }
 
 .glass-badge {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 240, 240, 0.5);
   backdrop-filter: blur(15px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 200, 200, 0.6);
+  box-shadow: 0 2px 8px 0 rgba(220, 38, 38, 0.12);
 }
 
 /* ========================================
@@ -239,8 +239,8 @@
   right: -10rem;
   width: 24rem;
   height: 24rem;
-  background: linear-gradient(to bottom right, #fee2e2, #fecaca);
-  opacity: 0.2;
+  background: linear-gradient(to bottom right, #fca5a5, #f87171);
+  opacity: 0.4;
 }
 
 .background-blob-2 {
@@ -248,8 +248,8 @@
   left: -10rem;
   width: 24rem;
   height: 24rem;
-  background: linear-gradient(to bottom right, #dbeafe, #bfdbfe);
-  opacity: 0.12;
+  background: linear-gradient(to bottom right, #fb923c, #fdba74);
+  opacity: 0.35;
 }
 
 .background-blob-3 {
@@ -258,8 +258,8 @@
   transform: translate(-50%, -50%);
   width: 37.5rem;
   height: 37.5rem;
-  background: linear-gradient(to bottom right, #fecaca, #fee2e2);
-  opacity: 0.15;
+  background: linear-gradient(to bottom right, #f472b6, #fda4af);
+  opacity: 0.3;
 }
 
 .background-blob-4 {
@@ -267,8 +267,8 @@
   right: 25%;
   width: 18rem;
   height: 18rem;
-  background: linear-gradient(to bottom right, #fee2e2, #ffffff);
-  opacity: 0.18;
+  background: linear-gradient(to bottom right, #fb7185, #fca5a5);
+  opacity: 0.35;
 }
 
 /* ========================================
@@ -435,6 +435,46 @@
   font-style: italic;
   color: #6b7280;
   font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+/* Premium Formatted AI Response Styling - White & Red Theme */
+.formatted-message-premium {
+  font-size: 15px;
+  line-height: 1.7;
+  max-width: 100%;
+  color: #1f2937;
+}
+
+.formatted-message-premium p {
+  margin-bottom: 0.75rem;
+  color: #1f2937;
+  word-wrap: break-word;
+  hyphens: auto;
+  letter-spacing: 0.01em;
+}
+
+.formatted-message-premium p:last-child {
+  margin-bottom: 0;
+}
+
+.formatted-message-premium ul {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.formatted-message-premium li {
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+  line-height: 1.7;
+  word-wrap: break-word;
+}
+
+.formatted-message-premium li:last-child {
+  margin-bottom: 0;
+}
+
+.formatted-message-premium p+p {
   margin-top: 0.5rem;
 }
 

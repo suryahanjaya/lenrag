@@ -57,6 +57,9 @@ export default function AuthCallback() {
       // Store Google token for API calls
       localStorage.setItem('google_token', data.access_token)
 
+      // Store login timestamp for session management
+      localStorage.setItem('login_timestamp', Date.now().toString())
+
       // Use window.location.replace for immediate navigation without adding to history
       window.location.replace('/?auth=success')
     } catch (error) {

@@ -14,21 +14,44 @@ export default function Home() {
     const checkAuth = () => {
       const storedUser = localStorage.getItem('user')
       const storedToken = localStorage.getItem('access_token')
+      const loginTimestamp = localStorage.getItem('login_timestamp')
 
-      if (storedUser) {
+      // Check if session is still valid (7 days)
+      const sessionDuration = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+      const now = Date.now()
+
+      if (loginTimestamp) {
+        const timeSinceLogin = now - parseInt(loginTimestamp)
+
+        // If session expired, clear everything
+        if (timeSinceLogin > sessionDuration) {
+          console.log('Session expired, clearing auth data')
+          localStorage.removeItem('user')
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('google_token')
+          localStorage.removeItem('login_timestamp')
+          setLoading(false)
+          return
+        }
+      }
+
+      if (storedUser && storedToken) {
         try {
           const userData = JSON.parse(storedUser)
           setUser(userData)
+          setToken(storedToken)
+
+          // Update timestamp to extend session
+          localStorage.setItem('login_timestamp', now.toString())
         } catch (error) {
           console.error('Error parsing stored user:', error)
           localStorage.removeItem('user')
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
           localStorage.removeItem('google_token')
+          localStorage.removeItem('login_timestamp')
         }
-      }
-      if (storedToken) {
-        setToken(storedToken)
       }
       setLoading(false)
     }
@@ -47,6 +70,7 @@ export default function Home() {
   const handleAuthSuccess = (userData: User) => {
     setUser(userData)
     localStorage.setItem('user', JSON.stringify(userData))
+    localStorage.setItem('login_timestamp', Date.now().toString())
   }
 
   const handleLogout = () => {
@@ -55,6 +79,8 @@ export default function Home() {
     localStorage.removeItem('user')
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    localStorage.removeItem('google_token')
+    localStorage.removeItem('login_timestamp')
   }
 
   if (loading) {
@@ -93,8 +119,56 @@ export default function Home() {
             <GoogleAuthButton onSuccess={handleAuthSuccess} />
           </div>
 
+          {/* Feature Cards - Premium */}
+          <div className="space-y-3 mb-8">
+            {/* Secure Authentication */}
+            <div className="group bg-gradient-to-br from-red-50/80 to-white/80 backdrop-blur-sm rounded-xl p-4 border border-red-100/50 hover:border-red-200 transition-all duration-300 hover:shadow-md">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">Secure Authentication</h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">Sign in securely with your Google account using OAuth 2.0</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Integration */}
+            <div className="group bg-gradient-to-br from-white/80 to-red-50/80 backdrop-blur-sm rounded-xl p-4 border border-gray-100/50 hover:border-red-200 transition-all duration-300 hover:shadow-md">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">Document Integration</h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">Access and select from all your Google Docs seamlessly</p>
+                </div>
+              </div>
+            </div>
+
+            {/* DORA Intelligence */}
+            <div className="group bg-gradient-to-br from-red-50/80 to-white/80 backdrop-blur-sm rounded-xl p-4 border border-red-100/50 hover:border-red-200 transition-all duration-300 hover:shadow-md">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">DORA Intelligence</h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">Universal document understanding for all types of content</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Description Text */}
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-xs text-gray-400 italic">
             Your intelligent companion for document understanding and knowledge management
           </p>
         </div>
