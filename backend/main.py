@@ -119,6 +119,31 @@ async def authenticate_google(request: Request, auth_request: AuthRequest):
         logger.error(f"Google authentication error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.post("/auth/refresh", response_model=Dict[str, Any])
+@limiter.limit("10/minute")
+async def refresh_token(request: Request, refresh_request: Dict[str, str]):
+    """Refresh access token using refresh token"""
+    try:
+        refresh_token = refresh_request.get('refresh_token')
+        if not refresh_token:
+            raise HTTPException(status_code=400, detail="Refresh token required")
+        
+        logger.info("Refreshing access token")
+        
+        # Refresh the access token
+        tokens = await google_auth_service.refresh_access_token(refresh_token)
+        logger.info("Successfully refreshed access token")
+        
+        return {
+            "access_token": tokens['access_token'],
+            "expires_in": tokens.get('expires_in', 3600)
+        }
+    
+    except Exception as e:
+        logger.error(f"Token refresh error: {e}")
+        raise HTTPException(status_code=401, detail=str(e))
+
+
 @app.get("/documents", response_model=List[DocumentResponse])
 async def get_user_documents(
     x_google_token: Optional[str] = Header(None),

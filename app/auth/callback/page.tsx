@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { TokenManager } from '@/utils/tokenManager'
 
 export default function AuthCallback() {
   const router = useRouter()
@@ -45,20 +46,19 @@ export default function AuthCallback() {
       }
 
       const data = await response.json()
-      console.log('Authentication successful:', data)
+      console.log('Authentication successful!')
 
-      // Store user data and tokens
+      // Store user data
       localStorage.setItem('user', JSON.stringify(data.user))
-      localStorage.setItem('access_token', data.access_token)
-      if (data.refresh_token) {
-        localStorage.setItem('refresh_token', data.refresh_token)
-      }
 
-      // Store Google token for API calls
-      localStorage.setItem('google_token', data.access_token)
+      // Use TokenManager to save tokens with auto-refresh
+      TokenManager.saveTokens(
+        data.access_token,
+        data.refresh_token,
+        3600 // Google tokens expire in 1 hour
+      )
 
-      // Store login timestamp for session management
-      localStorage.setItem('login_timestamp', Date.now().toString())
+      console.log('✅ Tokens saved with auto-refresh enabled')
 
       // Use window.location.replace for immediate navigation without adding to history
       window.location.replace('/?auth=success')

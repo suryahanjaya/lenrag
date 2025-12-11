@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { GoogleAuthButton } from '@/components/auth/google-auth-button'
 import { Dashboard } from '@/components/dashboard/dashboard'
 import { User } from '@/lib/types'
+import { TokenManager } from '@/utils/tokenManager'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -11,46 +12,22 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Initialize TokenManager on app start
+    TokenManager.initialize();
+
     const checkAuth = () => {
       const storedUser = localStorage.getItem('user')
-      const storedToken = localStorage.getItem('access_token')
-      const loginTimestamp = localStorage.getItem('login_timestamp')
-
-      // Check if session is still valid (7 days)
-      const sessionDuration = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
-      const now = Date.now()
-
-      if (loginTimestamp) {
-        const timeSinceLogin = now - parseInt(loginTimestamp)
-
-        // If session expired, clear everything
-        if (timeSinceLogin > sessionDuration) {
-          console.log('Session expired, clearing auth data')
-          localStorage.removeItem('user')
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('google_token')
-          localStorage.removeItem('login_timestamp')
-          setLoading(false)
-          return
-        }
-      }
+      const storedToken = TokenManager.getAccessToken() // Use TokenManager
 
       if (storedUser && storedToken) {
         try {
           const userData = JSON.parse(storedUser)
           setUser(userData)
           setToken(storedToken)
-
-          // Update timestamp to extend session
-          localStorage.setItem('login_timestamp', now.toString())
         } catch (error) {
           console.error('Error parsing stored user:', error)
+          TokenManager.clearTokens() // Use TokenManager to clear
           localStorage.removeItem('user')
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('google_token')
-          localStorage.removeItem('login_timestamp')
         }
       }
       setLoading(false)
@@ -70,17 +47,24 @@ export default function Home() {
   const handleAuthSuccess = (userData: User) => {
     setUser(userData)
     localStorage.setItem('user', JSON.stringify(userData))
-    localStorage.setItem('login_timestamp', Date.now().toString())
   }
 
   const handleLogout = () => {
+    // Clear all state
     setUser(null)
     setToken(null)
+
+    // Clear all tokens using TokenManager
+    TokenManager.clearTokens()
+
+    // Clear user data
     localStorage.removeItem('user')
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('google_token')
-    localStorage.removeItem('login_timestamp')
+
+    // Clear any remaining storage
+    sessionStorage.clear()
+
+    // Force reload to clear any cached state
+    window.location.href = '/'
   }
 
   if (loading) {
