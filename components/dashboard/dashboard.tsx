@@ -39,6 +39,18 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   }>>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
 
+  // Chat Sessions Management
+  interface ChatSession {
+    id: string;
+    title: string;
+    messages: typeof chatHistory;
+    createdAt: number;
+    updatedAt: number;
+  }
+
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+
   // Document management state
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('modified');
@@ -596,10 +608,119 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }
   }, [handleSendMessage]);
 
+  // Load chat sessions from localStorage on mount
+  useEffect(() => {
+    const savedSessions = localStorage.getItem('chatSessions');
+    const savedActiveId = localStorage.getItem('activeChatId');
+
+    if (savedSessions) {
+      try {
+        const sessions = JSON.parse(savedSessions);
+        setChatSessions(sessions);
+
+        if (savedActiveId && sessions.find((s: ChatSession) => s.id === savedActiveId)) {
+          setActiveChatId(savedActiveId);
+          const activeSession = sessions.find((s: ChatSession) => s.id === savedActiveId);
+          if (activeSession) {
+            setChatHistory(activeSession.messages);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading chat sessions:', error);
+      }
+    }
+  }, []);
+
+  // Save current chat to session whenever chatHistory changes
+  useEffect(() => {
+    if (activeChatId && chatHistory.length > 0) {
+      setChatSessions(prev => {
+        const updated = prev.map(session => {
+          if (session.id === activeChatId) {
+            // Generate title from first user message
+            const firstUserMsg = chatHistory.find(m => m.role === 'user');
+            const title = firstUserMsg
+              ? firstUserMsg.content.substring(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '')
+              : 'New Chat';
+
+            return {
+              ...session,
+              title,
+              messages: chatHistory,
+              updatedAt: Date.now()
+            };
+          }
+          return session;
+        });
+
+        localStorage.setItem('chatSessions', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [chatHistory, activeChatId]);
+
+  // Create new chat session
   const handleNewChat = () => {
+    // Save current chat if it has messages
+    if (activeChatId && chatHistory.length > 0) {
+      // Already saved by useEffect above
+    }
+
+    // Create new session
+    const newSession: ChatSession = {
+      id: `chat_${Date.now()}`,
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    setChatSessions(prev => {
+      const updated = [newSession, ...prev];
+      localStorage.setItem('chatSessions', JSON.stringify(updated));
+      return updated;
+    });
+
+    setActiveChatId(newSession.id);
+    localStorage.setItem('activeChatId', newSession.id);
     setChatHistory([]);
     setChatMessage('');
     setCurrentView('chat');
+  };
+
+  // Switch to a different chat session
+  const handleSwitchChat = (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    if (session) {
+      setActiveChatId(sessionId);
+      localStorage.setItem('activeChatId', sessionId);
+      setChatHistory(session.messages);
+      setChatMessage('');
+      setCurrentView('chat');
+    }
+  };
+
+  // Delete a chat session
+  const handleDeleteChat = (sessionId: string) => {
+    setChatSessions(prev => {
+      const updated = prev.filter(s => s.id !== sessionId);
+      localStorage.setItem('chatSessions', JSON.stringify(updated));
+
+      // If deleting active chat, switch to another or create new
+      if (sessionId === activeChatId) {
+        if (updated.length > 0) {
+          setActiveChatId(updated[0].id);
+          localStorage.setItem('activeChatId', updated[0].id);
+          setChatHistory(updated[0].messages);
+        } else {
+          setActiveChatId(null);
+          localStorage.removeItem('activeChatId');
+          setChatHistory([]);
+        }
+      }
+
+      return updated;
+    });
   };
 
   // Initial data fetch
@@ -626,6 +747,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         onNewChat={handleNewChat}
         currentView={currentView}
         onViewChange={setCurrentView}
+        chatSessions={chatSessions}
+        activeChatId={activeChatId}
+        onSwitchChat={handleSwitchChat}
+        onDeleteChat={handleDeleteChat}
       />
 
       {/* Main Content */}
@@ -673,13 +798,27 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               </div>
 
               {/* Profile Picture */}
-              {user.picture && (
+              {user.picture ? (
                 <img
                   src={user.picture}
                   alt={user.name || 'User'}
                   className="w-9 h-9 rounded-full border-2 border-gray-200"
+                  onError={(e) => {
+                    // Fallback to initials avatar if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
-              )}
+              ) : null}
+              {/* Fallback Avatar with Initials */}
+              <div
+                className="w-9 h-9 rounded-full border-2 border-gray-200 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm"
+                style={{ display: user.picture ? 'none' : 'flex' }}
+              >
+                {user.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
+              </div>
 
               {/* Logout Button */}
               {onLogout && (

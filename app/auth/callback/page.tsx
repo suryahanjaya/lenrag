@@ -1,13 +1,20 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { TokenManager } from '@/utils/tokenManager'
 
 export default function AuthCallback() {
   const router = useRouter()
+  const isProcessing = useRef(false) // Prevent double request
 
   useEffect(() => {
+    // Prevent double execution
+    if (isProcessing.current) {
+      console.log('Already processing authentication, skipping...')
+      return
+    }
+
     // Get the authorization code from URL parameters
     const urlParams = new URLSearchParams(window.location.search)
     const code = urlParams.get('code')
@@ -20,6 +27,9 @@ export default function AuthCallback() {
     }
 
     if (code) {
+      // Mark as processing
+      isProcessing.current = true
+
       // Send the code to backend for token exchange
       handleAuthCallback(code)
     } else {
@@ -42,6 +52,11 @@ export default function AuthCallback() {
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('Authentication failed:', errorData)
+
+        // Clear processing flag on error
+        isProcessing.current = false
+
         throw new Error(errorData.detail || 'Authentication failed')
       }
 
@@ -64,6 +79,10 @@ export default function AuthCallback() {
       window.location.replace('/?auth=success')
     } catch (error) {
       console.error('Authentication error:', error)
+
+      // Clear processing flag on error
+      isProcessing.current = false
+
       window.location.replace('/?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Authentication failed'))
     }
   }

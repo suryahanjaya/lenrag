@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'RAG Chatbot - Google Docs Integration',
-  description: 'Chat with your Google Docs using AI-powered RAG system',
+  title: 'DORA',
+  description: 'DORA - Your intelligent companion for document understanding and knowledge management',
 }
 
 export default function RootLayout({

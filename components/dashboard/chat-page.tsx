@@ -199,51 +199,60 @@ export function ChatPage({
 
 
             {/* Chat Messages Area */}
-            <div className={`flex-1 overflow-y-auto px-6 ${chatHistory.length === 0 ? 'bg-white' : 'bg-gray-50 py-6'}`}>
+            <div className={`flex-1 overflow-y-auto ${chatHistory.length === 0 ? 'bg-gradient-to-br from-gray-50 via-white to-gray-50' : 'bg-gray-50 py-6 px-6'}`}>
                 {chatHistory.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center">
-                        <div className="w-full max-w-3xl mx-auto flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
-                            {/* Logo and Greeting - Aligned with search bar */}
-                            <div className="flex items-center gap-6 mb-8">
-                                {/* Logo DORA - Large */}
-                                <img src="/1T.png" alt="DORA" className="h-24 w-24" />
+                    <div className="h-full flex flex-col items-center relative overflow-hidden">
+                        {/* Subtle Background Pattern */}
+                        <div className="absolute inset-0 opacity-[0.02]" style={{
+                            backgroundImage: 'radial-gradient(circle at 1px 1px, rgb(0 0 0) 1px, transparent 0)',
+                            backgroundSize: '40px 40px'
+                        }}></div>
 
-                                {/* Greeting - 2 Lines (No background) */}
+                        <div className="w-full max-w-4xl mx-auto flex flex-col mt-[20vh] px-8 relative z-10">
+                            {/* Logo and Greeting */}
+                            <div className="flex items-center gap-6 mb-10">
+                                {/* Logo DORA with subtle shadow */}
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-red-500/10 blur-2xl rounded-full"></div>
+                                    <img src="/1T.png" alt="DORA" className="h-20 w-20 relative z-10" />
+                                </div>
+
+                                {/* Greeting */}
                                 <div>
-                                    <div className="text-lg text-gray-600">
+                                    <div className="text-base text-gray-500 font-medium mb-1">
                                         {greeting},
                                     </div>
-                                    <h1 className={`text-5xl font-bold ${(() => {
+                                    <h1 className={`text-4xl font-bold tracking-tight ${(() => {
                                         const hour = currentTime.getHours();
-                                        if (hour >= 5 && hour < 12) return 'text-pink-500'; // Pagi
-                                        if (hour >= 12 && hour < 15) return 'text-yellow-500'; // Siang
-                                        if (hour >= 15 && hour < 18) return 'text-orange-500'; // Sore
-                                        return 'text-blue-500'; // Malam
+                                        if (hour >= 5 && hour < 12) return 'bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent';
+                                        if (hour >= 12 && hour < 15) return 'bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent';
+                                        if (hour >= 15 && hour < 18) return 'bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent';
+                                        return 'bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent';
                                     })()}`}>
                                         {userName}
                                     </h1>
                                 </div>
                             </div>
 
-                            {/* Chat Input Box - Same width as container */}
-                            <div className="w-full">
+                            {/* Chat Input Box */}
+                            <div className="w-full mb-8">
                                 <div className="flex gap-3 items-center">
-                                    <div className="flex-1 relative">
+                                    <div className="flex-1 relative group">
                                         <input
                                             ref={inputRef}
                                             type="text"
                                             value={chatMessage}
                                             onChange={(e) => onChatMessageChange(e.target.value)}
                                             onKeyPress={onKeyPress}
-                                            placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask DORA..."}
+                                            placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask DORA anything..."}
                                             disabled={isChatLoading || knowledgeBaseCount === 0}
-                                            className="w-full px-6 py-5 border-2 border-gray-300 rounded-full focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-base placeholder:text-gray-400 shadow-lg hover:shadow-xl"
+                                            className="w-full px-6 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:border-gray-400 focus:ring-4 focus:ring-gray-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-base placeholder:text-gray-400 shadow-sm hover:shadow-md group-hover:border-gray-300"
                                         />
                                     </div>
                                     <Button
                                         onClick={onSendMessage}
                                         disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
-                                        className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-8 py-5 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl disabled:shadow-none h-[56px]"
+                                        className="bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 text-white px-6 py-4 rounded-2xl font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none h-[56px] min-w-[56px]"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -253,13 +262,111 @@ export function ChatPage({
 
                                 {/* Warning if no documents */}
                                 {knowledgeBaseCount === 0 && (
-                                    <div className="mt-6 px-6 py-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
-                                        <p className="text-sm text-red-700 font-medium text-center">
-                                            Please add documents to your Knowledge Base to start chatting
-                                        </p>
+                                    <div className="mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                            <p className="text-sm text-amber-800 font-medium">
+                                                Add documents to your knowledge base to start chatting
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Quick Suggestions - Only show if has documents */}
+                            {knowledgeBaseCount > 0 && (
+                                <div className="w-full">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Suggested Prompts</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => onChatMessageChange("Summarize the key points from my documents")}
+                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 mb-1">Summarize documents</p>
+                                                    <p className="text-xs text-gray-500">Get key points from your files</p>
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => onChatMessageChange("What are the main topics covered?")}
+                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 mb-1">Find topics</p>
+                                                    <p className="text-xs text-gray-500">Discover main themes</p>
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => onChatMessageChange("Extract important dates and deadlines")}
+                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 mb-1">Extract dates</p>
+                                                    <p className="text-xs text-gray-500">Find important deadlines</p>
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => onChatMessageChange("Compare and contrast the documents")}
+                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 mb-1">Compare docs</p>
+                                                    <p className="text-xs text-gray-500">Analyze differences</p>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {/* Knowledge Base Stats */}
+                                    <div className="mt-6 px-5 py-4 bg-white border border-gray-200 rounded-xl">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">{knowledgeBaseCount} documents ready</p>
+                                                    <p className="text-xs text-gray-500">Your knowledge base is active</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -386,37 +493,40 @@ export function ChatPage({
                             )}
                         </div>
                     </div>
-                )}
-            </div>
+                )
+                }
+            </div >
 
             {/* Chat Input - Only show at bottom when there are messages */}
-            {chatHistory.length > 0 && (
-                <div className="border-t border-gray-200 px-6 py-5 bg-white shadow-lg">
-                    <div className="max-w-5xl mx-auto">
-                        <div className="flex gap-3 items-center">
-                            <div className="flex-1 relative">
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    value={chatMessage}
-                                    onChange={(e) => onChatMessageChange(e.target.value)}
-                                    onKeyPress={onKeyPress}
-                                    placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask me anything..."}
-                                    disabled={isChatLoading || knowledgeBaseCount === 0}
-                                    className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-lg placeholder:text-red-400"
-                                />
+            {
+                chatHistory.length > 0 && (
+                    <div className="border-t border-gray-200 px-6 py-5 bg-white shadow-lg">
+                        <div className="max-w-5xl mx-auto">
+                            <div className="flex gap-3 items-center">
+                                <div className="flex-1 relative">
+                                    <input
+                                        ref={inputRef}
+                                        type="text"
+                                        value={chatMessage}
+                                        onChange={(e) => onChatMessageChange(e.target.value)}
+                                        onKeyPress={onKeyPress}
+                                        placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask me anything..."}
+                                        disabled={isChatLoading || knowledgeBaseCount === 0}
+                                        className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-lg placeholder:text-red-400"
+                                    />
+                                </div>
+                                <Button
+                                    onClick={onSendMessage}
+                                    disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
+                                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-10 py-5 rounded-2xl font-semibold transition-all shadow-md hover:shadow-lg disabled:shadow-none text-lg h-[64px]"
+                                >
+                                    Send
+                                </Button>
                             </div>
-                            <Button
-                                onClick={onSendMessage}
-                                disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
-                                className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-10 py-5 rounded-2xl font-semibold transition-all shadow-md hover:shadow-lg disabled:shadow-none text-lg h-[64px]"
-                            >
-                                Send
-                            </Button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }
