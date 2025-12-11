@@ -103,7 +103,7 @@ export default function Home() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center mb-12">
-            <img src="/Logo.png" alt="DORA Logo" className="h-10 w-10 mr-3" />
+            <img src="/2.png" alt="DORA Logo" className="h-10 w-10 mr-3" />
             <span className="text-2xl font-bold text-gray-900">DORA</span>
           </div>
 
@@ -207,7 +207,7 @@ export default function Home() {
               {/* Logo */}
               <div className="relative z-10">
                 <img
-                  src="/Logo2.png"
+                  src="/2T.png"
                   alt="DORA"
                   className="w-72 h-72 object-contain drop-shadow-2xl animate-float filter brightness-110"
                 />

@@ -55,6 +55,17 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkUploadStatus, setBulkUploadStatus] = useState('');
 
+  // Time state for navbar
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Get token from localStorage
   const getToken = () => {
     return localStorage.getItem('google_token') || localStorage.getItem('access_token') || '';
@@ -619,15 +630,49 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navigation Bar - Premium White */}
-        <nav className="bg-white border-b border-gray-100 px-6 py-4 shadow-sm">
+        {/* Top Navigation Bar - Broken White Gradient */}
+        <nav className="bg-gradient-to-r from-gray-50 via-slate-50 to-stone-50 backdrop-blur-sm border-b border-gray-200/50 px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/Logo.png" alt="DORA" className="h-9 w-9" />
-              <h1 className="text-xl font-bold text-gray-900">DORA</h1>
-            </div>
+            {/* Left: Logo + Greeting - Only show when chat started */}
+            {chatHistory.length > 0 && (
+              <div className="flex items-center gap-4">
+                <img src="/1T.png" alt="DORA" className="h-10 w-10" />
+                {user && (
+                  <div>
+                    <div className="text-sm text-gray-600">
+                      {(() => {
+                        const hour = currentTime.getHours();
+                        if (hour >= 5 && hour < 12) return 'Good Morning';
+                        if (hour >= 12 && hour < 15) return 'Good Afternoon';
+                        if (hour >= 15 && hour < 18) return 'Good Evening';
+                        return 'Good Night';
+                      })()},
+                    </div>
+                    <div className="text-lg font-bold text-gray-900">
+                      {user.name}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
+            {/* Spacer when no chat */}
+            {chatHistory.length === 0 && <div></div>}
+
+            {/* Right: Time | Date | Profile | Logout */}
             <div className="flex items-center gap-4">
+              {/* Time with Seconds | Date */}
+              <div className="flex items-center gap-3 text-sm">
+                <span className="font-mono font-semibold text-gray-900">
+                  {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <span className="text-gray-400">|</span>
+                <span className="text-gray-600">
+                  {currentTime.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+
+              {/* Profile Picture */}
               {user.picture && (
                 <img
                   src={user.picture}
@@ -635,6 +680,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                   className="w-9 h-9 rounded-full border-2 border-gray-200"
                 />
               )}
+
+              {/* Logout Button */}
               {onLogout && (
                 <button
                   onClick={onLogout}

@@ -182,7 +182,7 @@ export function ChatPage({
                     <div className="flex items-center gap-4">
                         {/* Logo with Time Indicator */}
                         <div className="relative flex-shrink-0">
-                            <img src="/Logo2.png" alt="DORA" className="h-14 w-14 rounded-xl shadow-md" />
+                            <img src="/2T.png" alt="DORA" className="h-14 w-14 rounded-xl shadow-md" />
                             <div className={`absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-br ${timeColors.gradient} rounded-full border-2 border-white`}></div>
                         </div>
 
@@ -221,7 +221,7 @@ export function ChatPage({
                         <div className="flex flex-col items-center justify-center text-center w-full">
                             {/* Centered Logo like Gemini */}
                             <div className="mb-12">
-                                <img src="/Logo2.png" alt="DORA" className="h-24 w-24 rounded-3xl shadow-xl mx-auto" />
+                                <img src="/2T.png" alt="DORA" className="h-24 w-24 rounded-3xl shadow-xl mx-auto" />
                             </div>
 
                             {knowledgeBaseCount === 0 && (
@@ -331,8 +331,7 @@ export function ChatPage({
                                         </div>
                                     </div>
                                 </div>
-                            )
-                            ))
+                            ))}
                         </div>
                     )}
 
@@ -385,6 +384,6 @@ export function ChatPage({
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     )
 }

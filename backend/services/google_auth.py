@@ -12,7 +12,8 @@ class GoogleAuthService:
     def __init__(self):
         self.client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        self.redirect_uri = "http://localhost:3000/auth/callback"
+        # Use environment variable for redirect_uri, fallback to localhost
+        self.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:3000/auth/callback")
         self.scopes = [
             'openid',
             'email',
@@ -20,6 +21,11 @@ class GoogleAuthService:
             'https://www.googleapis.com/auth/drive.readonly',
             'https://www.googleapis.com/auth/documents.readonly'
         ]
+        
+        # Log configuration (without sensitive data)
+        logger.info(f"GoogleAuthService initialized with redirect_uri: {self.redirect_uri}")
+        logger.info(f"Client ID configured: {bool(self.client_id)}")
+        logger.info(f"Client Secret configured: {bool(self.client_secret)}")
     
     async def exchange_code_for_tokens(self, code: str) -> dict:
         """Exchange authorization code for access and refresh tokens"""
@@ -34,14 +40,45 @@ class GoogleAuthService:
                 "redirect_uri": self.redirect_uri
             }
             
+            # Log request details (without sensitive data)
+            logger.info(f"Exchanging authorization code for tokens...")
+            logger.info(f"Token URL: {token_url}")
+            logger.info(f"Redirect URI: {self.redirect_uri}")
+            logger.info(f"Code length: {len(code)} characters")
+            logger.info(f"Grant type: authorization_code")
+            
             async with httpx.AsyncClient() as client:
                 response = await client.post(token_url, data=data)
                 
             if response.status_code != 200:
-                logger.error(f"Token exchange failed: {response.text}")
+                error_detail = response.text
+                logger.error(f"Token exchange failed with status {response.status_code}")
+                logger.error(f"Error response: {error_detail}")
+                logger.error(f"Request redirect_uri: {self.redirect_uri}")
+                logger.error(f"Client ID (first 20 chars): {self.client_id[:20] if self.client_id else 'None'}...")
+                
+                # Parse error for more details
+                try:
+                    error_json = response.json()
+                    error_type = error_json.get('error', 'unknown')
+                    error_desc = error_json.get('error_description', 'No description')
+                    
+                    if error_type == 'invalid_grant':
+                        logger.error("INVALID_GRANT ERROR - Possible causes:")
+                        logger.error("1. Authorization code already used or expired")
+                        logger.error("2. Redirect URI mismatch between request and Google Console")
+                        logger.error("3. Code was issued to a different client_id")
+                        logger.error(f"   Current redirect_uri: {self.redirect_uri}")
+                        logger.error(f"   Please verify this matches EXACTLY in Google Cloud Console")
+                except:
+                    pass
+                
                 raise Exception(f"Token exchange failed: {response.text}")
             
             tokens = response.json()
+            logger.info("Successfully exchanged code for tokens")
+            logger.info(f"Received access_token: {bool(tokens.get('access_token'))}")
+            logger.info(f"Received refresh_token: {bool(tokens.get('refresh_token'))}")
             return tokens
             
         except Exception as e:

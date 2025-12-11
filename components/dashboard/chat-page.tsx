@@ -46,10 +46,10 @@ export function ChatPage({
     // Get greeting based on time
     const getGreeting = () => {
         const hour = currentTime.getHours()
-        if (hour >= 5 && hour < 12) return 'Selamat Pagi'
-        if (hour >= 12 && hour < 15) return 'Selamat Siang'
-        if (hour >= 15 && hour < 18) return 'Selamat Sore'
-        return 'Selamat Malam'
+        if (hour >= 5 && hour < 12) return 'Good Morning'
+        if (hour >= 12 && hour < 15) return 'Good Afternoon'
+        if (hour >= 15 && hour < 18) return 'Good Evening'
+        return 'Good Night'
     }
 
     // Get time-based colors
@@ -91,7 +91,27 @@ export function ChatPage({
         }
     }
 
+    // Get gradient text for greeting based on time
+    const getGreetingGradient = () => {
+        const hour = currentTime.getHours()
+        if (hour >= 5 && hour < 12) {
+            // Pagi - Pink gradient
+            return 'bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent'
+        }
+        if (hour >= 12 && hour < 15) {
+            // Siang - Kuning gradient
+            return 'bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent'
+        }
+        if (hour >= 15 && hour < 18) {
+            // Sore - Orange gradient
+            return 'bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent'
+        }
+        // Malam - Biru gradient
+        return 'bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent'
+    }
+
     const timeColors = getTimeColors()
+    const greetingGradient = getGreetingGradient()
     const greeting = getGreeting()
     const userName = user?.name || 'User'
 
@@ -176,63 +196,74 @@ export function ChatPage({
 
     return (
         <div className="flex-1 flex flex-col h-screen bg-white">
-            {/* Premium Header - Logo, Greeting, Time & Date in One Block */}
-            <div className="border-b border-gray-100 px-6 py-5 bg-white shadow-sm">
-                <div className="max-w-5xl mx-auto">
-                    <div className="flex items-center gap-4">
-                        {/* Logo with Time Indicator */}
-                        <div className="relative flex-shrink-0">
-                            <img src="/Logo2.png" alt="DORA" className="h-14 w-14 rounded-xl shadow-md" />
-                            <div className={`absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-br ${timeColors.gradient} rounded-full border-2 border-white`}></div>
-                        </div>
 
-                        {/* Greeting */}
-                        <div className="flex-1">
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                {greeting}, {userName.split(' ')[0]}
-                            </h1>
-                            {knowledgeBaseCount === 0 && (
-                                <p className="text-sm text-gray-500 mt-0.5">
-                                    Knowledge Base is empty - Add documents first
-                                </p>
-                            )}
-                        </div>
 
-                        {/* Time & Date Block */}
-                        <div className={`${timeColors.bg} ${timeColors.border} border-2 rounded-2xl px-5 py-3 shadow-sm flex-shrink-0`}>
-                            <div className="text-right">
-                                <div className={`text-2xl font-bold ${timeColors.text} font-mono tracking-tight leading-none`}>
-                                    {formattedTime}
+            {/* Chat Messages Area */}
+            <div className={`flex-1 overflow-y-auto px-6 ${chatHistory.length === 0 ? 'bg-white' : 'bg-gray-50 py-6'}`}>
+                {chatHistory.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center">
+                        <div className="w-full max-w-3xl mx-auto flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                            {/* Logo and Greeting - Aligned with search bar */}
+                            <div className="flex items-center gap-6 mb-8">
+                                {/* Logo DORA - Large */}
+                                <img src="/1T.png" alt="DORA" className="h-24 w-24" />
+
+                                {/* Greeting - 2 Lines (No background) */}
+                                <div>
+                                    <div className="text-lg text-gray-600">
+                                        {greeting},
+                                    </div>
+                                    <h1 className={`text-5xl font-bold ${(() => {
+                                        const hour = currentTime.getHours();
+                                        if (hour >= 5 && hour < 12) return 'text-pink-500'; // Pagi
+                                        if (hour >= 12 && hour < 15) return 'text-yellow-500'; // Siang
+                                        if (hour >= 15 && hour < 18) return 'text-orange-500'; // Sore
+                                        return 'text-blue-500'; // Malam
+                                    })()}`}>
+                                        {userName}
+                                    </h1>
                                 </div>
-                                <div className="text-xs text-gray-600 mt-1.5 font-medium">
-                                    {formattedDate}
+                            </div>
+
+                            {/* Chat Input Box - Same width as container */}
+                            <div className="w-full">
+                                <div className="flex gap-3 items-center">
+                                    <div className="flex-1 relative">
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            value={chatMessage}
+                                            onChange={(e) => onChatMessageChange(e.target.value)}
+                                            onKeyPress={onKeyPress}
+                                            placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask DORA..."}
+                                            disabled={isChatLoading || knowledgeBaseCount === 0}
+                                            className="w-full px-6 py-5 border-2 border-gray-300 rounded-full focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-base placeholder:text-gray-400 shadow-lg hover:shadow-xl"
+                                        />
+                                    </div>
+                                    <Button
+                                        onClick={onSendMessage}
+                                        disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
+                                        className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-8 py-5 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl disabled:shadow-none h-[56px]"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                    </Button>
                                 </div>
+
+                                {/* Warning if no documents */}
+                                {knowledgeBaseCount === 0 && (
+                                    <div className="mt-6 px-6 py-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
+                                        <p className="text-sm text-red-700 font-medium text-center">
+                                            Please add documents to your Knowledge Base to start chatting
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-
-            {/* Chat Messages - White Background */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50">
-                <div className="max-w-5xl mx-auto h-full flex items-center justify-center">
-                    {chatHistory.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center text-center w-full">
-                            {/* Centered Logo like Gemini */}
-                            <div className="mb-12">
-                                <img src="/Logo2.png" alt="DORA" className="h-24 w-24 rounded-3xl shadow-xl mx-auto" />
-                            </div>
-
-                            {knowledgeBaseCount === 0 && (
-                                <div className="mt-6 px-6 py-4 bg-white border border-red-100 rounded-2xl max-w-md shadow-sm">
-                                    <p className="text-sm text-red-700 font-medium">
-                                        Please add documents to your Knowledge Base to start chatting
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
+                ) : (
+                    <div className="max-w-5xl mx-auto">
                         <div className="space-y-6 w-full">
                             {chatHistory.map((msg, index) => (
                                 <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -332,58 +363,60 @@ export function ChatPage({
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    )}
 
-                    {/* Loading State - Premium */}
-                    {isChatLoading && (
-                        <div className="flex justify-start">
-                            <div>
-                                <div className="flex items-center mb-2 px-1">
-                                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">DORA</span>
-                                </div>
-                                <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="flex space-x-1">
-                                            <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                            <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                            <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            {/* Loading State - Premium */}
+                            {isChatLoading && (
+                                <div className="flex justify-start">
+                                    <div>
+                                        <div className="flex items-center mb-2 px-1">
+                                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">DORA</span>
                                         </div>
-                                        <span className="text-sm text-gray-600">Thinking...</span>
+                                        <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="flex space-x-1">
+                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                                </div>
+                                                <span className="text-sm text-gray-600">Thinking...</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
-            {/* Chat Input - Premium White with Red Accent */}
-            <div className="border-t border-gray-200 px-6 py-5 bg-white shadow-lg">
-                <div className="max-w-5xl mx-auto">
-                    <div className="flex gap-3 items-center">
-                        <div className="flex-1 relative">
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={chatMessage}
-                                onChange={(e) => onChatMessageChange(e.target.value)}
-                                onKeyPress={onKeyPress}
-                                placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask me anything..."}
-                                disabled={isChatLoading || knowledgeBaseCount === 0}
-                                className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-lg placeholder:text-red-400"
-                            />
+            {/* Chat Input - Only show at bottom when there are messages */}
+            {chatHistory.length > 0 && (
+                <div className="border-t border-gray-200 px-6 py-5 bg-white shadow-lg">
+                    <div className="max-w-5xl mx-auto">
+                        <div className="flex gap-3 items-center">
+                            <div className="flex-1 relative">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={chatMessage}
+                                    onChange={(e) => onChatMessageChange(e.target.value)}
+                                    onKeyPress={onKeyPress}
+                                    placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask me anything..."}
+                                    disabled={isChatLoading || knowledgeBaseCount === 0}
+                                    className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-lg placeholder:text-red-400"
+                                />
+                            </div>
+                            <Button
+                                onClick={onSendMessage}
+                                disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
+                                className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-10 py-5 rounded-2xl font-semibold transition-all shadow-md hover:shadow-lg disabled:shadow-none text-lg h-[64px]"
+                            >
+                                Send
+                            </Button>
                         </div>
-                        <Button
-                            onClick={onSendMessage}
-                            disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
-                            className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-10 py-5 rounded-2xl font-semibold transition-all shadow-md hover:shadow-lg disabled:shadow-none text-lg h-[64px]"
-                        >
-                            Send
-                        </Button>
                     </div>
                 </div>
-            </div>
-        </div >
+            )}
+        </div>
     )
 }
