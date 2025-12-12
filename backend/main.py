@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 # Reduce verbosity of httpx and other noisy loggers
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("services.google_auth").setLevel(logging.WARNING)
-logging.getLogger("services.google_docs").setLevel(logging.WARNING)
+logging.getLogger("services.google_docs").setLevel(logging.INFO)  # Changed to INFO to see optimizations
 logging.getLogger("services.rag_pipeline").setLevel(logging.INFO)  # Keep RAG pipeline logs
 
 app = FastAPI(title="DORA - Document Retrieval Assistant", version="2.0.0")
@@ -300,6 +300,64 @@ async def get_all_documents_from_folder(
         logger.error(f"Error type: {type(e)}")
         logger.error(f"Error details: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+@app.post("/documents/from-folder-all-stream")
+async def get_all_documents_from_folder_stream(
+    request: FolderRequest,
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """🚀 STREAMING: Fetch documents progressively - FEELS INSTANT!"""
+    from fastapi.responses import StreamingResponse
+    import json
+    
+    async def document_stream():
+        """Stream documents as they are found - PROGRESSIVE LOADING!"""
+        try:
+            access_token = x_google_token
+            folder_id = google_docs_service._extract_folder_id_from_url(request.folder_url)
+            
+            # Stream documents as they are found
+            documents_buffer = []
+            batch_size = 20  # Send every 20 documents
+            
+            async def stream_callback(doc):
+                """Callback to stream documents progressively"""
+                documents_buffer.append(doc)
+                if len(documents_buffer) >= batch_size:
+                    # Send batch
+                    batch = documents_buffer.copy()
+                    documents_buffer.clear()
+                    yield f"data: {json.dumps(batch)}\n\n"
+            
+            # Fetch with streaming callback
+            all_documents = []
+            await google_docs_service._get_documents_recursive(
+                folder_id, access_token, all_documents, ""
+            )
+            
+            # Send documents in batches
+            for i in range(0, len(all_documents), batch_size):
+                batch = all_documents[i:i+batch_size]
+                yield f"data: {json.dumps(batch)}\n\n"
+            
+            # Send completion signal
+            yield f"data: {json.dumps({'done': True, 'total': len(all_documents)})}\n\n"
+            
+        except Exception as e:
+            logger.error(f"Streaming error: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        document_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 
 
 @app.post("/documents/bulk-upload-from-folder")

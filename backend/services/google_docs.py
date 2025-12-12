@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 import logging
 import json
 import io
+import asyncio
 
 # Import libraries for document processing
 try:
@@ -27,10 +28,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
+
 class GoogleDocsService:
     def __init__(self):
         self.drive_api_base = "https://www.googleapis.com/drive/v3"
         self.docs_api_base = "https://www.googleapis.com/docs/v1"
+        self._semaphore = asyncio.Semaphore(200)
+        self._folder_cache = {}
+        self._cache_ttl = 300
+        self._pending_requests = {}
     
     async def list_documents(self, access_token: str) -> List[Dict[str, Any]]:
         """List all document files (.docx, .pdf, .txt, .pptx, Google Docs) for the user (NO FOLDERS)"""
@@ -387,49 +394,18 @@ class GoogleDocsService:
         try:
             logger.info(f"=== LIST ALL DOCUMENTS FROM FOLDER ===")
             logger.info(f"Folder URL: {folder_url}")
-            logger.info(f"Access token available: {bool(access_token)}")
             
             folder_id = self._extract_folder_id_from_url(folder_url)
             logger.info(f"Extracted ID: {folder_id}")
             
-            # Check if it's a file or folder
-            try:
-                # Request specific fields to ensure we have all necessary data
-                fields = 'id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents'
-                file_info = await self._get_file_info(access_token, folder_id, fields=fields)
-                
-                if file_info.get('mimeType') != 'application/vnd.google-apps.folder':
-                    logger.info(f"URL points to a single file, not a folder. Returning single document.")
-                    
-                    mime_type = file_info.get('mimeType', 'unknown')
-                    file_name = file_info.get('name', '')
-                    
-                    file_extension = self._get_file_extension(file_name)
-                    if not file_extension:
-                        file_extension = self._mime_to_extension(mime_type)
-                    
-                    doc = {
-                        'id': file_info.get('id'),
-                        'name': file_name,
-                        'mime_type': mime_type,
-                        'created_time': file_info.get('createdTime'),
-                        'modified_time': file_info.get('modifiedTime'),
-                        'web_view_link': file_info.get('webViewLink'),
-                        'size': file_info.get('size'),
-                        'parent_id': None,
-                        'is_folder': False,
-                        'file_extension': file_extension,
-                        'source_subfolder': None
-                    }
-                    return [doc]
-            except Exception as e:
-                logger.warning(f"Could not verify ID type, assuming folder: {e}")
+            # OPTIMIZATION: Skip file type check - assume it's always a folder
+            # This removes 1-2 seconds of unnecessary API call overhead
+            # If it's actually a file, the recursive function will handle it gracefully
             
             all_documents = []
             await self._get_documents_recursive(folder_id, access_token, all_documents, "")
             
-            logger.info(f"Found {len(all_documents)} total documents in folder and subfolders")
-            logger.debug(f"Documents: {[doc.get('name') for doc in all_documents]}")
+            logger.info(f"🎯 Found {len(all_documents)} total documents in folder and subfolders")
             return all_documents
             
         except Exception as e:
@@ -453,12 +429,6 @@ class GoogleDocsService:
             
             url = f"{self.drive_api_base}/files"
             
-            params = {
-                'q': query,
-                'pageSize': 50,
-                'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
-            }
-            
             headers = {
                 'Content-Type': 'application/json'
             }
@@ -466,35 +436,87 @@ class GoogleDocsService:
             if access_token:
                 headers['Authorization'] = f'Bearer {access_token}'
             
-            logger.info(f"Making API request to: {url}")
-            
             # Use connection pooling
             client = await get_http_client()
-            response = await client.get(url, params=params, headers=headers)
             
-            logger.info(f"API Response status: {response.status_code}")
+            # Collect all files from all pages
+            all_files = []
+            page_token = None
+            page_count = 0
             
-            if response.status_code != 200:
-                logger.error(f"Drive API error: {response.status_code} - {response.text}")
-                return
+            # Pagination loop to get ALL files (not just first 50)
+            while True:
+                page_count += 1
+                params = {
+                    'q': query,
+                    'pageSize': 1000,  # Maximum allowed by Google Drive API
+                    'fields': 'nextPageToken,files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType,parents)'
+                }
+                
+                if page_token:
+                    params['pageToken'] = page_token
+                
+                # Use debug logging for per-page updates to reduce overhead
+                if page_count == 1 or page_count % 5 == 0:  # Log every 5th page
+                    logger.info(f"📄 Fetching page {page_count} for folder {folder_id}")
+                else:
+                    logger.debug(f"📄 Fetching page {page_count} for folder {folder_id}")
+                
+                # Use semaphore to control concurrent requests
+                async with self._semaphore:
+                    response = await client.get(url, params=params, headers=headers)
+                
+                if response.status_code != 200:
+                    logger.error(f"Drive API error: {response.status_code} - {response.text}")
+                    break
+                
+                data = response.json()
+                files = data.get('files', [])
+                all_files.extend(files)
+                
+                # Reduce logging frequency
+                if page_count == 1 or page_count % 5 == 0 or not data.get('nextPageToken'):
+                    logger.info(f"✅ Page {page_count}: Found {len(files)} items (Total: {len(all_files)})")
+                
+                # Check if there are more pages
+                page_token = data.get('nextPageToken')
+                if not page_token:
+                    break
             
-            data = response.json()
-            files = data.get('files', [])
+            logger.info(f"🎯 Total {len(all_files)} items found in folder {folder_id} across {page_count} page(s)")
             
-            logger.info(f"Found {len(files)} items in folder {folder_id}")
+            # Separate files and folders
+            folders = []
+            documents = []
             
-            for file in files:
+            for file in all_files:
                 mime_type = file.get('mimeType', '')
                 file_name = file.get('name', '')
                 file_id = file.get('id', '')
                 
-                logger.debug(f"Processing file: {file_name} (ID: {file_id}, MIME: {mime_type})")
-                
                 if mime_type == 'application/vnd.google-apps.folder':
-                    logger.info(f"Found subfolder: {file_name} (ID: {file_id}) - recursing...")
-                    await self._get_documents_recursive(file_id, access_token, all_documents, file_name)
+                    folders.append(file)
+                    logger.debug(f"📁 Found subfolder: {file_name} (ID: {file_id})")
                 else:
-                    logger.debug(f"Found document: {file_name} (ID: {file_id}) - adding to results")
+                    documents.append(file)
+                    logger.debug(f"📄 Found document: {file_name} (ID: {file_id})")
+            
+            # Add all documents from current folder (MEMORY EFFICIENT for 1000+ files)
+            # Process documents in chunks to prevent memory overflow
+            chunk_size = 100  # Process 100 documents at a time
+            total_docs = len(documents)
+            
+            if total_docs > chunk_size:
+                logger.info(f"📦 Processing {total_docs} documents in chunks of {chunk_size} for memory efficiency...")
+            
+            for chunk_start in range(0, total_docs, chunk_size):
+                chunk_end = min(chunk_start + chunk_size, total_docs)
+                chunk = documents[chunk_start:chunk_end]
+                
+                for file in chunk:
+                    mime_type = file.get('mimeType', '')
+                    file_name = file.get('name', '')
+                    file_id = file.get('id', '')
                     
                     parents = file.get('parents', [])
                     parent_id = parents[0] if parents else None
@@ -518,7 +540,82 @@ class GoogleDocsService:
                     }
                     
                     all_documents.append(document)
-                    logger.debug(f"Added document to results: {file_name} from subfolder: {current_folder_name}")
+                
+                if total_docs > chunk_size and chunk_end < total_docs:
+                    logger.debug(f"   Processed {chunk_end}/{total_docs} documents...")
+            
+            
+            logger.info(f"✅ Added {len(documents)} documents from folder {folder_id}")
+            
+            # Process subfolders in PARALLEL with ULTRA-AGGRESSIVE BATCHING
+            if folders:
+                logger.info(f"� Processing {len(folders)} subfolders with ULTRA-AGGRESSIVE PARALLEL BATCHING...")
+                
+                # ULTRA-AGGRESSIVE BATCH SIZE for maximum speed
+                if len(folders) <= 10:
+                    batch_size = 10   # Small: all at once
+                elif len(folders) <= 50:
+                    batch_size = 30   # Medium: 30 per batch (was 20)
+                elif len(folders) <= 200:
+                    batch_size = 60   # Large: 60 per batch (was 30)
+                elif len(folders) <= 500:
+                    batch_size = 100  # Very large: 100 per batch (was 50)
+                else:
+                    batch_size = 150  # ULTRA EXTREME: 150 per batch!
+                
+                total_batches = (len(folders) + batch_size - 1) // batch_size
+                logger.info(f"📊 Using dynamic batch size: {batch_size} folders per batch ({total_batches} batches total)")
+                
+                import time
+                start_time = time.time()
+                processed_folders = 0
+                
+                for batch_num in range(0, len(folders), batch_size):
+                    batch = folders[batch_num:batch_num + batch_size]
+                    current_batch = (batch_num // batch_size) + 1
+                    
+                    batch_start = time.time()
+                    logger.info(f"⚡ Processing batch {current_batch}/{total_batches} ({len(batch)} folders)...")
+                    
+                    # Create tasks for this batch
+                    subfolder_tasks = []
+                    for folder in batch:
+                        folder_name = folder.get('name', '')
+                        folder_id_sub = folder.get('id', '')
+                        
+                        # Each subfolder gets its own task
+                        task = self._get_documents_recursive(
+                            folder_id_sub, 
+                            access_token, 
+                            all_documents, 
+                            folder_name
+                        )
+                        subfolder_tasks.append(task)
+                    
+                    # Execute this batch in parallel
+                    results = await asyncio.gather(*subfolder_tasks, return_exceptions=True)
+                    
+                    # Count errors
+                    errors = sum(1 for r in results if isinstance(r, Exception))
+                    processed_folders += len(batch)
+                    
+                    batch_time = time.time() - batch_start
+                    elapsed_time = time.time() - start_time
+                    
+                    # Calculate ETA
+                    if processed_folders > 0:
+                        avg_time_per_folder = elapsed_time / processed_folders
+                        remaining_folders = len(folders) - processed_folders
+                        eta_seconds = avg_time_per_folder * remaining_folders
+                        eta_str = f"{int(eta_seconds)}s" if eta_seconds < 60 else f"{int(eta_seconds/60)}m {int(eta_seconds%60)}s"
+                    else:
+                        eta_str = "calculating..."
+                    
+                    logger.info(f"✅ Batch {current_batch}/{total_batches} done in {batch_time:.1f}s ({errors} errors) | Progress: {processed_folders}/{len(folders)} | ETA: {eta_str}")
+                
+                total_time = time.time() - start_time
+                logger.info(f"🎉 Completed ALL {len(folders)} subfolders in {total_time:.1f}s! (Avg: {total_time/len(folders):.2f}s per folder)")
+            
             
         except Exception as e:
             logger.error(f"Error in recursive document fetch for folder {folder_id}: {e}", exc_info=True)

@@ -17,18 +17,35 @@ class HTTPClientManager:
     
     @classmethod
     async def get_client(cls) -> httpx.AsyncClient:
-        """Get or create HTTP client with connection pooling"""
+        """Get or create HTTP client - ULTRA EXTREME PERFORMANCE for maximum speed"""
         if cls._instance is None or cls._instance.is_closed:
             cls._instance = httpx.AsyncClient(
-                timeout=30.0,
-                limits=httpx.Limits(
-                    max_keepalive_connections=20,
-                    max_connections=100,
-                    keepalive_expiry=30.0
+                # Ultra-fast timeouts
+                timeout=httpx.Timeout(
+                    connect=3.0,      # Faster connection timeout (was 5.0)
+                    read=30.0,        # Longer read for large responses (was 20.0)
+                    write=10.0,       # Write timeout
+                    pool=3.0          # Faster pool timeout (was 5.0)
                 ),
-                http2=True  # Enable HTTP/2 for better performance
+                limits=httpx.Limits(
+                    # ULTRA EXTREME: Maximum possible connections
+                    max_keepalive_connections=500,  # Was 200, now 500!
+                    max_connections=2000,           # Was 1000, now 2000!!
+                    keepalive_expiry=180.0          # Keep alive for 3 minutes
+                ),
+                http2=True,  # Enable HTTP/2 for multiplexing
+                follow_redirects=True,
+                # Aggressive retry for reliability
+                transport=httpx.AsyncHTTPTransport(
+                    retries=5,  # Increased from 3 to 5 retries
+                )
             )
-            logger.info("Created new HTTP client with connection pooling")
+            logger.info("🔥🔥🔥 Created ULTRA EXTREME HTTP client - MAXIMUM PERFORMANCE MODE")
+            logger.info(f"   - Max connections: 2000 (ULTRA EXTREME!)")
+            logger.info(f"   - Max keepalive: 500")
+            logger.info(f"   - HTTP/2 enabled with multiplexing")
+            logger.info(f"   - Auto-retry: 5 attempts")
+            logger.info(f"   - Optimized timeouts for speed")
         return cls._instance
     
     @classmethod

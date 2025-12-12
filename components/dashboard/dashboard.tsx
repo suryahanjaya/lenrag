@@ -179,10 +179,102 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
     setIsLoadingFolder(true);
     setMessage('');
+    setDocuments([]); // Clear existing documents
 
     try {
       const requestBody = { folder_url: url };
 
+      // 🚀 TRY STREAMING FIRST
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all-stream`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            'X-Google-Token': getToken(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Streaming failed: ${response.status}`);
+        }
+
+        // Check if streaming is supported
+        if (!response.body) {
+          throw new Error('Streaming not supported by browser');
+        }
+
+        // 🚀 PROGRESSIVE LOADING: Read stream and update UI incrementally
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let allDocuments: any[] = [];
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          // Decode chunk
+          buffer += decoder.decode(value, { stream: true });
+
+          // Process complete lines
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                // Check if done
+                if (data.done) {
+                  setMessage(`Berhasil memuat ${data.total} dokumen dari folder dan subfolder.`);
+                  break;
+                }
+
+                // Check for error
+                if (data.error) {
+                  console.error('Streaming error:', data.error);
+                  throw new Error(data.error);
+                }
+
+                // Add documents progressively (data is array of documents)
+                if (Array.isArray(data)) {
+                  allDocuments = [...allDocuments, ...data];
+
+                  // 🚀 UPDATE UI IMMEDIATELY - PROGRESSIVE LOADING!
+                  setDocuments([...allDocuments]);
+
+                  // Update message with current count
+                  setMessage(`⚡ Loading... ${allDocuments.length} dokumen ditemukan`);
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e);
+              }
+            }
+          }
+        }
+
+        // Final update
+        setCurrentFolderId(null);
+        setCurrentFolderName('');
+        setFolderHistory([]);
+
+        if (allDocuments.length === 0) {
+          setMessage('Tidak ada dokumen ditemukan di folder tersebut.');
+        }
+
+        return; // Success! Exit function
+
+      } catch (streamError) {
+        // Streaming failed, fallback to non-streaming
+        console.warn('⚠️ Streaming failed, falling back to non-streaming:', streamError);
+        setMessage('⚠️ Streaming tidak tersedia, menggunakan mode standard...');
+      }
+
+      // 🔄 FALLBACK: Use non-streaming endpoint
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
         method: 'POST',
         headers: {
@@ -215,8 +307,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       } else {
         setMessage('Tidak ada dokumen ditemukan di folder tersebut.');
       }
+
     } catch (error) {
-      setErrorMessage('folder');
+      console.error('❌ Error:', error);
+      setMessage('Error saat memuat dokumen. Silakan coba lagi.');
     } finally {
       setIsLoadingFolder(false);
     }
