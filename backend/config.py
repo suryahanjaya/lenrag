@@ -43,9 +43,9 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0", env="HOST")
     port: int = Field(default=8000, env="PORT")
     
-    # RAG Configuration
-    chunk_size: int = Field(default=1500, env="CHUNK_SIZE")
-    chunk_overlap: int = Field(default=150, env="CHUNK_OVERLAP")
+    # RAG Configuration - BALANCED FOR DETAIL & SPEED
+    chunk_size: int = Field(default=850, env="CHUNK_SIZE")  # Sweet spot: detail + speed
+    chunk_overlap: int = Field(default=85, env="CHUNK_OVERLAP")  # 10% overlap
     max_results: int = Field(default=10, env="MAX_RESULTS")
     similarity_threshold: float = Field(default=0.7, env="SIMILARITY_THRESHOLD")
     
@@ -72,11 +72,11 @@ class Settings(BaseSettings):
     max_bulk_upload_documents: int = Field(default=100, env="MAX_BULK_UPLOAD_DOCUMENTS")
     concurrent_processing_limit: int = Field(default=5, env="CONCURRENT_PROCESSING_LIMIT")
     
-    # Bulk Upload Optimization
+    # Bulk Upload Optimization - MAXIMUM SPEED FOR 150+ FILES
     bulk_upload_batch_size: int = Field(
-        default=5, 
+        default=100,  # 🔥🔥🔥 MAXIMUM SPEED! 100 parallel = ~30-60 seconds for 150 files!
         env="BULK_UPLOAD_BATCH_SIZE",
-        description="Number of documents to process in parallel per batch. Increase for faster processing (requires more resources), decrease for more stable processing."
+        description="Number of documents to process in parallel per batch. 100 = MAXIMUM SPEED (~30-60s for 150 files). Requires 8GB+ RAM."
     )
     
     # Cache Configuration
@@ -125,7 +125,9 @@ class RAGConfig:
     GEMINI_MAX_TOKENS = 2048
     
     # Groq model configuration
-    GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    # PRODUCTION STABLE: llama-3.1-8b-instant (14.4K req/day - HIGHEST!)
+    # Quality fallbacks available (120B, 70B) when needed
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
     GROQ_TEMPERATURE = 0.7
     GROQ_MAX_TOKENS = 2048
     

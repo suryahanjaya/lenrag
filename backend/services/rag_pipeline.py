@@ -32,11 +32,14 @@ class DORAPipeline:
             self.primary_model_name = RAGConfig.GROQ_MODEL
             logger.info(f"✅ Initialized Groq with model: {self.primary_model_name}")
             
-            # Fallback models for Groq
+            # OPTIMAL Fallback Strategy: Quality FIRST, then Reliability
             self.fallback_models = [
-                'llama-3.1-70b-versatile',
-                'mixtral-8x7b-32768',
-                'llama-3.1-8b-instant',
+                'openai/gpt-oss-120b',          # 120B - BEST quality (1K req/day)
+                'llama-3.3-70b-versatile',      # 70B - Excellent quality (1K req/day)
+                'qwen/qwen3-32b',               # 32B - Very good (1K req/day, 60 req/min)
+                'meta-llama/llama-4-scout-17b-16e-instruct',  # 17B - Good (30K tokens/min)
+                'meta-llama/llama-guard-4-12b', # 12B - Decent (14.4K req/day!)
+                'allam-2-7b',                   # 7B - Fast (7K req/day)
             ]
         else:  # Default to Gemini
             # Initialize Gemini API
@@ -62,8 +65,10 @@ class DORAPipeline:
         logger.info(f"✅ Initialized primary model: {self.primary_model_name}")
         logger.info(f"🔄 Fallback models available: {', '.join(self.fallback_models)}")
         
-        # Initialize embedding model - using multilingual model for better document understanding
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Initialize embedding model - HIGHEST QUALITY MODEL!
+        # all-mpnet-base-v2: BEST quality embeddings (768 dimensions)
+        # Top performance on semantic similarity tasks
+        self.embedding_model = SentenceTransformer('all-mpnet-base-v2')
         
         # Initialize ChromaDB with optimizations for large scale document storage
         # Use absolute path to avoid confusion between root and backend folders
@@ -76,21 +81,22 @@ class DORAPipeline:
             )
         )
         
-        # Standardized text splitter configuration for consistent chunking
-        # Target: 100 halaman = 300 chunks (konsisten untuk semua jenis dokumen)
-        self.chunk_size = 400   # FIXED: Correct size untuk 100 halaman = 300 chunks
-        self.chunk_overlap = 50  # Reduced overlap untuk efisiensi
+        # Standardized text splitter configuration - BALANCED FOR DETAIL & SPEED
+        # Target: 850 chars = sweet spot between speed and information retention
+        self.chunk_size = 850   # Balanced: 2.5x more chunks than 2000, still fast!
+        self.chunk_overlap = 85  # 10% overlap
         self.separators = ["\n\n", "\n", ". ", "! ", "? ", " ", ""]
         
-        # UNIFIED chunk sizes untuk semua jenis dokumen - 100 halaman = 300 chunks
+        # BALANCED chunk sizes - 850 chars for optimal detail
         self.document_chunk_sizes = {
-            'pdf': 400,       # FIXED: 100 halaman = 300 chunks (119k chars ÷ 300 = ~400)
-            'doc': 400,       # FIXED: 100 halaman = 300 chunks
-            'academic': 400,  # FIXED: 100 halaman = 300 chunks
-            'legal': 400,     # FIXED: 100 halaman = 300 chunks
-            'technical': 400, # FIXED: 100 halaman = 300 chunks
-            'business': 400,  # FIXED: 100 halaman = 300 chunks
-            'general': 400    # FIXED: 100 halaman = 300 chunks
+            'pdf': 850,       # Balanced detail
+            'doc': 850,       # Balanced detail
+            'ppt': 850,       # Balanced detail
+            'academic': 850,  # Better context
+            'legal': 850,     # Complete sections
+            'technical': 850, # Complete code blocks
+            'business': 850,  # Complete sections
+            'general': 850    # Better context
         }
         
         # Document type detection patterns
@@ -257,17 +263,33 @@ class DORAPipeline:
         doc_type = self._detect_document_type(text, mime_type)
         
         # Determine optimal chunk size based on document type and MIME type
-        # UNIFIED: All document types use 400 character chunks for 100 pages = 300 chunks
-        if mime_type == 'application/pdf':
-            optimal_chunk_size = self.document_chunk_sizes.get('pdf', 400)
-        elif mime_type and 'word' in mime_type.lower():
-            optimal_chunk_size = self.document_chunk_sizes.get('doc', 400)
-        else:
-            optimal_chunk_size = self.document_chunk_sizes.get(doc_type, 400)
+        # BALANCED: 850 chars for optimal detail and speed
+        base_chunk_size = 850  # Sweet spot!
         
-        logger.info(f"Detected document type: {doc_type}, MIME: {mime_type}, optimal chunk size: {optimal_chunk_size}")
-        logger.info(f"Processing document: {len(text)} characters")
-        logger.info(f"TARGET: 100 halaman = 300 chunks (unified for all document types)")
+        # Adaptive sizing based on document length
+        doc_length = len(text)
+        if doc_length < 3000:  # Very small document
+            base_chunk_size = 500  # Smaller chunks
+            logger.info(f"Very small document ({doc_length} chars) - chunk size: {base_chunk_size}")
+        elif doc_length < 10000:  # Small document
+            base_chunk_size = 700  # Medium chunks
+            logger.info(f"Small document ({doc_length} chars) - chunk size: {base_chunk_size}")
+        else:  # Medium to large document
+            base_chunk_size = 850  # Optimal chunks
+            logger.info(f"Document ({doc_length} chars) - chunk size: {base_chunk_size}")
+        
+        if mime_type == 'application/pdf':
+            optimal_chunk_size = self.document_chunk_sizes.get('pdf', base_chunk_size)
+        elif mime_type and 'word' in mime_type.lower():
+            optimal_chunk_size = self.document_chunk_sizes.get('doc', base_chunk_size)
+        elif mime_type and 'presentation' in mime_type.lower():
+            optimal_chunk_size = self.document_chunk_sizes.get('ppt', base_chunk_size)
+        else:
+            optimal_chunk_size = self.document_chunk_sizes.get(doc_type, base_chunk_size)
+        
+        logger.info(f"Document type: {doc_type}, MIME: {mime_type}, chunk size: {optimal_chunk_size}")
+        logger.info(f"Processing: {doc_length} characters")
+        logger.info(f"TARGET: Balanced chunking (850 chars) for detail + speed")
         
         # Debug logging for large documents
         if len(text) > 50000:  # Large document
@@ -558,9 +580,10 @@ class DORAPipeline:
             logger.info(f"Expanded query: {expanded_query}")
             
             # Search for relevant chunks with expanded query
+            # OPTIMIZED: Reduced n_results for FASTER response time
             results = collection.query(
                 query_texts=[expanded_query],
-                n_results=15  # Optimized for 100 documents - reduced for better performance
+                n_results=12  # Optimized for speed while maintaining quality
             )
             
             documents = results['documents'][0] if results['documents'] else []
@@ -570,11 +593,12 @@ class DORAPipeline:
             logger.info(f"Query results: {len(documents)} documents found")
             logger.info(f"Distances: {distances}")
             
-                # More lenient similarity threshold for expanded queries
-            if documents and distances and min(distances) < 0.95:
+            # More lenient threshold for better recall with high-quality embeddings
+            if documents and distances and min(distances) < 1.0:  # Relaxed from 0.95
                 # Create context from retrieved documents with document names and more context
+                # OPTIMIZED: Only use top 8 most relevant documents for faster processing
                 context_parts = []
-                for i, (doc, meta) in enumerate(zip(documents, metadatas)):
+                for i, (doc, meta) in enumerate(zip(documents[:8], metadatas[:8])):
                     doc_name = meta.get('document_name', f'Dokumen {i+1}')
                     # Include more context around the relevant text
                     context_parts.append(f"Dokumen: {doc_name}\nKonten: {doc}")
@@ -611,7 +635,7 @@ PANDUAN PENULISAN:
 - WAJIB menggunakan bahasa Indonesia dalam seluruh respons
 - BERSIFAT CERDAS dalam memahami maksud pertanyaan
 - BERIKAN jawaban yang KONSTRUKTIF dan BERMANFAAT
-- Di akhir respons, sebutkan nama dokumen yang Anda gunakan sebagai sumber
+- JANGAN sebutkan nama dokumen sumber di akhir respons (sistem akan menampilkannya secara otomatis)
 
 Jawaban:"""
                 
@@ -625,9 +649,9 @@ Jawaban:"""
                 source_info = []
                 seen_docs = set()  # Track unique document IDs
                 
-                # Filter documents based on similarity score (optimized for large-scale knowledge base)
-                relevant_threshold = 0.9  # More lenient threshold for large knowledge base
-                max_sources = 8  # More sources for comprehensive context from large document collection
+                # Filter documents based on similarity score - OPTIMIZED for speed
+                relevant_threshold = 1.0  # More lenient for comprehensive references
+                max_sources = 5  # Optimized for faster response
                 logger.info(f"Relevant threshold: {relevant_threshold}")
                 logger.info(f"Max sources: {max_sources}")
                 logger.info(f"All distances: {distances}")
@@ -644,8 +668,10 @@ Jawaban:"""
                         if doc_id not in seen_docs and doc_id != 'unknown':
                             seen_docs.add(doc_id)
                             
-                            # Create Google Drive link
-                            drive_link = f"https://drive.google.com/file/d/{doc_id}/view"
+                            # Create Google Drive link - proper format for all file types
+                            # Use /open?id= format for better compatibility with PPTX, Word, etc.
+                            drive_link = f"https://drive.google.com/open?id={doc_id}"
+                            
                             source_info.append({
                                 "id": doc_id,
                                 "name": doc_name,

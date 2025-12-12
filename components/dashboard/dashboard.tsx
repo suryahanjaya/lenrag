@@ -6,6 +6,7 @@ import { formatAIResponse } from '@/lib/utils/formatting';
 import { Sidebar } from './sidebar';
 import { ChatPage } from './chat-page';
 import { DocumentsPage } from './documents-page';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import '../../styles.css';
 
 interface DashboardProps {
@@ -36,6 +37,17 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       link?: string;
     }>;
     from_documents?: boolean;
+    versions?: Array<{
+      content: string;
+      sources?: Array<string | {
+        id: string;
+        name: string;
+        type: string;
+        link?: string;
+      }>;
+      from_documents?: boolean;
+    }>;
+    currentVersionIndex?: number;
   }>>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
 
@@ -67,6 +79,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkUploadStatus, setBulkUploadStatus] = useState('');
 
+  // Confirm dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogData, setConfirmDialogData] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   // Time state for navbar
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -77,6 +97,95 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Initial data fetch on mount
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+
+    // Fetch both documents and knowledge base on mount
+    const initializeData = async () => {
+      try {
+        await Promise.all([
+          fetchDocuments(),
+          fetchKnowledgeBase()
+        ]);
+      } catch (error) {
+        console.error('Error initializing data:', error);
+      }
+    };
+
+    initializeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
+
+  // Restore upload state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('bulk_upload_state');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        const elapsed = Date.now() - state.startTime;
+        const token = getToken();
+
+        // Check if upload was interrupted by logout
+        if (state.interrupted) {
+          console.log('⏸️ Detected interrupted upload from previous session');
+
+          // Show notification about interrupted upload
+          setMessage(`⚠️ Upload terinterupsi saat logout. ${state.progress.current}/${state.progress.total} files telah diupload. Silakan upload ulang folder yang sama untuk melanjutkan.`);
+
+          // Don't auto-restore, let user manually restart
+          // Clear the interrupted state after showing message
+          setTimeout(() => {
+            localStorage.removeItem('bulk_upload_state');
+            console.log('🗑️ Cleared interrupted upload state');
+          }, 10000); // Clear after 10 seconds
+
+          return;
+        }
+
+        // Normal restore (page refresh, not logout)
+        // Only restore if:
+        // 1. Upload was in progress
+        // 2. Less than 10 minutes ago
+        // 3. User still has valid token (not logged out)
+        if (state.isUploading && elapsed < 10 * 60 * 1000 && token) {
+          console.log('📥 Restoring upload state after refresh...');
+          setIsBulkUploading(true);
+          setBulkUploadProgress(state.progress);
+          setBulkUploadStatus(state.status || '⚡ Upload masih berjalan...');
+          setFolderUrl(state.folderUrl || '');
+          setMessage('ℹ️ Upload masih berjalan di background. Mohon tunggu...');
+        } else {
+          // Clear old state or if user logged out
+          console.log('🗑️ Clearing stale upload state...');
+          localStorage.removeItem('bulk_upload_state');
+        }
+      } catch (error) {
+        console.error('Error restoring upload state:', error);
+        localStorage.removeItem('bulk_upload_state');
+      }
+    }
+  }, []);
+
+  // Save upload state to localStorage whenever it changes
+  useEffect(() => {
+    if (isBulkUploading) {
+      const state = {
+        isUploading: true,
+        progress: bulkUploadProgress,
+        status: bulkUploadStatus,
+        startTime: Date.now(),
+        folderUrl: folderUrl,
+        interrupted: false  // Not interrupted during normal operation
+      };
+      localStorage.setItem('bulk_upload_state', JSON.stringify(state));
+    } else {
+      // Clear state when upload completes
+      localStorage.removeItem('bulk_upload_state');
+    }
+  }, [isBulkUploading, bulkUploadProgress, bulkUploadStatus, folderUrl]);
 
   // Get token from localStorage
   const getToken = () => {
@@ -490,37 +599,57 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       return;
     }
 
-    const confirmed = confirm(`Apakah Anda yakin ingin RESET LLM DATA? Ini akan menghapus semua ${knowledgeBase.length} dokumen dan LLM tidak akan bisa menjawab pertanyaan apapun. Tindakan ini tidak dapat dibatalkan.`);
+    // Show custom confirm dialog instead of native browser confirm
+    setConfirmDialogData({
+      title: 'Reset LLM Data?',
+      message: `Ini akan menghapus semua ${knowledgeBase.length} dokumen dan LLM tidak akan bisa menjawab pertanyaan apapun. Tindakan ini tidak dapat dibatalkan.`,
+      onConfirm: async () => {
+        setShowConfirmDialog(false);
+        await performClearAllDocuments(token);
+      }
+    });
+    setShowConfirmDialog(true);
+  };
 
-    if (!confirmed) {
-      return;
-    }
+  // Actual clear operation
+  const performClearAllDocuments = async (token: string) => {
 
     const documentsCount = knowledgeBase.length;
-    setMessage('Resetting LLM data...');
+    setMessage('🔄 Resetting LLM data...');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/knowledge-base/clear`, {
+      console.log('🗑️ Clearing all documents from knowledge base...');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/clear-all-documents`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('Clear response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`Failed to clear knowledge base: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Clear failed:', response.status, errorText);
+        throw new Error(`Failed to clear knowledge base: ${response.status} - ${errorText}`);
       }
 
-      setMessage(`Berhasil menghapus ${documentsCount} dokumen dari knowledge base!`);
+      const result = await response.json();
+      console.log('Clear successful:', result);
+
+      setMessage(`Berhasil menghapus ${result.total_chunks_removed || documentsCount} chunks dari knowledge base!`);
+
+      // Refresh knowledge base immediately
       setTimeout(() => {
         fetchKnowledgeBase();
-      }, 1000);
+      }, 500);
     } catch (error) {
-      setMessage('Gagal menghapus dokumen. Periksa koneksi dan coba lagi.');
+      console.error('Error clearing documents:', error);
+      setMessage(`Gagal menghapus dokumen: ${error instanceof Error ? error.message : 'Unknown error'}. Periksa koneksi dan coba lagi.`);
     }
   };
 
-  // Bulk upload from folder
+  // 🚀 PROGRESSIVE Bulk upload from folder - FILES APPEAR AS THEY'RE SAVED!
   const handleBulkUploadFromFolder = async () => {
     if (!folderUrl.trim()) {
       setMessage('Masukkan URL folder terlebih dahulu.');
@@ -535,12 +664,13 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
     setIsBulkUploading(true);
     setBulkUploadProgress({ current: 0, total: 0, percentage: 0 });
-    setBulkUploadStatus('Memindai folder...');
+    setBulkUploadStatus('🔍 Memindai folder...');
 
     try {
       const requestBody = { folder_url: folderUrl.trim() };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/from-folder-all`, {
+      // 🚀 USE STREAMING ENDPOINT FOR PROGRESSIVE UPDATES!
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/bulk-upload-from-folder-stream`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -551,90 +681,87 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setMessage('Sesi telah berakhir. Silakan login ulang.');
-        } else if (response.status === 403) {
-          setMessage('Folder tidak dapat diakses. Pastikan folder sudah di-set public.');
-        } else {
-          setMessage(`Gagal memuat dokumen dari folder: ${response.status}`);
-        }
-        setIsBulkUploading(false);
-        return;
+        throw new Error(`Failed to start upload: ${response.status}`);
       }
 
-      const allDocuments = await response.json();
-
-      if (!allDocuments || allDocuments.length === 0) {
-        setMessage('Tidak ada dokumen yang ditemukan di folder.');
-        setIsBulkUploading(false);
-        return;
+      if (!response.body) {
+        throw new Error('Streaming not supported');
       }
 
-      const supportedFiles = allDocuments.filter((doc: any) => {
-        const fileName = doc.name.toLowerCase();
-        return fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx');
-      });
+      // Read stream and update UI progressively
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      if (supportedFiles.length === 0) {
-        setMessage('Tidak ada file PDF, DOC, atau DOCX yang ditemukan di folder.');
-        setIsBulkUploading(false);
-        return;
-      }
+      while (true) {
+        const { done, value } = await reader.read();
 
-      setBulkUploadStatus(`Ditemukan ${supportedFiles.length} file yang didukung. Memulai upload...`);
-      setBulkUploadProgress({ current: 0, total: supportedFiles.length, percentage: 0 });
+        if (done) break;
 
-      let processedCount = 0;
-      let failedFiles = [];
+        buffer += decoder.decode(value, { stream: true });
 
-      for (let i = 0; i < supportedFiles.length; i++) {
-        const file = supportedFiles[i];
-        setBulkUploadStatus(`Memproses file ${i + 1}/${supportedFiles.length}: ${file.name}`);
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${getToken()}`,
-              'X-Google-Token': getToken(),
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ document_ids: [file.id] }),
-          });
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
 
-          if (response.ok) {
-            processedCount++;
-          } else {
-            const errorText = await response.text();
-            failedFiles.push({ name: file.name, error: `${response.status}: ${errorText}` });
+              if (data.status === 'scanning') {
+                setBulkUploadStatus(data.message);
+              } else if (data.status === 'found') {
+                setBulkUploadProgress({ current: 0, total: data.total, percentage: 0 });
+                setBulkUploadStatus(data.message);
+              } else if (data.status === 'processing') {
+                setBulkUploadStatus(data.message);
+              } else if (data.status === 'saved') {
+                // 🎯 KEY FEATURE: Update progress AND refresh knowledge base immediately!
+                setBulkUploadProgress({
+                  current: data.processed,
+                  total: data.total,
+                  percentage: data.percentage
+                });
+                setBulkUploadStatus(`✅ Saved ${data.processed}/${data.total}: ${data.doc_name}`);
+
+                // 🚀 PROGRESSIVE: Refresh knowledge base to show new file immediately!
+                fetchKnowledgeBase();
+              } else if (data.status === 'skipped' || data.status === 'failed') {
+                setBulkUploadStatus(`⚠️ Skipped: ${data.doc_name} - ${data.reason || 'Unknown error'}`);
+              } else if (data.status === 'complete') {
+                setBulkUploadProgress({
+                  current: data.processed,
+                  total: data.total,
+                  percentage: 100
+                });
+                setMessage(data.message);
+                setBulkUploadStatus('✅ Upload complete!');
+
+                // Final refresh
+                await fetchKnowledgeBase();
+
+                // Keep success message visible
+                setTimeout(() => {
+                  setIsBulkUploading(false);
+                  setBulkUploadStatus('');
+                  setTimeout(() => {
+                    setBulkUploadProgress({ current: 0, total: 0, percentage: 0 });
+                  }, 1000);
+                }, 3000);
+              } else if (data.status === 'error' || data.error) {
+                throw new Error(data.error || 'Upload failed');
+              }
+            } catch (e) {
+              console.error('Error parsing stream data:', e);
+            }
           }
-
-          const percentage = Math.round(((i + 1) / supportedFiles.length) * 100);
-          setBulkUploadProgress({
-            current: i + 1,
-            total: supportedFiles.length,
-            percentage
-          });
-
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (error) {
-          failedFiles.push({ name: file.name, error: error instanceof Error ? error.message : String(error) });
         }
       }
 
-      if (failedFiles.length > 0) {
-        setMessage(`Bulk upload selesai! ${processedCount} berhasil, ${failedFiles.length} gagal.`);
-      }
-
-      setBulkUploadStatus('Upload selesai! Memuat ulang data...');
-      setMessage(`Bulk upload selesai! ${processedCount} dari ${supportedFiles.length} dokumen berhasil diupload.`);
-
-      setTimeout(() => {
-        fetchKnowledgeBase();
-      }, 2000);
     } catch (error) {
+      console.error('Bulk upload error:', error);
       setMessage('Gagal melakukan bulk upload. Periksa koneksi dan coba lagi.');
-    } finally {
       setIsBulkUploading(false);
       setBulkUploadStatus('');
     }
@@ -653,6 +780,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }
 
     const userMessage = chatMessage.trim();
+    const currentChatId = activeChatId; // Capture current chat ID
     setChatMessage('');
     setIsChatLoading(true);
 
@@ -679,21 +807,27 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
       const data = await response.json();
 
-      setChatHistory((prev) => [...prev, {
-        role: 'assistant',
-        content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
-        sources: data.sources || [],
-        from_documents: data.from_documents || false
-      }]);
+      // Only add response if still in the same chat
+      if (currentChatId === activeChatId) {
+        setChatHistory((prev) => [...prev, {
+          role: 'assistant',
+          content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
+          sources: data.sources || [],
+          from_documents: data.from_documents || false
+        }]);
+      }
     } catch (error) {
-      setChatHistory((prev) => [...prev, {
-        role: 'assistant',
-        content: 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.'
-      }]);
+      // Only add error if still in the same chat
+      if (currentChatId === activeChatId) {
+        setChatHistory((prev) => [...prev, {
+          role: 'assistant',
+          content: 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.'
+        }]);
+      }
     } finally {
       setIsChatLoading(false);
     }
-  }, [chatMessage, knowledgeBase.length, isChatLoading]);
+  }, [chatMessage, knowledgeBase.length, isChatLoading, activeChatId]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -701,6 +835,280 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       handleSendMessage();
     }
   }, [handleSendMessage]);
+
+  // Refresh/Regenerate AI response with versioning
+  const handleRefreshResponse = useCallback(async (messageIndex: number) => {
+    // Find the user message that triggered this response
+    let userMessageIndex = -1;
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (chatHistory[i].role === 'user') {
+        userMessageIndex = i;
+        break;
+      }
+    }
+
+    if (userMessageIndex === -1) {
+      console.error('No user message found before this assistant message');
+      return;
+    }
+
+    const token = getToken();
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      return;
+    }
+
+    const userMessage = chatHistory[userMessageIndex].content;
+    const currentChatId = activeChatId; // Capture current chat ID
+    setIsChatLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setMessage('Sesi telah berakhir. Silakan login ulang.');
+        } else {
+          throw new Error(`Failed to send message: ${response.status}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+
+      // Only add version if still in the same chat
+      if (currentChatId === activeChatId) {
+        // Add new response as a version
+        setChatHistory((prev) => {
+          const updated = [...prev];
+          const currentMsg = updated[messageIndex];
+
+          let versions = currentMsg.versions || [];
+
+          // Initialize versions array if it doesn't exist (only on first refresh)
+          if (versions.length === 0) {
+            // First version is the original content
+            versions = [{
+              content: currentMsg.content,
+              sources: currentMsg.sources,
+              from_documents: currentMsg.from_documents
+            }];
+          }
+
+          // Add new version
+          const newVersions = [...versions, {
+            content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
+            sources: data.sources || [],
+            from_documents: data.from_documents || false
+          }];
+
+          // Create new message object with updated versions
+          updated[messageIndex] = {
+            ...currentMsg,
+            versions: newVersions,
+            currentVersionIndex: newVersions.length - 1
+          };
+
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing response:', error);
+      setMessage('Gagal me-refresh respons. Silakan coba lagi.');
+    } finally {
+      setIsChatLoading(false);
+    }
+  }, [chatHistory, knowledgeBase.length, activeChatId]);
+
+  // Handle edit user message
+  const handleEditMessage = useCallback(async (messageIndex: number, newContent: string) => {
+    const token = getToken();
+    if (!token) {
+      setMessage('Token tidak tersedia. Silakan login ulang.');
+      return;
+    }
+
+    // Find the AI response after this user message (if exists)
+    let oldAIResponse = null;
+    let aiResponseIndex = -1;
+
+    for (let i = messageIndex + 1; i < chatHistory.length; i++) {
+      if (chatHistory[i].role === 'assistant') {
+        oldAIResponse = chatHistory[i];
+        aiResponseIndex = i;
+        break;
+      }
+    }
+
+    // Get the old user message for versioning
+    const oldUserMessage = chatHistory[messageIndex];
+
+    // Create versioning for user message
+    let userVersions = oldUserMessage.versions || [];
+    if (userVersions.length === 0) {
+      // First version is the original content
+      userVersions = [{
+        content: oldUserMessage.content,
+        sources: oldUserMessage.sources,
+        from_documents: oldUserMessage.from_documents
+      }];
+    }
+
+    // Add new version for user message
+    const newUserVersions = [...userVersions, {
+      content: newContent,
+      sources: oldUserMessage.sources,
+      from_documents: oldUserMessage.from_documents
+    }];
+
+    // Update the user message with versioning and remove all messages after it
+    const messagesToKeep = chatHistory.slice(0, messageIndex + 1);
+    messagesToKeep[messageIndex] = {
+      ...messagesToKeep[messageIndex],
+      content: newContent,
+      versions: newUserVersions,
+      currentVersionIndex: newUserVersions.length - 1 // Show the new version
+    };
+
+    setChatHistory(messagesToKeep);
+    setIsChatLoading(true);
+
+    const currentChatId = activeChatId; // Capture current chat ID
+
+    // Send the edited message
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: newContent }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setMessage('Sesi telah berakhir. Silakan login ulang.');
+        } else {
+          throw new Error(`Failed to send message: ${response.status}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+
+      // Only add response if still in the same chat
+      if (currentChatId === activeChatId) {
+        // If there was an old AI response, create versioning
+        if (oldAIResponse) {
+          const newResponse = {
+            role: 'assistant' as const,
+            content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
+            sources: data.sources || [],
+            from_documents: data.from_documents || false,
+            versions: [
+              // First version is the old response
+              {
+                content: oldAIResponse.content,
+                sources: oldAIResponse.sources,
+                from_documents: oldAIResponse.from_documents
+              },
+              // Second version is the new response
+              {
+                content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
+                sources: data.sources || [],
+                from_documents: data.from_documents || false
+              }
+            ],
+            currentVersionIndex: 1 // Show the new version
+          };
+
+          setChatHistory((prev) => [...prev, newResponse]);
+        } else {
+          // No old response, just add new one without versioning
+          setChatHistory((prev) => [...prev, {
+            role: 'assistant',
+            content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
+            sources: data.sources || [],
+            from_documents: data.from_documents || false
+          }]);
+        }
+      }
+    } catch (error) {
+      // Only add error if still in the same chat
+      if (currentChatId === activeChatId) {
+        setChatHistory((prev) => [...prev, {
+          role: 'assistant',
+          content: 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.'
+        }]);
+      }
+    } finally {
+      setIsChatLoading(false);
+    }
+  }, [chatHistory, knowledgeBase.length, activeChatId]);
+
+  // Handle version index change with linked versioning
+  const handleChangeVersionIndex = useCallback((messageIndex: number, newVersionIndex: number) => {
+    setChatHistory((prev) => {
+      const updated = [...prev];
+      const currentMsg = updated[messageIndex];
+
+      // Update the current message version
+      updated[messageIndex] = {
+        ...currentMsg,
+        currentVersionIndex: newVersionIndex
+      };
+
+      // Linked versioning logic
+      if (currentMsg.role === 'user') {
+        // User message changed -> Find and update corresponding AI response
+        // Look for the next assistant message
+        for (let i = messageIndex + 1; i < updated.length; i++) {
+          if (updated[i].role === 'assistant') {
+            const aiMsg = updated[i];
+            const aiVersions = aiMsg.versions || [];
+
+            // Only sync if AI has versions and the new index is valid
+            if (aiVersions.length > 0 && newVersionIndex < aiVersions.length) {
+              updated[i] = {
+                ...aiMsg,
+                currentVersionIndex: newVersionIndex
+              };
+            }
+            break; // Only update the first AI response
+          }
+        }
+      } else if (currentMsg.role === 'assistant') {
+        // AI message changed -> Find and update corresponding user message
+        // Look for the previous user message
+        for (let i = messageIndex - 1; i >= 0; i--) {
+          if (updated[i].role === 'user') {
+            const userMsg = updated[i];
+            const userVersions = userMsg.versions || [];
+
+            // Only sync if user has versions and the new index is valid
+            if (userVersions.length > 0 && newVersionIndex < userVersions.length) {
+              updated[i] = {
+                ...userMsg,
+                currentVersionIndex: newVersionIndex
+              };
+            }
+            break; // Only update the first user message
+          }
+        }
+      }
+
+      return updated;
+    });
+  }, []);
+
 
   // Load chat sessions from localStorage on mount
   useEffect(() => {
@@ -938,6 +1346,9 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             onSendMessage={handleSendMessage}
             onChatMessageChange={setChatMessage}
             onKeyPress={handleKeyPress}
+            onRefreshResponse={handleRefreshResponse}
+            onEditMessage={handleEditMessage}
+            onChangeVersionIndex={handleChangeVersionIndex}
           />
         ) : (
           <DocumentsPage
@@ -980,6 +1391,20 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           />
         )}
       </div>
+
+      {/* Custom Confirm Dialog */}
+      {confirmDialogData && (
+        <ConfirmDialog
+          isOpen={showConfirmDialog}
+          title={confirmDialogData.title}
+          message={confirmDialogData.message}
+          confirmText="Yes, Reset"
+          cancelText="Cancel"
+          onConfirm={confirmDialogData.onConfirm}
+          onCancel={() => setShowConfirmDialog(false)}
+          type="danger"
+        />
+      )}
     </div>
   );
 }

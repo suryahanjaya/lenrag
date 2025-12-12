@@ -30,7 +30,7 @@ dist/
 pids
 *.pid
 *.seed
-*.pid.lock
+# *.pid.lock
 
 # Logs
 logs
@@ -209,5 +209,5 @@ chroma_db/
 render.yaml.bak
 vercel.json.bak
 
-webserver.txt
-webservercreden.txt
+# webserver.txt
+# webservercreden.txt

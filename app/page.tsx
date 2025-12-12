@@ -60,6 +60,26 @@ export default function Home() {
     // Clear user data
     localStorage.removeItem('user')
 
+    // DON'T clear upload state - let it persist for resume
+    // localStorage.removeItem('bulk_upload_state')  // Commented out!
+
+    // Mark upload as interrupted if it was in progress
+    const uploadState = localStorage.getItem('bulk_upload_state');
+    if (uploadState) {
+      try {
+        const state = JSON.parse(uploadState);
+        if (state.isUploading) {
+          // Mark as interrupted
+          state.interrupted = true;
+          state.interruptedAt = Date.now();
+          localStorage.setItem('bulk_upload_state', JSON.stringify(state));
+          console.log('⏸️ Upload interrupted by logout. Will prompt to resume on next login.');
+        }
+      } catch (error) {
+        console.error('Error marking upload as interrupted:', error);
+      }
+    }
+
     // Clear any remaining storage
     sessionStorage.clear()
 
@@ -79,142 +99,223 @@ export default function Home() {
     return <Dashboard user={user} onLogout={handleLogout} />
   }
 
-  // Premium Split-Screen Login Page
+  // Premium Split-Screen Login Page - Compact & Red Theme
   return (
-    <div className="min-h-screen flex overflow-hidden">
+    <div className="min-h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-white to-red-50/20">
       {/* Left Side - White Form Section */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white relative">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="flex items-center mb-12">
-            <img src="/2.png" alt="DORA Logo" className="h-10 w-10 mr-3" />
-            <span className="text-2xl font-bold text-gray-900">DORA</span>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white/80 backdrop-blur-xl relative">
+        {/* Subtle animated background */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 left-0 w-80 h-80 bg-gradient-to-br from-red-100 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-red-100 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }}></div>
+        </div>
+
+        <div className="w-full max-w-sm relative z-10">
+          {/* Logo with animation - Smaller */}
+          <div className="flex items-center mb-8 animate-fade-in-down">
+            <div className="relative">
+              <div className="absolute inset-0 bg-red-500/20 blur-lg rounded-full animate-pulse"></div>
+              <img src="/2.png" alt="DORA Logo" className="h-9 w-9 mr-2.5 relative z-10 hover:scale-110 transition-transform duration-300" />
+            </div>
+            <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-red-700 to-gray-900 bg-clip-text text-transparent">DORA</span>
           </div>
 
-          {/* Welcome Text */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">Welcome Back</h1>
-            <p className="text-gray-500">Please sign in to continue</p>
+          {/* Welcome Text - Smaller */}
+          <div className="mb-7 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="mb-2">
+              <p className="text-sm text-gray-900 mb-1">Welcome to</p>
+              <h1 className="text-4xl font-bold leading-tight bg-gradient-to-r from-red-600 via-red-500 to-orange-500 bg-clip-text text-transparent animate-gradient-x">
+                DORA
+              </h1>
+            </div>
+            <p className="text-sm text-gray-600">Your intelligent document assistant</p>
           </div>
-
 
           {/* Google Sign In Button */}
-          <div className="mb-8">
+          <div className="mb-7 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <GoogleAuthButton onSuccess={handleAuthSuccess} />
           </div>
 
-          {/* Feature Cards - Premium */}
-          <div className="space-y-3 mb-8">
+          {/* Feature Cards - Compact & All Red */}
+          <div className="space-y-3 mb-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             {/* Secure Authentication */}
-            <div className="group bg-gradient-to-br from-red-50/80 to-white/80 backdrop-blur-sm rounded-xl p-4 border border-red-100/50 hover:border-red-200 transition-all duration-300 hover:shadow-md">
+            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 rounded-xl p-3.5 border border-red-100 hover:border-red-300 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">Secure Authentication</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">Sign in securely with your Google account using OAuth 2.0</p>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-red-600 transition-colors">Secure Authentication</h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">Sign in securely with your Google account using OAuth 2.0 encryption</p>
                 </div>
               </div>
             </div>
 
-            {/* Document Integration */}
-            <div className="group bg-gradient-to-br from-white/80 to-red-50/80 backdrop-blur-sm rounded-xl p-4 border border-gray-100/50 hover:border-red-200 transition-all duration-300 hover:shadow-md">
+            {/* Document Integration - Red theme */}
+            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 rounded-xl p-3.5 border border-red-100 hover:border-red-300 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">Document Integration</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">Access and select from all your Google Docs seamlessly</p>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-red-600 transition-colors">Document Integration</h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">Access and analyze all your Google Drive documents seamlessly</p>
                 </div>
               </div>
             </div>
 
-            {/* DORA Intelligence */}
-            <div className="group bg-gradient-to-br from-red-50/80 to-white/80 backdrop-blur-sm rounded-xl p-4 border border-red-100/50 hover:border-red-200 transition-all duration-300 hover:shadow-md">
+            {/* AI Intelligence - Red theme */}
+            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 rounded-xl p-3.5 border border-red-100 hover:border-red-300 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">DORA Intelligence</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">Universal document understanding for all types of content</p>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-red-600 transition-colors">AI Intelligence</h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">Universal document understanding powered by advanced AI</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Description Text */}
-          <p className="text-center text-xs text-gray-400 italic">
+          {/* Description Text - Smaller */}
+          <p className="text-center text-xs text-gray-500 italic animate-fade-in" style={{ animationDelay: '0.6s' }}>
             Your intelligent companion for document understanding and knowledge management
           </p>
         </div>
       </div>
 
 
-      {/* Right Side - Gen Z Premium Visual with Logo2 */}
+      {/* Right Side - Enhanced Premium Visual */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-red-500 via-red-600 to-red-700 items-center justify-center p-12 relative overflow-hidden">
-        {/* Animated Gradient Orbs */}
-        <div className="absolute top-10 right-10 w-72 h-72 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-10 left-10 w-96 h-96 bg-gradient-to-tr from-red-900/40 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        {/* Animated Gradient Orbs - More dynamic */}
+        <div className="absolute top-10 right-10 w-96 h-96 bg-gradient-to-br from-white/30 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '3s' }}></div>
+        <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-gradient-to-tr from-red-900/50 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
+        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-white/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }}></div>
 
-        {/* Geometric Shapes - Gen Z Style */}
-        <div className="absolute top-20 left-20 w-32 h-32 border-4 border-white/20 rounded-3xl rotate-12 animate-float"></div>
-        <div className="absolute bottom-32 right-24 w-24 h-24 border-4 border-white/15 rounded-2xl -rotate-12 animate-float" style={{ animationDelay: '0.5s' }}></div>
-        <div className="absolute top-1/2 right-16 w-16 h-16 bg-white/10 rounded-xl rotate-45 animate-float" style={{ animationDelay: '1.5s' }}></div>
+        {/* Geometric Shapes - More variety */}
+        <div className="absolute top-20 left-20 w-40 h-40 border-4 border-white/25 rounded-3xl rotate-12 animate-float"></div>
+        <div className="absolute bottom-32 right-24 w-32 h-32 border-4 border-white/20 rounded-2xl -rotate-12 animate-float" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute top-1/2 right-16 w-20 h-20 bg-white/15 rounded-xl rotate-45 animate-float" style={{ animationDelay: '1.5s' }}></div>
+        <div className="absolute top-40 right-40 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
 
-        {/* Main Logo Display - Minimal & Clean */}
+        {/* Main Logo Display - Enhanced */}
         <div className="relative z-10 flex items-center justify-center">
-          {/* Outer Glow Ring */}
+          {/* Outer Glow Ring - Stronger */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-[500px] h-[500px] bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl"></div>
+            <div className="w-[600px] h-[600px] bg-gradient-to-br from-white/20 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
           </div>
 
-          {/* Logo Container - Premium Glass Effect */}
+          {/* Logo Container - Enhanced Glass Effect */}
           <div className="relative">
-            {/* Rotating Border Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-white/10 to-white/30 rounded-full blur-xl animate-spin" style={{ animationDuration: '8s' }}></div>
+            {/* Rotating Border Effect - Faster */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-white/10 to-white/40 rounded-full blur-2xl animate-spin" style={{ animationDuration: '6s' }}></div>
 
-            {/* Main Logo Circle */}
-            <div className="relative w-96 h-96 bg-gradient-to-br from-white/25 to-white/5 rounded-full backdrop-blur-2xl border-2 border-white/30 shadow-2xl flex items-center justify-center group hover:scale-105 transition-all duration-500">
-              {/* Inner Glow */}
-              <div className="absolute inset-8 bg-gradient-to-br from-white/20 to-transparent rounded-full"></div>
+            {/* Main Logo Circle - Larger and more prominent */}
+            <div className="relative w-[450px] h-[450px] bg-gradient-to-br from-white/30 to-white/10 rounded-full backdrop-blur-3xl border-2 border-white/40 shadow-2xl flex items-center justify-center group hover:scale-110 transition-all duration-700 hover:border-white/60">
+              {/* Inner Glow - Stronger */}
+              <div className="absolute inset-10 bg-gradient-to-br from-white/25 to-transparent rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
 
               {/* Logo */}
               <div className="relative z-10">
                 <img
                   src="/2T.png"
                   alt="DORA"
-                  className="w-72 h-72 object-contain drop-shadow-2xl animate-float filter brightness-110"
+                  className="w-80 h-80 object-contain drop-shadow-2xl animate-float filter brightness-110 group-hover:brightness-125 transition-all duration-700"
                 />
               </div>
 
-              {/* Shine Effect on Hover */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full"></div>
+              {/* Shine Effect on Hover - Enhanced */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-full"></div>
+
+              {/* Pulse ring on hover */}
+              <div className="absolute inset-0 border-4 border-white/0 group-hover:border-white/30 rounded-full transition-all duration-700 group-hover:scale-110"></div>
             </div>
 
-            {/* Floating Particles */}
-            <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-white/30 to-white/10 rounded-2xl backdrop-blur-md animate-float shadow-xl"></div>
-            <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-gradient-to-br from-white/25 to-white/5 rounded-2xl backdrop-blur-md animate-float shadow-xl" style={{ animationDelay: '0.7s' }}></div>
-            <div className="absolute top-1/4 -right-16 w-16 h-16 bg-white/20 rounded-xl backdrop-blur-md animate-float shadow-lg" style={{ animationDelay: '1.2s' }}></div>
-            <div className="absolute bottom-1/3 -left-12 w-12 h-12 bg-white/15 rounded-lg backdrop-blur-md animate-float shadow-lg" style={{ animationDelay: '1.8s' }}></div>
+            {/* Floating Particles - More dynamic */}
+            <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-white/35 to-white/15 rounded-3xl backdrop-blur-lg animate-float shadow-2xl"></div>
+            <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-gradient-to-br from-white/30 to-white/10 rounded-3xl backdrop-blur-lg animate-float shadow-2xl" style={{ animationDelay: '0.7s' }}></div>
+            <div className="absolute top-1/4 -right-20 w-20 h-20 bg-white/25 rounded-2xl backdrop-blur-lg animate-float shadow-xl" style={{ animationDelay: '1.2s' }}></div>
+            <div className="absolute bottom-1/3 -left-16 w-16 h-16 bg-white/20 rounded-xl backdrop-blur-lg animate-float shadow-xl" style={{ animationDelay: '1.8s' }}></div>
           </div>
         </div>
 
-        {/* Bottom Gradient Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-red-900/60 via-red-800/20 to-transparent"></div>
+        {/* Bottom Gradient Overlay - Enhanced */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-red-900/70 via-red-800/30 to-transparent"></div>
 
         {/* Subtle Grid Pattern */}
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '50px 50px' }}></div>
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+        {/* Animated lines */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-white to-transparent animate-pulse" style={{ animationDuration: '3s' }}></div>
+          <div className="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-white to-transparent animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fade-in-down {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes gradient-x {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+
+        .animate-fade-in-down {
+          animation: fade-in-down 0.6s ease-out;
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+          animation-fill-mode: both;
+        }
+
+        .animate-gradient-x {
+          background-size: 200% 200%;
+          animation: gradient-x 3s ease infinite;
+        }
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(5deg);
+          }
+        }
+
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   )
 }

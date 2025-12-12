@@ -13,6 +13,12 @@ interface ChatPageProps {
         content: string
         sources?: Array<string | { id: string; name: string; type: string; link?: string }>
         from_documents?: boolean
+        versions?: Array<{
+            content: string
+            sources?: Array<string | { id: string; name: string; type: string; link?: string }>
+            from_documents?: boolean
+        }>
+        currentVersionIndex?: number
     }>
     chatMessage: string
     isChatLoading: boolean
@@ -20,6 +26,9 @@ interface ChatPageProps {
     onSendMessage: () => void
     onChatMessageChange: (message: string) => void
     onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void
+    onRefreshResponse?: (index: number) => void
+    onEditMessage?: (index: number, newContent: string) => void
+    onChangeVersionIndex?: (messageIndex: number, newVersionIndex: number) => void
 }
 
 export function ChatPage({
@@ -30,10 +39,16 @@ export function ChatPage({
     knowledgeBaseCount,
     onSendMessage,
     onChatMessageChange,
-    onKeyPress
+    onKeyPress,
+    onRefreshResponse,
+    onEditMessage,
+    onChangeVersionIndex
 }: ChatPageProps) {
     const inputRef = useRef<HTMLInputElement>(null)
+    const chatContainerRef = useRef<HTMLDivElement>(null)
     const [currentTime, setCurrentTime] = useState(new Date())
+    const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
+    const [editedContent, setEditedContent] = useState('')
 
     // Update time every second
     useEffect(() => {
@@ -42,6 +57,16 @@ export function ChatPage({
         }, 1000)
         return () => clearInterval(timer)
     }, [])
+
+    // Auto-scroll to bottom when new messages are added
+    useEffect(() => {
+        if (chatContainerRef.current && chatHistory.length > 0) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            })
+        }
+    }, [chatHistory])
 
     // Get greeting based on time
     const getGreeting = () => {
@@ -130,23 +155,19 @@ export function ChatPage({
 
     // Component to render formatted chat message
     const renderFormattedMessage = (content: string, sources?: Array<string | { id: string; name: string; type: string; link?: string }>) => {
-        // Extract sources from content if present
-        let extractedSourceNames: string[] = []
+        // Always remove source mentions from content since we show sources separately
         let cleanContent = content
-
-        // Look for "Sumber:" pattern and extract source names
-        const sourceMatch = content.match(/Sumber:\s*([^\n]+)/i)
-        if (sourceMatch) {
-            // Extract source names (split by comma, remove .pdf/.docx extensions for matching)
-            const sourceText = sourceMatch[1]
-            extractedSourceNames = sourceText
-                .split(',')
-                .map(s => s.trim())
-                .filter(s => s.length > 0)
-
-            // Remove the "Sumber:" line from content
-            cleanContent = content.replace(/Sumber:\s*[^\n]+\.?\s*/gi, '').trim()
-        }
+            // Remove "Sumber: ..." lines
+            .replace(/Sumber:\s*[^\n]+\.?\s*/gi, '')
+            // Remove "Saya menggunakan dokumen ... sebagai sumber" pattern
+            .replace(/Saya menggunakan dokumen[^.]+sebagai sumber\.?\s*/gi, '')
+            // Remove "Dokumen yang digunakan sebagai sumber: ..." pattern
+            .replace(/Dokumen yang digunakan sebagai sumber:\s*[^\n]+\.?\s*/gi, '')
+            // Remove standalone source document lists
+            .replace(/\n\s*[-•]\s*[^\n]+\.(pdf|docx?|pptx?|txt)\s*/gi, '')
+            // Clean up multiple newlines
+            .replace(/\n{3,}/g, '\n\n')
+            .trim()
 
         const paragraphs = cleanContent.split('\n\n')
         const isIncomplete = detectIncompleteResponse(cleanContent)
@@ -189,8 +210,7 @@ export function ChatPage({
                         </div>
                     )}
                 </div>
-            ),
-            extractedSourceNames
+            )
         }
     }
 
@@ -199,7 +219,7 @@ export function ChatPage({
 
 
             {/* Chat Messages Area */}
-            <div className={`flex-1 overflow-y-auto ${chatHistory.length === 0 ? 'bg-gradient-to-br from-gray-50 via-white to-gray-50' : 'bg-gray-50 py-6 px-6'}`}>
+            <div ref={chatContainerRef} className={`flex-1 overflow-y-auto ${chatHistory.length === 0 ? 'bg-gradient-to-br from-gray-50 via-white to-gray-50' : 'bg-gray-50 py-6 px-6'}`}>
                 {chatHistory.length === 0 ? (
                     <div className="h-full flex flex-col items-center relative overflow-hidden">
                         {/* Subtle Background Pattern */}
@@ -370,7 +390,7 @@ export function ChatPage({
                         </div>
                     </div>
                 ) : (
-                    <div className="max-w-5xl mx-auto">
+                    <div className="max-w-5xl mx-auto pb-24">
                         <div className="space-y-6 w-full">
                             {chatHistory.map((msg, index) => (
                                 <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -389,84 +409,320 @@ export function ChatPage({
                                             </div>
                                         )}
 
-                                        <div className={`rounded-2xl px-5 py-4 ${msg.role === 'user'
-                                            ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-md'
-                                            : 'bg-white border border-gray-200 text-gray-900 shadow-sm'
-                                            }`}>
-                                            <div className="flex-1">
-                                                {msg.role === 'assistant' ? (() => {
-                                                    const result = renderFormattedMessage(msg.content, msg.sources)
-                                                    const extractedSourceNames = result.extractedSourceNames
+                                        {msg.role === 'user' ? (
+                                            /* User Message Container with Hover */
+                                            <div className="group">
+                                                <div className={`rounded-2xl px-5 py-4 bg-gradient-to-br from-red-600 to-red-700 text-white shadow-md`}>
+                                                    <div className="flex-1">
+                                                        {/* User Message - Editable */}
+                                                        {editingMessageIndex === index ? (
+                                                            <div className="space-y-3">
+                                                                <textarea
+                                                                    value={editedContent}
+                                                                    onChange={(e) => setEditedContent(e.target.value)}
+                                                                    className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white placeholder:text-white/60 focus:outline-none focus:border-white/50 resize-none"
+                                                                    rows={3}
+                                                                    autoFocus
+                                                                />
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            if (onEditMessage && editedContent.trim()) {
+                                                                                onEditMessage(index, editedContent.trim())
+                                                                                setEditingMessageIndex(null)
+                                                                            }
+                                                                        }}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white/20 hover:bg-white/30 rounded-lg transition-all"
+                                                                    >
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                        </svg>
+                                                                        <span>Save & Send</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setEditingMessageIndex(null)}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+                                                                    >
+                                                                        <span>Cancel</span>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (() => {
+                                                            // User message with versioning
+                                                            const currentVersionIndex = msg.currentVersionIndex ?? 0
+                                                            const versions = msg.versions || []
+                                                            const totalVersions = versions.length
+                                                            const hasVersions = totalVersions > 0
+
+                                                            // Use current version or fallback to main content
+                                                            const displayContent = hasVersions ? versions[currentVersionIndex].content : msg.content
+
+                                                            return (
+                                                                <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">
+                                                                    {displayContent}
+                                                                </p>
+                                                            )
+                                                        })()}
+                                                    </div>
+                                                </div>
+
+                                                {/* User Message Action Buttons - Outside bubble, below */}
+                                                {editingMessageIndex !== index && (() => {
+                                                    const currentVersionIndex = msg.currentVersionIndex ?? 0
+                                                    const versions = msg.versions || []
+                                                    const totalVersions = versions.length
+                                                    const hasVersions = totalVersions > 1
 
                                                     return (
-                                                        <>
-                                                            {result.content}
-
-                                                            {/* Sources - Premium Style - Using extracted names from text */}
-                                                            {extractedSourceNames.length > 0 && msg.sources && msg.sources.length > 0 && (() => {
-                                                                // Match extracted source names with sources array to get links
-                                                                const matchedSources = extractedSourceNames
-                                                                    .map(sourceName => {
-                                                                        // Find matching source in msg.sources
-                                                                        return msg.sources?.find(source => {
-                                                                            if (typeof source === 'object') {
-                                                                                const name = source.name || source.id
-                                                                                return name && sourceName.includes(name.replace(/\.(pdf|docx?|txt)$/i, ''))
+                                                        <div className="flex items-center justify-end gap-2 mt-2 px-1">
+                                                            {/* Version Navigation - Left side */}
+                                                            {hasVersions && (
+                                                                <div className="flex items-center gap-2 mr-auto">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newIndex = currentVersionIndex > 0 ? currentVersionIndex - 1 : totalVersions - 1
+                                                                            if (onChangeVersionIndex) {
+                                                                                onChangeVersionIndex(index, newIndex)
                                                                             }
-                                                                            return false
+                                                                        }}
+                                                                        className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                        title="Previous version"
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                                                        </svg>
+                                                                    </button>
+
+                                                                    <span className="text-xs font-medium text-gray-600 min-w-[40px] text-center">
+                                                                        {currentVersionIndex + 1}/{totalVersions}
+                                                                    </span>
+
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newIndex = currentVersionIndex < totalVersions - 1 ? currentVersionIndex + 1 : 0
+                                                                            if (onChangeVersionIndex) {
+                                                                                onChangeVersionIndex(index, newIndex)
+                                                                            }
+                                                                        }}
+                                                                        className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                        title="Next version"
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Copy Button - Only visible on hover */}
+                                                            <button
+                                                                onClick={() => {
+                                                                    const displayContent = hasVersions ? versions[currentVersionIndex].content : msg.content
+                                                                    navigator.clipboard.writeText(displayContent)
+                                                                        .then(() => {
+                                                                            const btn = document.getElementById(`copy-user-btn-${index}`)
+                                                                            if (btn) {
+                                                                                const originalHTML = btn.innerHTML
+                                                                                btn.innerHTML = `
+                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                                                    </svg>
+                                                                                `
+                                                                                setTimeout(() => {
+                                                                                    btn.innerHTML = originalHTML
+                                                                                }, 2000)
+                                                                            }
                                                                         })
-                                                                    })
-                                                                    .filter((source): source is { id: string; name: string; type: string; link?: string } =>
-                                                                        source !== undefined && typeof source === 'object' && source.link !== undefined
+                                                                        .catch(err => console.error('Failed to copy:', err))
+                                                                }}
+                                                                id={`copy-user-btn-${index}`}
+                                                                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                                title="Copy message"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                                </svg>
+                                                            </button>
+
+                                                            {/* Edit Button - Only visible on hover */}
+                                                            {onEditMessage && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const displayContent = hasVersions ? versions[currentVersionIndex].content : msg.content
+                                                                        setEditingMessageIndex(index)
+                                                                        setEditedContent(displayContent)
+                                                                    }}
+                                                                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                                    title="Edit message"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            /* AI Response */
+                                            <div className={`rounded-2xl px-5 py-4 bg-white border border-gray-200 text-gray-900 shadow-sm`}>
+                                                <div className="flex-1">
+                                                    {(() => {
+                                                        const currentVersionIndex = msg.currentVersionIndex ?? 0
+                                                        const versions = msg.versions || []
+                                                        const totalVersions = versions.length
+                                                        const hasVersions = totalVersions > 0
+
+                                                        // Use current version or fallback to main content
+                                                        const displayContent = hasVersions ? versions[currentVersionIndex].content : msg.content
+                                                        const displaySources = hasVersions ? versions[currentVersionIndex].sources : msg.sources
+
+                                                        const result = renderFormattedMessage(displayContent, displaySources)
+
+                                                        return (
+                                                            <>
+                                                                {result.content}
+
+                                                                {/* Sources - Premium Style - Direct from backend */}
+                                                                {displaySources && displaySources.length > 0 && (() => {
+                                                                    // Filter and deduplicate sources
+                                                                    const validSources = displaySources
+                                                                        .filter((source): source is { id: string; name: string; type: string; link?: string } =>
+                                                                            typeof source === 'object' && source.link !== undefined
+                                                                        )
+
+                                                                    // Remove duplicates by name
+                                                                    const uniqueSources = validSources.filter((source, index, self) =>
+                                                                        index === self.findIndex(s => s.name === source.name)
                                                                     )
 
-                                                                // Remove duplicates
-                                                                const uniqueSources = matchedSources.filter((source, index, self) =>
-                                                                    index === self.findIndex(s => s.name === source.name)
-                                                                )
+                                                                    if (uniqueSources.length === 0) return null
 
-                                                                if (uniqueSources.length === 0) return null
-
-                                                                return (
-                                                                    <div className="mt-4 pt-4 border-t border-gray-100">
-                                                                        <p className="text-xs font-semibold text-gray-700 mb-3">
-                                                                            Sumber:
-                                                                        </p>
-                                                                        <div className="space-y-2">
-                                                                            {uniqueSources.map((source, idx) => (
-                                                                                <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 hover:border-red-200 transition-colors">
-                                                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                                        <div className="flex-1 min-w-0">
-                                                                                            <p className="text-xs font-medium text-gray-900 truncate">
-                                                                                                {source.name || source.id}
-                                                                                            </p>
+                                                                    return (
+                                                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                                                            <p className="text-xs font-semibold text-gray-700 mb-3">
+                                                                                Sumber:
+                                                                            </p>
+                                                                            <div className="space-y-2">
+                                                                                {uniqueSources.map((source, idx) => (
+                                                                                    <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 hover:border-red-200 transition-colors">
+                                                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                                            <div className="flex-1 min-w-0">
+                                                                                                <p className="text-xs font-medium text-gray-900 truncate">
+                                                                                                    {source.name || source.id}
+                                                                                                </p>
+                                                                                            </div>
                                                                                         </div>
+                                                                                        {source.link && (
+                                                                                            <a
+                                                                                                href={source.link}
+                                                                                                target="_blank"
+                                                                                                rel="noopener noreferrer"
+                                                                                                className="text-xs text-red-600 hover:text-red-700 font-medium ml-3 whitespace-nowrap"
+                                                                                            >
+                                                                                                View
+                                                                                            </a>
+                                                                                        )}
                                                                                     </div>
-                                                                                    {source.link && (
-                                                                                        <a
-                                                                                            href={source.link}
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            className="text-xs text-red-600 hover:text-red-700 font-medium ml-3 whitespace-nowrap"
-                                                                                        >
-                                                                                            View
-                                                                                        </a>
-                                                                                    )}
-                                                                                </div>
-                                                                            ))}
+                                                                                ))}
+                                                                            </div>
                                                                         </div>
+                                                                    )
+                                                                })()}
+
+                                                                {/* Action Buttons - Copy, Refresh, and Version Navigation */}
+                                                                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {/* Copy Button */}
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                navigator.clipboard.writeText(displayContent)
+                                                                                    .then(() => {
+                                                                                        const btn = document.getElementById(`copy-btn-${index}`)
+                                                                                        if (btn) {
+                                                                                            const originalHTML = btn.innerHTML
+                                                                                            btn.innerHTML = `
+                                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                                                            </svg>
+                                                                                            <span>Copied!</span>
+                                                                                        `
+                                                                                            setTimeout(() => {
+                                                                                                btn.innerHTML = originalHTML
+                                                                                            }, 2000)
+                                                                                        }
+                                                                                    })
+                                                                                    .catch(err => console.error('Failed to copy:', err))
+                                                                            }}
+                                                                            id={`copy-btn-${index}`}
+                                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                                            </svg>
+                                                                            <span>Copy</span>
+                                                                        </button>
+
+                                                                        {/* Refresh Button */}
+                                                                        {onRefreshResponse && (
+                                                                            <button
+                                                                                onClick={() => onRefreshResponse(index)}
+                                                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                                                            >
+                                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                                </svg>
+                                                                                <span>Refresh</span>
+                                                                            </button>
+                                                                        )}
                                                                     </div>
-                                                                )
-                                                            })()}
-                                                        </>
-                                                    )
-                                                })() : (
-                                                    <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">
-                                                        {msg.content}
-                                                    </p>
-                                                )}
+
+                                                                    {/* Version Navigation */}
+                                                                    {hasVersions && totalVersions > 1 && (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const newIndex = currentVersionIndex > 0 ? currentVersionIndex - 1 : totalVersions - 1
+                                                                                    if (onChangeVersionIndex) {
+                                                                                        onChangeVersionIndex(index, newIndex)
+                                                                                    }
+                                                                                }}
+                                                                                className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                                title="Previous version"
+                                                                            >
+                                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                                                                </svg>
+                                                                            </button>
+
+                                                                            <span className="text-xs font-medium text-gray-600 min-w-[40px] text-center">
+                                                                                {currentVersionIndex + 1}/{totalVersions}
+                                                                            </span>
+
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const newIndex = currentVersionIndex < totalVersions - 1 ? currentVersionIndex + 1 : 0
+                                                                                    if (onChangeVersionIndex) {
+                                                                                        onChangeVersionIndex(index, newIndex)
+                                                                                    }
+                                                                                }}
+                                                                                className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                                title="Next version"
+                                                                            >
+                                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        )
+                                                    })()}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -492,15 +748,15 @@ export function ChatPage({
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </div >
                 )
                 }
             </div >
 
-            {/* Chat Input - Only show at bottom when there are messages */}
+            {/* Chat Input - Sticky at bottom when there are messages */}
             {
                 chatHistory.length > 0 && (
-                    <div className="border-t border-gray-200 px-6 py-5 bg-white shadow-lg">
+                    <div className="sticky bottom-0 border-t border-gray-200 px-6 py-3 bg-white shadow-lg z-10">
                         <div className="max-w-5xl mx-auto">
                             <div className="flex gap-3 items-center">
                                 <div className="flex-1 relative">
@@ -512,13 +768,13 @@ export function ChatPage({
                                         onKeyPress={onKeyPress}
                                         placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask me anything..."}
                                         disabled={isChatLoading || knowledgeBaseCount === 0}
-                                        className="w-full px-6 py-5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-lg placeholder:text-red-400"
+                                        className="w-full px-5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-base placeholder:text-gray-400"
                                     />
                                 </div>
                                 <Button
                                     onClick={onSendMessage}
                                     disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
-                                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-10 py-5 rounded-2xl font-semibold transition-all shadow-md hover:shadow-lg disabled:shadow-none text-lg h-[64px]"
+                                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-300 disabled:to-gray-400 text-white px-8 py-3 rounded-2xl font-semibold transition-all shadow-md hover:shadow-lg disabled:shadow-none text-base h-[48px]"
                                 >
                                     Send
                                 </Button>

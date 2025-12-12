@@ -396,7 +396,7 @@ async def bulk_upload_from_folder(
         failed_documents = []
         
         # Configuration for parallel processing (from config.py or environment variable)
-        BATCH_SIZE = settings.bulk_upload_batch_size  # Default: 5, configurable via BULK_UPLOAD_BATCH_SIZE env var
+        BATCH_SIZE = settings.bulk_upload_batch_size  # Default: 100 (MAXIMUM SPEED!), configurable via BULK_UPLOAD_BATCH_SIZE env var
         
         async def process_single_document(doc, index, total):
             """Process a single document with error handling"""
@@ -410,13 +410,18 @@ async def bulk_upload_from_folder(
                 
                 content_len = len(content.strip()) if content else 0
                 logger.debug(f"📄 Document content length: {content_len} chars")
-                
-                if not content or content_len < 10:
-                    logger.warning(f"⚠️ Document {doc_name} has very little content ({content_len} chars)")
+                if not content or not content.strip():
+                    logger.warning(f"[{index}/{total}] Empty content for: {doc_name}")
                     return {
                         "success": False,
-                        "doc": {"id": doc_id, "name": doc_name, "error": f"Very little content ({content_len} chars)"}
+                        "doc": {
+                            "id": doc_id,
+                            "name": doc_name,
+                            "error": "Empty or no content available"
+                        }
                     }
+                
+                logger.info(f"[{index}/{total}] Content fetched: {len(content)} characters")
                 
                 # Add to DORA pipeline (this will chunk and store)
                 chunks_added = await dora_pipeline.add_document(
@@ -431,18 +436,22 @@ async def bulk_upload_from_folder(
                     logger.info(f"✅ [{index}/{total}] Successfully processed: {doc_name} ({chunks_added} chunks)")
                     return {"success": True, "chunks": chunks_added}
                 else:
-                    logger.warning(f"⚠️ [{index}/{total}] Failed to generate chunks for: {doc_name}")
+                    logger.warning(f"[{index}/{total}] No chunks generated for: {doc_name}")
                     return {
                         "success": False,
                         "doc": {
                             "id": doc_id, 
                             "name": doc_name, 
-                            "error": "No chunks generated (possible empty or unreadable content)"
+                            "error": "No chunks generated (content too short or chunking failed)"
                         }
                     }
                 
             except Exception as e:
-                logger.error(f"❌ Failed to process document {doc.get('name', 'Unknown')}: {e}")
+                error_msg = str(e)
+                logger.error(f"Failed to process {doc.get('name', 'Unknown')}: {error_msg}")
+                logger.error(f"Error type: {type(e).__name__}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 return {
                     "success": False,
                     "doc": {
@@ -507,6 +516,96 @@ async def bulk_upload_from_folder(
     except Exception as e:
         logger.error(f"Error in bulk upload from folder: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/documents/bulk-upload-from-folder-stream")
+async def bulk_upload_from_folder_stream(
+    request: FolderRequest,
+    x_google_token: Optional[str] = Header(None),
+    current_user = Depends(get_current_user)
+):
+    """🚀 STREAMING Bulk upload - Shows progress as each file is saved!"""
+    from fastapi.responses import StreamingResponse
+    import json
+    import asyncio
+    
+    async def upload_stream():
+        """Stream upload progress in real-time"""
+        try:
+            access_token = x_google_token
+            if not access_token:
+                yield f"data: {json.dumps({'error': 'No access token'})}\n\n"
+                return
+            
+            user_id = current_user.get('sub', current_user.get('id', 'default_user'))
+            
+            # Step 1: Get all documents
+            yield f"data: {json.dumps({'status': 'scanning', 'message': '🔍 Scanning folder...'})}\n\n"
+            
+            all_documents = await google_docs_service.list_all_documents_from_folder(request.folder_url, access_token)
+            total = len(all_documents)
+            
+            if total == 0:
+                yield f"data: {json.dumps({'status': 'complete', 'processed': 0, 'total': 0, 'message': 'No documents found'})}\n\n"
+                return
+            
+            yield f"data: {json.dumps({'status': 'found', 'total': total, 'message': f'📊 Found {total} files'})}\n\n"
+            
+            # Step 2: Process each document and stream progress
+            processed = 0
+            failed = []
+            
+            for i, doc in enumerate(all_documents, 1):
+                try:
+                    doc_id = doc['id']
+                    doc_name = doc['name']
+                    
+                    # Send progress update
+                    yield f"data: {json.dumps({'status': 'processing', 'current': i, 'total': total, 'doc_name': doc_name, 'message': f'⚡ Processing {i}/{total}: {doc_name}'})}\n\n"
+                    
+                    # Get content
+                    content = await google_docs_service.get_document_content(access_token, doc_id)
+                    
+                    if not content or not content.strip():
+                        yield f"data: {json.dumps({'status': 'skipped', 'current': i, 'total': total, 'doc_name': doc_name, 'reason': 'Empty content'})}\n\n"
+                        failed.append({'id': doc_id, 'name': doc_name, 'error': 'Empty content'})
+                        continue
+                    
+                    # Add to pipeline
+                    chunks_added = await dora_pipeline.add_document(
+                        user_id=user_id,
+                        document_id=doc_id,
+                        content=content,
+                        document_name=doc_name,
+                        mime_type=doc.get('mime_type', 'unknown')
+                    )
+                    
+                    if chunks_added > 0:
+                        processed += 1
+                        # Send success update - THIS IS KEY! Frontend can show file immediately
+                        yield f"data: {json.dumps({'status': 'saved', 'current': i, 'total': total, 'processed': processed, 'doc_name': doc_name, 'doc_id': doc_id, 'chunks': chunks_added, 'percentage': int((i/total)*100)})}\n\n"
+                    else:
+                        failed.append({'id': doc_id, 'name': doc_name, 'error': 'No chunks generated'})
+                        yield f"data: {json.dumps({'status': 'failed', 'current': i, 'total': total, 'doc_name': doc_name, 'reason': 'No chunks generated'})}\n\n"
+                    
+                except Exception as e:
+                    failed.append({'id': doc.get('id'), 'name': doc.get('name'), 'error': str(e)})
+                    yield f"data: {json.dumps({'status': 'error', 'current': i, 'total': total, 'doc_name': doc.get('name'), 'error': str(e)})}\n\n"
+            
+            # Send completion
+            yield f"data: {json.dumps({'status': 'complete', 'processed': processed, 'total': total, 'failed': len(failed), 'message': f'✅ Complete! {processed}/{total} files uploaded'})}\n\n"
+            
+        except Exception as e:
+            logger.error(f"Streaming upload error: {e}")
+            yield f"data: {json.dumps({'status': 'error', 'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        upload_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 @app.post("/documents/add")
 async def add_documents_to_knowledge_base(
@@ -682,49 +781,50 @@ async def remove_document_from_knowledge_base(
 async def clear_all_documents(
     current_user = Depends(get_current_user)
 ):
-    """Clear all documents from the user's knowledge base"""
+    """Clear all documents from the user's knowledge base - ULTRA FAST!"""
     try:
         user_id = current_user.get('sub', current_user.get('id', 'default_user'))
         collection_name = f"user_{user_id}"
         
-        logger.info(f"🚀 CLEAR ALL ENDPOINT CALLED FOR USER: {user_id}")
+        logger.info(f"CLEAR ALL ENDPOINT CALLED FOR USER: {user_id}")
         
-        # Count documents before clearing
-        collection = dora_pipeline._get_user_collection(user_id)
-        all_docs = collection.get()
-        
-        if not all_docs['ids']:
-            logger.info("Knowledge base is already empty")
-            return {"message": "Knowledge base is already empty", "cleared_count": 0}
-        
-        chunk_count = len(all_docs['ids'])
-        logger.info(f"Deleting {chunk_count} chunks for user {user_id}")
-        
-        # Delete entire collection and recreate
+        # Get count for user feedback (minimal overhead)
+        chunk_count = 0
         try:
-            dora_pipeline.chroma_client.delete_collection(collection_name)
-            logger.info(f"✅ Deleted collection: {collection_name}")
+            collection = dora_pipeline._get_user_collection(user_id)
+            chunk_count = collection.count()
             
-            # Recreate collection immediately
-            dora_pipeline.chroma_client.create_collection(
-                name=collection_name,
-                metadata={"hnsw:space": "cosine"}
-            )
-            logger.info(f"✅ Recreated collection: {collection_name}")
+            if chunk_count == 0:
+                logger.info("Knowledge base is already empty")
+                return {"message": "Knowledge base is already empty", "cleared_count": 0}
             
+            logger.info(f"Deleting {chunk_count} chunks for user {user_id}")
         except Exception as e:
-            logger.error(f"Error resetting collection: {e}")
-            # Fallback: Delete by IDs if collection deletion fails
-            collection.delete(ids=all_docs['ids'])
-            
+            logger.warning(f"Could not get count: {e}, proceeding with delete anyway")
+        
+        # FAST: Delete entire collection and recreate
+        dora_pipeline.chroma_client.delete_collection(collection_name)
+        logger.info(f"Deleted collection: {collection_name}")
+        
+        # Recreate collection
+        dora_pipeline.chroma_client.create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+        logger.info(f"Recreated collection: {collection_name}")
+        logger.info(f"Successfully cleared {chunk_count} chunks")
+        
         return {
             "message": "Knowledge base cleared successfully",
             "total_chunks_removed": chunk_count
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error clearing documents: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.get("/health")

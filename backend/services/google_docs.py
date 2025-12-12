@@ -26,6 +26,12 @@ try:
 except ImportError:
     DOCX_AVAILABLE = False
 
+try:
+    from pptx import Presentation
+    PPTX_AVAILABLE = True
+except ImportError:
+    PPTX_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -732,6 +738,46 @@ class GoogleDocsService:
                         content = "\n\n".join(text_parts)
                     except Exception as e:
                         logger.error(f"DOCX error: {e}")
+            
+            # Extract text from PPTX files
+            if not content and mime_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                url = f"{self.drive_api_base}/files/{file_id}?alt=media"
+                response = await client.get(url, headers=headers)
+                if response.status_code == 200 and PPTX_AVAILABLE:
+                    try:
+                        pptx_content = response.content
+                        prs = Presentation(io.BytesIO(pptx_content))
+                        text_parts = []
+                        
+                        for slide_num, slide in enumerate(prs.slides, 1):
+                            slide_text = []
+                            slide_text.append(f"=== Slide {slide_num} ===")
+                            
+                            # Extract text from all shapes in the slide
+                            for shape in slide.shapes:
+                                if hasattr(shape, "text") and shape.text.strip():
+                                    slide_text.append(shape.text.strip())
+                                
+                                # Extract text from tables
+                                if shape.has_table:
+                                    table = shape.table
+                                    for row in table.rows:
+                                        row_text = []
+                                        for cell in row.cells:
+                                            if cell.text.strip():
+                                                row_text.append(cell.text.strip())
+                                        if row_text:
+                                            slide_text.append(" | ".join(row_text))
+                            
+                            if len(slide_text) > 1:  # More than just the slide header
+                                text_parts.append("\n".join(slide_text))
+                        
+                        content = "\n\n".join(text_parts)
+                        logger.info(f"Extracted text from {len(prs.slides)} slides in PPTX")
+                    except Exception as e:
+                        logger.error(f"PPTX error: {e}")
+                        import traceback
+                        logger.error(f"PPTX traceback: {traceback.format_exc()}")
             
             if not content:
                 return f"Content extraction not supported for {mime_type}"
