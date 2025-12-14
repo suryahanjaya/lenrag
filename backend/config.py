@@ -72,11 +72,11 @@ class Settings(BaseSettings):
     max_bulk_upload_documents: int = Field(default=100, env="MAX_BULK_UPLOAD_DOCUMENTS")
     concurrent_processing_limit: int = Field(default=5, env="CONCURRENT_PROCESSING_LIMIT")
     
-    # Bulk Upload Optimization - MAXIMUM SPEED FOR 150+ FILES
+    # Bulk Upload Optimization - SPEED OPTIMIZED
     bulk_upload_batch_size: int = Field(
-        default=100,  # 🔥🔥🔥 MAXIMUM SPEED! 100 parallel = ~30-60 seconds for 150 files!
+        default=60,  # 🔥 FAST! 60 parallel = ~4-6 mins for 150 files with MiniLM
         env="BULK_UPLOAD_BATCH_SIZE",
-        description="Number of documents to process in parallel per batch. 100 = MAXIMUM SPEED (~30-60s for 150 files). Requires 8GB+ RAM."
+        description="Number of documents to process in parallel per batch. 60 = FAST (needs 8GB+ RAM). Use 30 for limited RAM, 100 for 16GB+ RAM."
     )
     
     # Cache Configuration

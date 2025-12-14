@@ -209,5 +209,11 @@ chroma_db/
 render.yaml.bak
 vercel.json.bak
 
+# Backup files
+*.backup
+*.bak
+
 # webserver.txt
 # webservercreden.txt
+
+

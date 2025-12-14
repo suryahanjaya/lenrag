@@ -60,25 +60,8 @@ export default function Home() {
     // Clear user data
     localStorage.removeItem('user')
 
-    // DON'T clear upload state - let it persist for resume
-    // localStorage.removeItem('bulk_upload_state')  // Commented out!
-
-    // Mark upload as interrupted if it was in progress
-    const uploadState = localStorage.getItem('bulk_upload_state');
-    if (uploadState) {
-      try {
-        const state = JSON.parse(uploadState);
-        if (state.isUploading) {
-          // Mark as interrupted
-          state.interrupted = true;
-          state.interruptedAt = Date.now();
-          localStorage.setItem('bulk_upload_state', JSON.stringify(state));
-          console.log('⏸️ Upload interrupted by logout. Will prompt to resume on next login.');
-        }
-      } catch (error) {
-        console.error('Error marking upload as interrupted:', error);
-      }
-    }
+    // CLEAR upload state completely (no resume feature)
+    localStorage.removeItem('bulk_upload_state')
 
     // Clear any remaining storage
     sessionStorage.clear()

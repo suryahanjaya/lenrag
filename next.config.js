@@ -5,24 +5,26 @@ const nextConfig = {
   swcMinify: true,
   compress: true,
   poweredByHeader: false,
-  
+  // Enable standalone output for Docker
+  output: 'standalone',
+
   // Bundle optimization
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-slot'],
   },
-  
+
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
   },
-  
+
   // Environment variables
   env: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:8000',
   },
-  
+
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
     // Optimize bundle size
@@ -44,7 +46,7 @@ const nextConfig = {
         },
       };
     }
-    
+
     return config;
   },
 }

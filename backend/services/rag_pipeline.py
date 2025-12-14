@@ -65,10 +65,10 @@ class DORAPipeline:
         logger.info(f"✅ Initialized primary model: {self.primary_model_name}")
         logger.info(f"🔄 Fallback models available: {', '.join(self.fallback_models)}")
         
-        # Initialize embedding model - HIGHEST QUALITY MODEL!
-        # all-mpnet-base-v2: BEST quality embeddings (768 dimensions)
-        # Top performance on semantic similarity tasks
-        self.embedding_model = SentenceTransformer('all-mpnet-base-v2')
+        # Initialize embedding model - OPTIMIZED FOR SPEED!
+        # all-MiniLM-L6-v2: FAST embeddings (384 dimensions)
+        # 3x faster than MPNet, good accuracy for most use cases
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         
         # Initialize ChromaDB with optimizations for large scale document storage
         # Use absolute path to avoid confusion between root and backend folders
@@ -505,6 +505,11 @@ class DORAPipeline:
         try:
             collection = self._get_user_collection(user_id)
             
+            # Check content size and warn if very large
+            content_size_mb = len(content) / (1024 * 1024)
+            if content_size_mb > 10:
+                logger.warning(f"⚠️ Large document detected: {document_name} ({content_size_mb:.2f} MB)")
+            
             # Split text into chunks
             chunks = self._split_text(content, mime_type)
             
@@ -513,6 +518,25 @@ class DORAPipeline:
                 return 0
             
             logger.info(f"Adding {len(chunks)} chunks for document {document_id}")
+            
+            # MEMORY OPTIMIZATION: Process embeddings in batches for very large documents
+            # This prevents OOM errors when processing files with 1000+ chunks
+            EMBEDDING_BATCH_SIZE = 100  # Process 100 chunks at a time
+            
+            if len(chunks) > EMBEDDING_BATCH_SIZE:
+                logger.info(f"🔄 Large document: Processing {len(chunks)} chunks in batches of {EMBEDDING_BATCH_SIZE}")
+                
+                all_embeddings = []
+                for i in range(0, len(chunks), EMBEDDING_BATCH_SIZE):
+                    batch_chunks = chunks[i:i+EMBEDDING_BATCH_SIZE]
+                    logger.info(f"  Processing embedding batch {i//EMBEDDING_BATCH_SIZE + 1}/{(len(chunks)-1)//EMBEDDING_BATCH_SIZE + 1}")
+                    batch_embeddings = self.embedding_model.encode(batch_chunks, show_progress_bar=False).tolist()
+                    all_embeddings.extend(batch_embeddings)
+                embeddings = all_embeddings
+            else:
+                # For smaller documents, process all at once
+                logger.info(f"Generating embeddings using {self.embedding_model}")
+                embeddings = self.embedding_model.encode(chunks, show_progress_bar=False).tolist()
             
             # Prepare data for ChromaDB
             ids = [f"{document_id}_{i}" for i in range(len(chunks))]
@@ -524,11 +548,12 @@ class DORAPipeline:
                 "timestamp": str(datetime.now().isoformat())
             } for i in range(len(chunks))]
             
-            # Add to collection
+            # Add to collection with our custom embeddings
             collection.add(
                 documents=chunks,
                 metadatas=metadatas,
-                ids=ids
+                ids=ids,
+                embeddings=embeddings
             )
             
             logger.info(f"Successfully added document {document_id} with {len(chunks)} chunks")
@@ -543,17 +568,26 @@ class DORAPipeline:
         try:
             collection = self._get_user_collection(user_id)
             
+            logger.info(f"Attempting to remove document {document_id} for user {user_id}")
+            
             # Get all chunks for this document
             results = collection.get(
                 where={"document_id": document_id}
             )
             
+            logger.info(f"Found {len(results['ids']) if results['ids'] else 0} chunks for document {document_id}")
+            
             if results['ids']:
                 collection.delete(ids=results['ids'])
-                logger.info(f"Removed {len(results['ids'])} chunks for document {document_id}")
+                logger.info(f"Successfully removed {len(results['ids'])} chunks for document {document_id}")
+            else:
+                logger.warning(f"No chunks found for document {document_id}. It may have already been deleted.")
             
         except Exception as e:
             logger.error(f"Error removing document {document_id}: {e}")
+            logger.error(f"Error type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise
     
     async def query(self, user_id: str, query: str, use_fallback: bool = False) -> Dict[str, Any]:
@@ -579,10 +613,13 @@ class DORAPipeline:
             logger.info(f"Original query: {query}")
             logger.info(f"Expanded query: {expanded_query}")
             
+            # Generate query embedding using our MPNet model
+            query_embedding = self.embedding_model.encode([expanded_query], show_progress_bar=False).tolist()
+            
             # Search for relevant chunks with expanded query
             # OPTIMIZED: Reduced n_results for FASTER response time
             results = collection.query(
-                query_texts=[expanded_query],
+                query_embeddings=query_embedding,
                 n_results=12  # Optimized for speed while maintaining quality
             )
             

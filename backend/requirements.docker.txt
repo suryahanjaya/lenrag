@@ -1,8 +1,8 @@
 # ============================================
-# DORA Backend - Production Requirements
+# DORA Backend - Docker Production Requirements
 # ============================================
-# Core dependencies untuk production
-# Development dependencies ada di requirements-dev.txt
+# Minimal dependencies untuk production Docker
+# Tidak include testing, development, atau heavy ML libraries
 
 # ============================================
 # Core FastAPI dependencies
@@ -20,7 +20,7 @@ google-auth-httplib2>=0.1.1
 google-api-python-client>=2.108.0
 
 # ============================================
-# AI/LLM APIs
+# AI/LLM APIs (lightweight - no heavy models)
 # ============================================
 google-generativeai>=0.3.0
 groq>=0.4.1
@@ -34,14 +34,15 @@ pydantic-settings>=2.0.0
 httpx[http2]>=0.25.2
 
 # ============================================
-# Vector Database & Embeddings
+# Vector Database & Embeddings (lightweight)
 # ============================================
+# NOTE: PyTorch CPU-only will be installed separately in Dockerfile
 chromadb>=0.4.22
 sentence-transformers>=2.2.2
 tiktoken>=0.5.2
 
 # ============================================
-# Document processing
+# Document processing (lightweight)
 # ============================================
 pypdf>=3.17.1
 python-docx>=1.1.0
@@ -51,3 +52,12 @@ python-pptx>=0.6.21
 # Security & Rate Limiting
 # ============================================
 slowapi>=0.1.9
+
+# ============================================
+# Notes
+# ============================================
+# PyTorch CPU-only (~100MB) will be installed in Dockerfile
+# before sentence-transformers to avoid 900MB GPU version
+# Testing tools (pytest, locust) - Development only
+# Code quality tools (black, flake8, mypy) - Development only
+# Monitoring tools (prometheus) - Can be added separately if needed

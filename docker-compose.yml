@@ -1,37 +1,79 @@
-version: '3.8'
-
 services:
   backend:
+    container_name: dora-backend
     build:
       context: .
       dockerfile: Dockerfile.backend
+    env_file:
+      - backend/.env
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - ENVIRONMENT=production
+      - PYTHONUNBUFFERED=1
+      # CPU Optimization for PyTorch & NumPy
+      - BULK_UPLOAD_BATCH_SIZE=60
+      - OMP_NUM_THREADS=8
+      - MKL_NUM_THREADS=8
+      - OPENBLAS_NUM_THREADS=8
+      - NUMEXPR_NUM_THREADS=8
+      - TORCH_NUM_THREADS=8
+      # Disable TensorFlow warnings
+      - TF_CPP_MIN_LOG_LEVEL=2
     volumes:
       - chroma_db:/app/chroma_db
+      - backend_cache:/app/cache
+    networks:
+      - dora-network
     restart: unless-stopped
+    # Resource limits optimized for SPEED
+    deploy:
+      resources:
+        limits:
+          cpus: '8' # Use all CPU cores (adjust based on your system)
+          memory: 6G
+        reservations:
+          cpus: '4' # Guarantee at least 4 cores
+          memory: 3G
+    shm_size: '2gb'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   frontend:
+    container_name: dora-frontend
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    env_file:
+      - .env.local
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - NEXT_PUBLIC_BACKEND_URL=http://backend:8000
-      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+      - NODE_ENV=development
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - dora-network
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 5s
+      retries: 2
+      start_period: 10s
+
+networks:
+  dora-network:
+    driver: bridge
+    name: dora-network
 
 volumes:
   chroma_db:
+    name: dora-chroma-db
+  backend_cache:
+    name: dora-backend-cache

@@ -1,0 +1,37 @@
+# ============================================
+# DORA Backend - Development Dependencies
+# ============================================
+# Install ini HANYA untuk development/testing
+# JANGAN install di production atau Docker!
+# 
+# Usage:
+#   pip install -r requirements-dev.txt
+# ============================================
+
+# ============================================
+# Testing & Performance
+# ============================================
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+httpx[http2]>=0.25.0
+locust>=2.20.0
+
+# ============================================
+# Security Scanning
+# ============================================
+safety>=2.3.5
+bandit>=1.7.5
+
+# ============================================
+# Code Quality
+# ============================================
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# ============================================
+# Monitoring & Observability (Optional)
+# ============================================
+# Uncomment jika butuh monitoring di development
+# prometheus-client>=0.19.0
+# prometheus-fastapi-instrumentator>=6.1.0

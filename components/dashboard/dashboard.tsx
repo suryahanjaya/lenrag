@@ -79,6 +79,9 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkUploadStatus, setBulkUploadStatus] = useState('');
 
+  // Upload cancellation
+  const uploadAbortController = useRef<AbortController | null>(null);
+
   // Confirm dialog state
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmDialogData, setConfirmDialogData] = useState<{
@@ -115,77 +118,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
     };
 
+
     initializeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
-  // Restore upload state from localStorage on mount
+  // Clear any stale upload state on mount (no resume feature)
   useEffect(() => {
-    const savedState = localStorage.getItem('bulk_upload_state');
-    if (savedState) {
-      try {
-        const state = JSON.parse(savedState);
-        const elapsed = Date.now() - state.startTime;
-        const token = getToken();
-
-        // Check if upload was interrupted by logout
-        if (state.interrupted) {
-          console.log('⏸️ Detected interrupted upload from previous session');
-
-          // Show notification about interrupted upload
-          setMessage(`⚠️ Upload terinterupsi saat logout. ${state.progress.current}/${state.progress.total} files telah diupload. Silakan upload ulang folder yang sama untuk melanjutkan.`);
-
-          // Don't auto-restore, let user manually restart
-          // Clear the interrupted state after showing message
-          setTimeout(() => {
-            localStorage.removeItem('bulk_upload_state');
-            console.log('🗑️ Cleared interrupted upload state');
-          }, 10000); // Clear after 10 seconds
-
-          return;
-        }
-
-        // Normal restore (page refresh, not logout)
-        // Only restore if:
-        // 1. Upload was in progress
-        // 2. Less than 10 minutes ago
-        // 3. User still has valid token (not logged out)
-        if (state.isUploading && elapsed < 10 * 60 * 1000 && token) {
-          console.log('📥 Restoring upload state after refresh...');
-          setIsBulkUploading(true);
-          setBulkUploadProgress(state.progress);
-          setBulkUploadStatus(state.status || '⚡ Upload masih berjalan...');
-          setFolderUrl(state.folderUrl || '');
-          setMessage('ℹ️ Upload masih berjalan di background. Mohon tunggu...');
-        } else {
-          // Clear old state or if user logged out
-          console.log('🗑️ Clearing stale upload state...');
-          localStorage.removeItem('bulk_upload_state');
-        }
-      } catch (error) {
-        console.error('Error restoring upload state:', error);
-        localStorage.removeItem('bulk_upload_state');
-      }
-    }
+    localStorage.removeItem('bulk_upload_state');
   }, []);
 
-  // Save upload state to localStorage whenever it changes
-  useEffect(() => {
-    if (isBulkUploading) {
-      const state = {
-        isUploading: true,
-        progress: bulkUploadProgress,
-        status: bulkUploadStatus,
-        startTime: Date.now(),
-        folderUrl: folderUrl,
-        interrupted: false  // Not interrupted during normal operation
-      };
-      localStorage.setItem('bulk_upload_state', JSON.stringify(state));
-    } else {
-      // Clear state when upload completes
-      localStorage.removeItem('bulk_upload_state');
-    }
-  }, [isBulkUploading, bulkUploadProgress, bulkUploadStatus, folderUrl]);
 
   // Get token from localStorage
   const getToken = () => {
@@ -510,7 +452,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }
   };
 
-  // Add documents to knowledge base
+  // Add documents to knowledge base - USE BULK UPLOAD FOR SPEED!
   const handleAddToKnowledgeBase = async () => {
     if (selectedDocs.size === 0) {
       setMessage('Pilih setidaknya satu dokumen.');
@@ -523,8 +465,50 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       return;
     }
 
-    setMessage('Menambahkan dokumen...');
+    const docCount = selectedDocs.size;
+
+    // For single document, use old endpoint
+    if (docCount === 1) {
+      setMessage('Menambahkan dokumen...');
+      setIsLoading(true);
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            'X-Google-Token': getToken(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ document_ids: Array.from(selectedDocs) }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to add documents: ${response.status}`);
+        }
+
+        const result = await response.json();
+        setMessage(`Berhasil menambahkan dokumen ke knowledge base!`);
+        setSelectedDocs(new Set());
+
+        setTimeout(() => {
+          fetchKnowledgeBase();
+        }, 2000);
+      } catch (error) {
+        setErrorMessage('add');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+
+    // For multiple documents, use BULK UPLOAD with parallel processing!
+    setMessage(`⚡ Memproses ${docCount} dokumen secara paralel...`);
     setIsLoading(true);
+
+    // Create abort controller for cancellation
+    uploadAbortController.current = new AbortController();
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/add`, {
@@ -535,6 +519,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ document_ids: Array.from(selectedDocs) }),
+        signal: uploadAbortController.current.signal
       });
 
       if (!response.ok) {
@@ -542,16 +527,21 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
       const result = await response.json();
-      setMessage(`Berhasil menambahkan ${result.processed_count || selectedDocs.size} dokumen ke knowledge base!`);
+      setMessage(`✅ Berhasil menambahkan ${result.processed_count || docCount} dokumen ke knowledge base! (Paralel batch 60)`);
       setSelectedDocs(new Set());
 
       setTimeout(() => {
         fetchKnowledgeBase();
       }, 2000);
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Upload cancelled by user');
+        return;
+      }
       setErrorMessage('add');
     } finally {
       setIsLoading(false);
+      uploadAbortController.current = null;
     }
   };
 
@@ -649,6 +639,39 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }
   };
 
+  // Cancel upload
+  const handleCancelUpload = () => {
+    if (uploadAbortController.current) {
+      uploadAbortController.current.abort();
+      uploadAbortController.current = null;
+
+      const uploadedCount = bulkUploadProgress.current;
+      const totalCount = bulkUploadProgress.total;
+
+      setIsBulkUploading(false);
+      setIsLoading(false);
+      setBulkUploadStatus('');
+      setBulkUploadProgress({ current: 0, total: 0, percentage: 0 });
+
+      if (uploadedCount > 0) {
+        setMessage(`⚠️ Upload dibatalkan. ${uploadedCount}/${totalCount} file sudah tersimpan di Knowledge Base.`);
+      } else {
+        setMessage('⚠️ Upload dibatalkan. Belum ada file yang tersimpan.');
+      }
+
+
+      console.log(`🛑 Upload cancelled - ${uploadedCount}/${totalCount} files were saved`);
+
+      // Refresh knowledge base to show files that were already uploaded
+      if (uploadedCount > 0) {
+        setTimeout(() => {
+          fetchKnowledgeBase();
+        }, 1000);
+      }
+    }
+  };
+
+
   // 🚀 PROGRESSIVE Bulk upload from folder - FILES APPEAR AS THEY'RE SAVED!
   const handleBulkUploadFromFolder = async () => {
     if (!folderUrl.trim()) {
@@ -664,13 +687,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
     setIsBulkUploading(true);
     setBulkUploadProgress({ current: 0, total: 0, percentage: 0 });
-    setBulkUploadStatus('🔍 Memindai folder...');
+    setBulkUploadStatus('⚡ Processing 60 files in parallel... Please wait (this is MUCH faster!)');
+
+    // Create abort controller for cancellation
+    uploadAbortController.current = new AbortController();
 
     try {
       const requestBody = { folder_url: folderUrl.trim() };
 
-      // 🚀 USE STREAMING ENDPOINT FOR PROGRESSIVE UPDATES!
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/bulk-upload-from-folder-stream`, {
+      // 🚀 HYBRID: PARALLEL BATCH (60) + STREAMING PROGRESS!
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/bulk-upload-parallel-stream`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -678,7 +704,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
+        signal: uploadAbortController.current.signal
       });
+
+
 
       if (!response.ok) {
         throw new Error(`Failed to start upload: ${response.status}`);
@@ -714,7 +743,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               } else if (data.status === 'found') {
                 setBulkUploadProgress({ current: 0, total: data.total, percentage: 0 });
                 setBulkUploadStatus(data.message);
-              } else if (data.status === 'processing') {
+              } else if (data.status === 'batch_start') {
                 setBulkUploadStatus(data.message);
               } else if (data.status === 'saved') {
                 // 🎯 KEY FEATURE: Update progress AND refresh knowledge base immediately!
@@ -727,8 +756,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
                 // 🚀 PROGRESSIVE: Refresh knowledge base to show new file immediately!
                 fetchKnowledgeBase();
-              } else if (data.status === 'skipped' || data.status === 'failed') {
+              } else if (data.status === 'failed') {
                 setBulkUploadStatus(`⚠️ Skipped: ${data.doc_name} - ${data.reason || 'Unknown error'}`);
+              } else if (data.status === 'batch_complete') {
+                setBulkUploadStatus(data.message);
               } else if (data.status === 'complete') {
                 setBulkUploadProgress({
                   current: data.processed,
@@ -760,10 +791,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Bulk upload cancelled by user');
+        return;
+      }
       console.error('Bulk upload error:', error);
       setMessage('Gagal melakukan bulk upload. Periksa koneksi dan coba lagi.');
       setIsBulkUploading(false);
       setBulkUploadStatus('');
+    } finally {
+      uploadAbortController.current = null;
     }
   };
 
@@ -1378,6 +1415,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             onRemoveFromKnowledgeBase={handleRemoveFromKnowledgeBase}
             onClearAllDocuments={handleClearAllDocuments}
             onBulkUploadFromFolder={handleBulkUploadFromFolder}
+            onCancelUpload={handleCancelUpload}
             fetchDocuments={fetchDocuments}
             fetchKnowledgeBase={fetchKnowledgeBase}
             fetchAllDocumentsFromFolder={fetchAllDocumentsFromFolder}

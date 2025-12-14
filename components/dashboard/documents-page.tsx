@@ -34,6 +34,7 @@ interface DocumentsPageProps {
     onRemoveFromKnowledgeBase: (docId: string) => void
     onClearAllDocuments: () => void
     onBulkUploadFromFolder: () => void
+    onCancelUpload: () => void
     fetchDocuments: () => void
     fetchKnowledgeBase: () => void
     fetchAllDocumentsFromFolder: (url: string) => void
@@ -128,6 +129,7 @@ export function DocumentsPage({
     onRemoveFromKnowledgeBase,
     onClearAllDocuments,
     onBulkUploadFromFolder,
+    onCancelUpload,
     fetchDocuments,
     fetchKnowledgeBase,
     fetchAllDocumentsFromFolder,
@@ -327,7 +329,15 @@ export function DocumentsPage({
                         {/* Bulk Upload Progress */}
                         {isBulkUploading && (
                             <div className="p-5 bg-blue-50/50 dark:bg-gray-700/50 border-b border-blue-100 dark:border-gray-600">
-                                <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">{bulkUploadStatus}</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-blue-900 dark:text-blue-300">{bulkUploadStatus}</p>
+                                    <Button
+                                        onClick={onCancelUpload}
+                                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5"
+                                    >
+                                        ❌ Cancel Upload
+                                    </Button>
+                                </div>
                                 <div className="flex justify-between text-xs text-blue-700 dark:text-blue-400 mb-2">
                                     <span>{bulkUploadProgress.current} / {bulkUploadProgress.total}</span>
                                     <span>{bulkUploadProgress.percentage}%</span>
@@ -378,11 +388,11 @@ export function DocumentsPage({
                                 </div>
                                 <Button
                                     onClick={onAddToKnowledgeBase}
-                                    disabled={selectedDocs.size === 0}
+                                    disabled={selectedDocs.size === 0 || isLoading}
                                     className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
                                 >
                                     <PlusIcon className="w-3.5 h-3.5" />
-                                    Add to KB ({selectedDocs.size})
+                                    {isLoading ? 'Processing...' : `Add to KB (${selectedDocs.size})`}
                                 </Button>
                             </div>
                         </div>

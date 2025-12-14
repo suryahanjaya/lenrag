@@ -1,0 +1,137 @@
+# Production Docker Compose Configuration
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  backend:
+    container_name: dora-backend-prod
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ENVIRONMENT=production
+      - PYTHONUNBUFFERED=1
+      # Performance Optimization - SPEED FOCUSED
+      - BULK_UPLOAD_BATCH_SIZE=60
+      # CPU Thread Optimization for PyTorch & NumPy
+      - OMP_NUM_THREADS=8
+      - MKL_NUM_THREADS=8
+      - OPENBLAS_NUM_THREADS=8
+      - NUMEXPR_NUM_THREADS=8
+      - TORCH_NUM_THREADS=8
+      - TF_CPP_MIN_LOG_LEVEL=2
+    volumes:
+      - chroma_db:/app/chroma_db
+      - backend_cache:/app/cache
+    networks:
+      - dora-network
+    restart: always
+    # Production Resource Limits - Optimized for Speed
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 6G
+        reservations:
+          cpus: '4'
+          memory: 3G
+    shm_size: '2gb'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
+
+  frontend:
+    container_name: dora-frontend-prod
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.prod
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+        - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+        - NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8000
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - dora-network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
+
+  # Optional: Nginx reverse proxy for production
+  nginx:
+    container_name: dora-nginx
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - dora-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  dora-network:
+    driver: bridge
+    name: dora-network-prod
+
+volumes:
+  chroma_db:
+    name: dora-chroma-db-prod
+    driver: local
+  backend_cache:
+    name: dora-backend-cache-prod
+    driver: local
