@@ -41,7 +41,7 @@ class HTTPClientManager:
                 )
             )
             # Only log once at debug level to avoid spam
-            logger.debug(\"HTTP client initialized with connection pooling (2000 max connections, HTTP/2 enabled)\")
+            logger.debug("HTTP client initialized with connection pooling (2000 max connections, HTTP/2 enabled)")
         return cls._instance
     
     @classmethod
