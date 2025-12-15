@@ -79,6 +79,13 @@ class Settings(BaseSettings):
         description="Number of documents to process in parallel per batch. 60 = FAST (needs 8GB+ RAM). Use 30 for limited RAM, 100 for 16GB+ RAM."
     )
     
+    # Embedding Batch Optimization - CPU/GPU BOUND OPERATIONS
+    embedding_batch_size: int = Field(
+        default=15,  # 🔥 OPTIMAL! 15 parallel embedding/chunking (CPU/GPU intensive)
+        env="EMBEDDING_BATCH_SIZE",
+        description="Number of documents to embed in parallel. 15 = OPTIMAL for CPU/GPU bound operations. Lower if limited CPU/RAM."
+    )
+    
     # Cache Configuration
     cache_ttl_seconds: int = Field(default=300, env="CACHE_TTL_SECONDS")
     

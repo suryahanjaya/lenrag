@@ -13,6 +13,7 @@ interface DocumentsPageProps {
     isLoading: boolean
     message: string
     searchTerm: string
+    kbSearchTerm: string
     sortBy: 'name' | 'modified' | 'size'
     isMultiSelectMode: boolean
     folderUrl: string
@@ -39,6 +40,7 @@ interface DocumentsPageProps {
     fetchKnowledgeBase: () => void
     fetchAllDocumentsFromFolder: (url: string) => void
     setSearchTerm: (term: string) => void
+    setKbSearchTerm: (term: string) => void
     setSortBy: (sort: 'name' | 'modified' | 'size') => void
     setIsMultiSelectMode: (mode: boolean) => void
     setFolderUrl: (url: string) => void
@@ -109,6 +111,7 @@ export function DocumentsPage({
     isLoading,
     message,
     searchTerm,
+    kbSearchTerm,
     sortBy,
     isMultiSelectMode,
     folderUrl,
@@ -134,6 +137,7 @@ export function DocumentsPage({
     fetchKnowledgeBase,
     fetchAllDocumentsFromFolder,
     setSearchTerm,
+    setKbSearchTerm,
     setSortBy,
     setIsMultiSelectMode,
     setFolderUrl,
@@ -218,7 +222,7 @@ export function DocumentsPage({
                     {/* Google Drive Section */}
                     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-2xl flex flex-col max-h-[750px]">
                         {/* Header */}
-                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-4 text-white relative overflow-hidden flex-shrink-0">
+                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 p-4 text-white relative overflow-hidden flex-shrink-0">
                             <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]"></div>
                             <div className="relative">
                                 <div className="flex items-center justify-between mb-3">
@@ -329,8 +333,20 @@ export function DocumentsPage({
                         {/* Bulk Upload Progress */}
                         {isBulkUploading && (
                             <div className="p-5 bg-blue-50/50 dark:bg-gray-700/50 border-b border-blue-100 dark:border-gray-600">
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="text-sm font-medium text-blue-900 dark:text-blue-300">{bulkUploadStatus}</p>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">{bulkUploadStatus}</p>
+                                        {bulkUploadProgress.total > 0 && (
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                                    {bulkUploadProgress.current}
+                                                </div>
+                                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                    / {bulkUploadProgress.total} files saved
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                     <Button
                                         onClick={onCancelUpload}
                                         className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5"
@@ -339,8 +355,8 @@ export function DocumentsPage({
                                     </Button>
                                 </div>
                                 <div className="flex justify-between text-xs text-blue-700 dark:text-blue-400 mb-2">
-                                    <span>{bulkUploadProgress.current} / {bulkUploadProgress.total}</span>
-                                    <span>{bulkUploadProgress.percentage}%</span>
+                                    <span className="font-semibold">Progress</span>
+                                    <span className="font-semibold">{bulkUploadProgress.percentage}%</span>
                                 </div>
                                 <div className="w-full bg-blue-200 dark:bg-gray-600 rounded-full h-2.5 overflow-hidden">
                                     <div
@@ -410,7 +426,7 @@ export function DocumentsPage({
                                         <div
                                             key={folder.id}
                                             onClick={() => onFolderClick(folder)}
-                                            className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-blue-50 to-white dark:from-gray-700 dark:to-gray-750 hover:from-blue-100 hover:to-blue-50 dark:hover:from-gray-650 dark:hover:to-gray-700 rounded-xl border border-blue-100 dark:border-gray-600 cursor-pointer transition-all hover:shadow-md group"
+                                            className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-blue-50 to-white dark:from-gray-700 dark:to-gray-700 hover:from-blue-100 hover:to-blue-50 dark:hover:from-gray-600 dark:hover:to-gray-600 rounded-xl border border-blue-100 dark:border-gray-600 cursor-pointer transition-all hover:shadow-md group"
                                         >
                                             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
                                                 <FolderIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -429,7 +445,7 @@ export function DocumentsPage({
                                             onClick={() => onSelectDoc(doc.id, index)}
                                             className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all hover:shadow-md group ${selectedDocs.has(doc.id)
                                                 ? 'bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-900/20 border-blue-300 dark:border-blue-700'
-                                                : 'bg-white dark:bg-gray-750 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600'
+                                                : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600'
                                                 }`}
                                         >
                                             <span className="text-2xl">{getFileIcon(doc.mime_type)}</span>
@@ -473,7 +489,7 @@ export function DocumentsPage({
                     {/* Knowledge Base Section */}
                     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-2xl flex flex-col max-h-[750px]">
                         {/* Header */}
-                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-4 text-white relative overflow-hidden flex-shrink-0">
+                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 p-4 text-white relative overflow-hidden flex-shrink-0">
                             <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]"></div>
                             <div className="relative">
                                 <div className="flex items-center justify-between mb-3">
@@ -488,15 +504,28 @@ export function DocumentsPage({
                                     </div>
                                 </div>
 
-                                {knowledgeBase.length > 0 && (
-                                    <Button
-                                        onClick={onClearAllDocuments}
-                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2 border border-white/20"
-                                    >
-                                        <TrashIcon className="w-4 h-4" />
-                                        Clear All ({knowledgeBase.length})
-                                    </Button>
-                                )}
+                                {/* Search and Clear All */}
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                                        <input
+                                            type="text"
+                                            placeholder="Cari di KB..."
+                                            value={kbSearchTerm}
+                                            onChange={(e) => setKbSearchTerm(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white placeholder-white/70 text-sm rounded-lg transition-all border border-white/20 focus:ring-2 focus:ring-white/40 focus:border-transparent"
+                                        />
+                                    </div>
+                                    {knowledgeBase.length > 0 && (
+                                        <Button
+                                            onClick={onClearAllDocuments}
+                                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2 border border-white/20"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                            Clear All
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -504,34 +533,36 @@ export function DocumentsPage({
                         <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-800">
                             {knowledgeBase.length > 0 ? (
                                 <div className="space-y-2">
-                                    {knowledgeBase.map((doc) => (
-                                        <div
-                                            key={doc.id}
-                                            className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-blue-50 to-white dark:from-gray-700 dark:to-gray-750 rounded-xl border border-blue-100 dark:border-gray-600 transition-all hover:shadow-md group"
-                                        >
-                                            <span className="text-2xl">{getFileIcon(doc.mime_type)}</span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{doc.name}</p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{getFileTypeName(doc.mime_type)}</p>
-                                                    {doc.chunk_count && doc.chunk_count > 0 && (
-                                                        <>
-                                                            <span className="text-xs text-gray-400">•</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
-                                                                {doc.chunk_count} chunks
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => onRemoveFromKnowledgeBase(doc.id)}
-                                                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                    {knowledgeBase
+                                        .filter((doc) => doc.name.toLowerCase().includes(kbSearchTerm.toLowerCase()))
+                                        .map((doc) => (
+                                            <div
+                                                key={doc.id}
+                                                className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-blue-50 to-white dark:from-gray-700 dark:to-gray-750 rounded-xl border border-blue-100 dark:border-gray-600 transition-all hover:shadow-md group"
                                             >
-                                                <TrashIcon className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                                <span className="text-2xl">{getFileIcon(doc.mime_type)}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{doc.name}</p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{getFileTypeName(doc.mime_type)}</p>
+                                                        {doc.chunk_count && doc.chunk_count > 0 && (
+                                                            <>
+                                                                <span className="text-xs text-gray-400">•</span>
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+                                                                    {doc.chunk_count} chunks
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => onRemoveFromKnowledgeBase(doc.id)}
+                                                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">

@@ -2,20 +2,20 @@
 
 <div align="center">
 
-![DORA Logo](https://img.shields.io/badge/DORA-Document%20Retrieval%20Assistant-blue?style=for-the-badge&logo=robot&logoColor=white)
+![DORA Banner](https://img.shields.io/badge/DORA-AI%20Powered%20Document%20Intelligence-6366f1?style=for-the-badge&logo=robot&logoColor=white)
 
-**An intelligent AI-powered document retrieval system that revolutionizes how you access and understand your documents through advanced RAG (Retrieval-Augmented Generation) technology.**
+**Transform how you interact with documents using cutting-edge AI technology. DORA combines Google Drive integration, advanced RAG pipelines, and state-of-the-art language models to deliver instant, accurate answers from your document collection.**
 
-[![Next.js](https://img.shields.io/badge/Next.js-14.2+-black?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
-[![Python](https://img.shields.io/badge/Python-3.11+-yellow?style=flat-square&logo=python)](https://python.org/)
-[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20DB-purple?style=flat-square)](https://www.trychroma.com/)
-[![Gemini AI](https://img.shields.io/badge/Gemini-2.0%20Flash-orange?style=flat-square&logo=google)](https://ai.google.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2+-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org/)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20DB-FF6F00?style=flat-square&logo=database&logoColor=white)](https://www.trychroma.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![GitHub stars](https://img.shields.io/github/stars/suryahanjaya/lenrag?style=flat-square)](https://github.com/suryahanjaya/lenrag)
-[![GitHub forks](https://img.shields.io/github/forks/suryahanjaya/lenrag?style=flat-square)](https://github.com/suryahanjaya/lenrag)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=flat-square)](https://github.com/suryahanjaya/lenrag/graphs/commit-activity)
 
 </div>
 
@@ -23,65 +23,57 @@
 
 ## 🎯 **What is DORA?**
 
-**DORA** (Document Retrieval Assistant) is a cutting-edge AI-powered system that transforms how you interact with your documents. Built with state-of-the-art technology, DORA combines Google Drive integration, advanced AI processing, and semantic search to provide instant, accurate answers from your document collection.
+**DORA** (Document Retrieval Assistant) is an enterprise-grade AI system that revolutionizes document management and knowledge retrieval. Built with modern technologies and optimized for performance, DORA provides:
 
-### 🌟 **Why DORA?**
-
-- **⚡ Lightning Fast**: Get answers in seconds, not hours
-- **🎯 Precise Results**: AI-powered semantic search finds exactly what you need
-- **🔒 Secure**: Enterprise-grade security with Google OAuth 2.0
-- **📚 Multi-format Support**: Works with Google Docs, PDFs, DOCX, PPTX, and more
-- **🌐 Smart Fallback**: General knowledge when your docs don't have the answer
-- **💬 Natural Language**: Ask questions in plain English
-- **🔄 Real-time Processing**: Instant document ingestion and indexing
-- **📊 Advanced Analytics**: Document insights and usage statistics
+- **⚡ Lightning-Fast Responses**: Get answers in seconds with optimized parallel processing (60 concurrent fetches, 15 parallel embeddings)
+- **🎯 Precision AI Search**: Advanced semantic search using state-of-the-art embedding models
+- **🔒 Enterprise Security**: Google OAuth 2.0 with JWT token management
+- **📚 Universal Format Support**: Google Docs, PDFs, DOCX, PPTX, TXT, Excel, and more
+- **🌐 Intelligent Fallback**: Seamlessly switches to general knowledge when documents lack information
+- **💬 Natural Conversations**: Chat in plain English with context-aware AI responses
+- **🔄 Real-Time Streaming**: Progressive document loading and live response generation
+- **📊 Production-Ready**: Dockerized deployment with optimized configurations
 
 ---
 
-## 🏗️ **Architecture Overview**
+## 🏗️ **System Architecture**
 
 <div align="center">
 
 ```mermaid
 graph TB
-    subgraph "Frontend Layer (Next.js 14)"
-        A[React Components] --> B[Dashboard Interface]
-        A --> C[Authentication System]
-        A --> D[Document Management]
-        A --> E[Chat Interface]
-        A --> F[Real-time Updates]
+    subgraph "🎨 Frontend Layer"
+        A[Next.js 14 App]
+        B[React Components]
+        C[TypeScript Logic]
+        D[Tailwind CSS Styling]
     end
     
-    subgraph "Backend Layer (FastAPI)"
-        G[FastAPI Server] --> H[Google Auth Service]
-        G --> I[Google Docs Service]
-        G --> J[DORA RAG Pipeline]
-        G --> K[Vector Database Manager]
-        G --> L[AI Response Generator]
+    subgraph "⚙️ Backend Layer"
+        E[FastAPI Server]
+        F[Google OAuth Service]
+        G[Document Processor]
+        H[RAG Pipeline Engine]
     end
     
-    subgraph "AI & Vector Processing"
-        M[ChromaDB Vector Store] --> N[Embedding Storage]
-        O[Sentence Transformers] --> P[Text Embeddings]
-        Q[Gemini 2.0 Flash] --> R[LLM Processing]
-        S[Document Processors] --> T[Multi-format Support]
+    subgraph "🤖 AI & Vector Layer"
+        I[ChromaDB Vector Store]
+        J[Sentence Transformers]
+        K[Groq/Gemini LLM]
     end
     
-    subgraph "External Services"
-        U[Google Drive API]
-        V[Google OAuth 2.0]
-        W[Gemini API]
-        X[ChromaDB Persistence]
+    subgraph "☁️ External Services"
+        L[Google Drive API]
+        M[Google OAuth 2.0]
+        N[Groq/Gemini API]
     end
     
-    A --> G
-    G --> M
-    G --> O
-    G --> Q
-    H --> V
-    I --> U
-    J --> W
-    K --> X
+    A --> E
+    E --> F --> M
+    E --> G --> L
+    E --> H --> I
+    H --> J
+    H --> K --> N
 ```
 
 </div>
@@ -92,334 +84,273 @@ graph TB
 
 ### 🎨 **Frontend Technologies**
 
-| Technology | Version | Purpose | Why We Use It |
-|------------|---------|---------|---------------|
-| **Next.js** | 14.2+ | React Framework | ⚡ Server-side rendering, API routes, optimized performance, built-in optimizations |
-| **React** | 18+ | UI Library | 🎯 Component-based architecture, hooks, state management, virtual DOM |
-| **TypeScript** | 5.0+ | Type Safety | 🔒 Static typing, better IDE support, fewer runtime errors, enhanced developer experience |
-| **Tailwind CSS** | 3.3+ | Styling Framework | 🎨 Utility-first CSS, responsive design, rapid development, consistent design system |
-| **Radix UI** | Latest | Component Library | ♿ Accessible, unstyled, composable components, keyboard navigation |
-| **Lucide React** | 0.292+ | Icon Library | 🎯 Beautiful, customizable SVG icons, tree-shakable, consistent design |
+| Technology | Version | Purpose | Why We Chose It |
+|------------|---------|---------|-----------------|
+| ![Next.js](https://img.shields.io/badge/Next.js-14.2+-black?logo=next.js&logoColor=white) | 14.2+ | **React Framework** | Server-side rendering, API routes, automatic code splitting, optimized performance, and built-in image optimization for blazing-fast page loads |
+| ![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react&logoColor=black) | 18+ | **UI Library** | Component-based architecture, hooks for state management, virtual DOM for efficient updates, and massive ecosystem support |
+| ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?logo=typescript&logoColor=white) | 5.0+ | **Type Safety** | Catch errors at compile-time, superior IDE support, better refactoring, and enhanced developer experience with IntelliSense |
+| ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.3+-06B6D4?logo=tailwindcss&logoColor=white) | 3.3+ | **Styling Framework** | Utility-first approach, rapid prototyping, consistent design system, responsive design out-of-the-box, and minimal CSS bundle size |
+| ![Radix UI](https://img.shields.io/badge/Radix_UI-Latest-161618?logo=radix-ui&logoColor=white) | Latest | **Accessible Components** | Unstyled, accessible primitives, keyboard navigation, ARIA compliance, and full customization control |
+| ![Lucide](https://img.shields.io/badge/Lucide-0.292+-F56565?logo=lucide&logoColor=white) | 0.292+ | **Icon Library** | Beautiful SVG icons, tree-shakable, consistent design language, and extensive icon collection |
 
 ### ⚙️ **Backend Technologies**
 
-| Technology | Version | Purpose | Why We Use It |
-|------------|---------|---------|---------------|
-| **FastAPI** | 0.104+ | Web Framework | 🚀 High performance, automatic API docs, type hints, async support, OpenAPI |
-| **Python** | 3.11+ | Programming Language | 🐍 Rich ecosystem, AI/ML libraries, readability, extensive library support |
-| **Uvicorn** | 0.24+ | ASGI Server | ⚡ High-performance async server, production-ready, WebSocket support |
-| **Pydantic** | 2.5+ | Data Validation | 🔒 Automatic validation, serialization, type safety, JSON schema generation |
+| Technology | Version | Purpose | Why We Chose It |
+|------------|---------|---------|-----------------|
+| ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?logo=fastapi&logoColor=white) | 0.104+ | **Web Framework** | Async support, automatic API documentation (OpenAPI/Swagger), type validation with Pydantic, high performance (on par with NodeJS), and modern Python features |
+| ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white) | 3.11+ | **Programming Language** | Rich AI/ML ecosystem, readable syntax, extensive libraries for document processing, and excellent async capabilities |
+| ![Uvicorn](https://img.shields.io/badge/Uvicorn-0.24+-499848?logo=gunicorn&logoColor=white) | 0.24+ | **ASGI Server** | Lightning-fast async server, production-ready, WebSocket support, and optimized for FastAPI |
+| ![Pydantic](https://img.shields.io/badge/Pydantic-2.5+-E92063?logo=pydantic&logoColor=white) | 2.5+ | **Data Validation** | Automatic request/response validation, JSON schema generation, type safety, and clear error messages |
 
 ### 🤖 **AI & Machine Learning Stack**
 
-| Technology | Version | Purpose | Why We Use It |
-|------------|---------|---------|---------------|
-| **ChromaDB** | 0.4.18+ | Vector Database | 🎯 Optimized for embeddings, persistent storage, scalability, similarity search |
-| **Sentence Transformers** | 2.2.2+ | Embedding Model | 🧠 State-of-the-art semantic search, multilingual support, optimized performance |
-| **Gemini 2.0 Flash** | Latest | Large Language Model | 🚀 Google's latest AI model, fast responses, high accuracy, multimodal support |
-| **Google Generative AI** | 0.3.0+ | AI SDK | 🔗 Official Google AI integration, seamless API access, optimized for Gemini |
+| Technology | Version | Purpose | Why We Chose It |
+|------------|---------|---------|-----------------|
+| ![ChromaDB](https://img.shields.io/badge/ChromaDB-0.4.22+-FF6F00?logo=database&logoColor=white) | 0.4.22+ | **Vector Database** | Purpose-built for embeddings, persistent storage, lightning-fast similarity search, and scalable architecture for millions of documents |
+| ![Sentence Transformers](https://img.shields.io/badge/Sentence_Transformers-2.2.2+-00ADD8?logo=pytorch&logoColor=white) | 2.2.2+ | **Embedding Model** | State-of-the-art semantic understanding, multilingual support, optimized `all-MiniLM-L6-v2` model (384-dim), and excellent speed-accuracy balance |
+| ![Groq](https://img.shields.io/badge/Groq-0.4.1+-F55036?logo=ai&logoColor=white) | 0.4.1+ | **LLM Provider** | Ultra-fast inference (14.4K requests/day with Llama 3.1 8B), cost-effective, reliable API, and production-stable performance |
+| ![Gemini](https://img.shields.io/badge/Gemini-2.0_Flash-4285F4?logo=google&logoColor=white) | 2.0 Flash | **Alternative LLM** | Google's latest AI model, multimodal capabilities, high accuracy, and seamless integration with Google ecosystem |
+| ![Google AI](https://img.shields.io/badge/Google_AI-0.3.0+-4285F4?logo=google&logoColor=white) | 0.3.0+ | **AI SDK** | Official Google AI integration, optimized for Gemini models, and comprehensive API access |
 
 ### 🔐 **Authentication & Security**
 
-| Technology | Version | Purpose | Why We Use It |
-|------------|---------|---------|---------------|
-| **Google OAuth 2.0** | Latest | Authentication | 🔒 Industry standard, secure, trusted by users, seamless Google integration |
-| **JWT Tokens** | Latest | Session Management | 🎯 Stateless, scalable, secure, cross-platform compatibility |
-| **HTTP Bearer** | Latest | Token Authentication | 🔐 Secure token transmission, standard protocol, easy implementation |
+| Technology | Purpose | Why We Chose It |
+|------------|---------|-----------------|
+| ![Google OAuth](https://img.shields.io/badge/Google_OAuth-2.0-4285F4?logo=google&logoColor=white) | **Authentication** | Industry-standard security, trusted by users worldwide, seamless Google Drive integration, and no password management overhead |
+| ![JWT](https://img.shields.io/badge/JWT-Tokens-000000?logo=jsonwebtokens&logoColor=white) | **Session Management** | Stateless authentication, scalable across servers, secure token transmission, and cross-platform compatibility |
+| ![SlowAPI](https://img.shields.io/badge/SlowAPI-Rate_Limiting-FF6B6B?logo=security&logoColor=white) | **Rate Limiting** | Prevent API abuse, protect against DDoS, configurable limits (60 req/min general, 5 req/min auth), and automatic throttling |
 
-### 📄 **Document Processing & File Handling**
+### 📄 **Document Processing**
 
-| Technology | Version | Purpose | Why We Use It |
-|------------|---------|---------|---------------|
-| **Google Drive API** | Latest | Document Access | 📁 Seamless Google Docs integration, real-time sync, permission management |
-| **PyPDF** | 3.17.1+ | PDF Processing | 📄 Extract text from PDF documents, metadata extraction, password support |
-| **python-docx** | 1.1.0+ | Word Processing | 📝 Handle DOCX files, preserve formatting, extract text and metadata |
-| **BeautifulSoup4** | 4.12.2+ | HTML Parsing | 🌐 Parse web content and HTML documents, extract clean text |
-| **TikToken** | 0.5.2+ | Tokenization | 🔤 Efficient text tokenization for AI models, OpenAI compatibility |
-| **openpyxl** | 3.1.2+ | Excel Processing | 📊 Handle Excel files, extract data from spreadsheets |
+| Technology | Version | Purpose | Why We Chose It |
+|------------|---------|---------|-----------------|
+| ![Google Drive API](https://img.shields.io/badge/Google_Drive-API-4285F4?logo=googledrive&logoColor=white) | Latest | **Cloud Storage** | Seamless document access, real-time sync, permission management, and native Google Docs support |
+| ![PyPDF](https://img.shields.io/badge/PyPDF-3.17.1+-FF0000?logo=adobeacrobatreader&logoColor=white) | 3.17.1+ | **PDF Processing** | Extract text from PDFs, metadata extraction, password-protected file support, and reliable parsing |
+| ![python-docx](https://img.shields.io/badge/python--docx-1.1.0+-2B579A?logo=microsoftword&logoColor=white) | 1.1.0+ | **Word Processing** | Handle DOCX files, preserve formatting, extract text and metadata, and comprehensive Word document support |
+| ![python-pptx](https://img.shields.io/badge/python--pptx-0.6.21+-B7472A?logo=microsoftpowerpoint&logoColor=white) | 0.6.21+ | **PowerPoint Processing** | Extract text from presentations, slide-by-slide processing, and metadata extraction |
+| ![TikToken](https://img.shields.io/badge/TikToken-0.5.2+-412991?logo=openai&logoColor=white) | 0.5.2+ | **Tokenization** | Efficient text tokenization, OpenAI compatibility, accurate token counting for LLM context management |
 
-### ☁️ **Deployment & Infrastructure**
+### 🐳 **Deployment & Infrastructure**
 
-| Service | Purpose | Why We Use It |
-|---------|---------|---------------|
-| **Docker** | Containerization | 📦 Consistent environments, easy deployment, scalability |
-| **Docker Compose** | Orchestration | 🔄 Multi-service management, development environment |
-| **Vercel** | Frontend Hosting | ⚡ Global CDN, zero-config deployment, automatic scaling |
-| **Render** | Backend Hosting | 🚀 Auto-deploy, managed infrastructure, database integration |
+| Technology | Purpose | Why We Chose It |
+|------------|---------|-----------------|
+| ![Docker](https://img.shields.io/badge/Docker-Latest-2496ED?logo=docker&logoColor=white) | **Containerization** | Consistent environments across dev/prod, easy deployment, isolated dependencies, and reproducible builds |
+| ![Docker Compose](https://img.shields.io/badge/Docker_Compose-Latest-2496ED?logo=docker&logoColor=white) | **Orchestration** | Multi-service management, simplified networking, volume management, and one-command deployment |
+| ![Vercel](https://img.shields.io/badge/Vercel-Latest-000000?logo=vercel&logoColor=white) | **Frontend Hosting** | Global CDN, zero-config deployment, automatic HTTPS, serverless functions, and instant rollbacks |
+| ![Render](https://img.shields.io/badge/Render-Latest-46E3B7?logo=render&logoColor=white) | **Backend Hosting** | Auto-deploy from Git, managed infrastructure, free SSL, database integration, and automatic scaling |
 
 ---
 
-## 🚀 **Key Features & Capabilities**
+## 🚀 **Key Features & How They Work**
 
-### 🔐 **Advanced Authentication & Security**
-- **Google OAuth 2.0**: Secure, industry-standard authentication
-- **JWT Token Management**: Stateless, secure session management
-- **Role-based Access Control**: Fine-grained permissions
-- **Data Encryption**: End-to-end encryption for sensitive data
-- **Secure API Endpoints**: Protected routes with authentication middleware
+### 🔐 **Advanced Authentication System**
 
-### 📁 **Comprehensive Document Management**
-- **Google Drive Integration**: Seamless access to your documents
-- **Multi-format Support**: Google Docs, PDFs, DOCX, PPTX, TXT, Excel
-- **Smart Organization**: Automatic categorization and tagging
-- **Version Control**: Track document changes over time
-- **Bulk Upload**: Add multiple documents at once
-- **Folder Support**: Import entire Google Drive folders
-- **Real-time Sync**: Automatic updates when documents change
+**How It Works:**
+1. User clicks "Sign in with Google" on the login page
+2. Frontend redirects to Google OAuth consent screen
+3. User authorizes DORA to access their Google Drive
+4. Google returns authorization code to our callback endpoint
+5. Backend exchanges code for access token and refresh token
+6. Backend creates JWT token with user information
+7. Frontend stores JWT and uses it for all subsequent API calls
+8. Automatic token refresh when expired (seamless user experience)
 
-### 🤖 **AI-Powered Search & Retrieval**
-- **Semantic Search**: Find documents by meaning, not just keywords
-- **Contextual Understanding**: AI understands domain-specific terminology
-- **Multi-language Support**: Works in multiple languages
-- **Smart Filtering**: Advanced search filters and sorting
-- **Vector Embeddings**: High-dimensional semantic representations
-- **Similarity Scoring**: Ranked results based on relevance
+**Security Features:**
+- ✅ Industry-standard OAuth 2.0 protocol
+- ✅ JWT tokens with expiration (30-minute default)
+- ✅ Refresh token rotation for extended sessions
+- ✅ Secure HTTP-only cookie support (optional)
+- ✅ Rate limiting on auth endpoints (5 requests/minute)
+- ✅ Token validation on every protected endpoint
+
+### 📁 **Intelligent Document Management**
+
+**How It Works:**
+1. **Document Discovery**: User provides Google Drive folder URL or selects from their drive
+2. **Parallel Fetching**: System fetches up to 60 documents simultaneously (configurable)
+3. **Format Detection**: Automatically identifies file type (Google Docs, PDF, DOCX, etc.)
+4. **Content Extraction**: Extracts text content using specialized parsers for each format
+5. **Progressive Loading**: Documents appear in UI as they're fetched (real-time streaming)
+6. **Metadata Preservation**: Stores document title, URL, type, and modification date
+
+**Supported Formats:**
+- 📄 **Google Docs**: Native API integration for perfect text extraction
+- 📕 **PDF**: PyPDF for text extraction, handles encrypted PDFs
+- 📘 **DOCX**: python-docx for Word documents with formatting preservation
+- 📙 **PPTX**: python-pptx for PowerPoint presentations
+- 📗 **TXT**: Direct text file reading
+- 📊 **Excel**: openpyxl for spreadsheet data extraction
+- 🌐 **HTML**: BeautifulSoup4 for web content parsing
+
+### 🤖 **Advanced RAG (Retrieval-Augmented Generation) Pipeline**
+
+**How It Works:**
+
+**Phase 1: Document Ingestion**
+1. **Text Chunking**: Documents split into 850-character chunks with 85-character overlap
+   - Why 850 chars? Optimal balance between context and processing speed
+   - 10% overlap ensures context continuity across chunks
+2. **Embedding Generation**: Each chunk converted to 384-dimensional vector using `all-MiniLM-L6-v2`
+   - Parallel processing: 15 documents embedded simultaneously
+   - GPU acceleration if available (falls back to CPU)
+3. **Vector Storage**: Embeddings stored in ChromaDB with metadata
+   - User-specific collections for privacy
+   - Persistent storage survives server restarts
+   - Cosine similarity for efficient retrieval
+
+**Phase 2: Query Processing**
+1. **Query Embedding**: User question converted to same 384-dim vector space
+2. **Similarity Search**: ChromaDB finds top 10 most relevant chunks
+3. **Relevance Filtering**: Only chunks above 0.7 similarity threshold used
+4. **Context Assembly**: Selected chunks combined with source attribution
+5. **Token Management**: Context trimmed to fit LLM's token limit (2048 tokens)
+
+**Phase 3: Response Generation**
+1. **LLM Selection**: Routes to Groq (Llama 3.1 8B) or Gemini (2.0 Flash)
+2. **Prompt Engineering**: Constructs prompt with context and question
+3. **Streaming Response**: AI generates answer in real-time chunks
+4. **Source Attribution**: Response includes which documents were used
+5. **Fallback Logic**: If no relevant docs found, uses general knowledge
+
+**Performance Optimizations:**
+- ⚡ 60 parallel document fetches (4-6 minutes for 150 files)
+- ⚡ 15 parallel embedding operations (CPU/GPU optimized)
+- ⚡ Batch processing to minimize API calls
+- ⚡ In-memory caching for frequently accessed data
+- ⚡ Async/await throughout for non-blocking operations
 
 ### 💬 **Intelligent Chat System**
-- **Natural Language Processing**: Ask questions in plain English
-- **Contextual Responses**: Answers based on your specific documents
-- **Source Attribution**: Always know where answers come from
-- **Conversation History**: Keep track of your research
-- **Smart Fallback**: General knowledge when documents don't have answers
-- **Real-time Streaming**: Live response generation
 
-### 🔄 **Advanced RAG Pipeline**
-- **Document Chunking**: Intelligent text segmentation
-- **Embedding Generation**: High-quality vector representations
-- **Vector Storage**: Persistent, scalable vector database
-- **Retrieval Optimization**: Advanced similarity search algorithms
-- **Context Assembly**: Smart context preparation for AI models
+**How It Works:**
+1. User types question in natural language
+2. System checks if knowledge base has documents
+3. If yes: RAG pipeline retrieves relevant context
+4. If no: Falls back to general knowledge mode
+5. LLM generates contextual response
+6. Response streamed to frontend in real-time
+7. Sources displayed with clickable links to original documents
+8. Conversation history maintained for context
+
+**Chat Features:**
+- 🎯 Context-aware responses based on your documents
+- 📚 Source attribution with document links
+- 🔄 Real-time streaming (see response as it's generated)
+- 💾 Conversation history (future feature)
+- 🌐 Fallback to general knowledge when needed
+- 🚀 Sub-second response times with Groq
+
+### 🔄 **Real-Time Streaming Architecture**
+
+**How It Works:**
+1. **Server-Sent Events (SSE)**: Backend uses FastAPI's `StreamingResponse`
+2. **Progressive Data**: Documents/responses sent as JSON chunks
+3. **Frontend Parsing**: React components parse and display data incrementally
+4. **Error Handling**: Graceful degradation if streaming fails
+5. **Connection Management**: Automatic reconnection on network issues
+
+**Benefits:**
+- ✅ Instant feedback (no waiting for entire batch)
+- ✅ Better user experience (perceived performance)
+- ✅ Lower memory usage (process data as it arrives)
+- ✅ Cancellable operations (user can stop mid-process)
+
+### 📊 **Production-Optimized Docker Deployment**
+
+**How It Works:**
+1. **Multi-Stage Builds**: Separate build and runtime stages for smaller images
+2. **Layer Caching**: Dependencies cached to speed up rebuilds (3-4x faster)
+3. **Health Checks**: Automatic service monitoring and restart
+4. **Resource Limits**: CPU/memory limits prevent resource exhaustion
+5. **Persistent Volumes**: ChromaDB data survives container restarts
+6. **Network Isolation**: Services communicate via Docker network
+
+**Docker Services:**
+- 🐳 **Backend**: FastAPI server with auto-reload (development) or production mode
+- 🐳 **Frontend**: Next.js dev server or optimized production build
+- 🐳 **ChromaDB**: Persistent vector database with volume mounting
+
+**Performance:**
+- Build time: **2-3 minutes** (down from 5-10 minutes)
+- Startup time: **20-30 seconds** (down from 1-2 minutes)
+- Total deployment: **3-4 minutes** (down from 7-12 minutes)
 
 ---
 
-## 📋 **System Requirements**
+## 📋 **Quick Start Guide**
 
-### 🖥️ **Development Environment**
-- **Node.js**: 16.0 or higher
-- **Python**: 3.11 or higher
-- **Git**: Latest version
-- **Docker**: 20.0 or higher (optional)
-- **Memory**: 8GB RAM minimum (16GB recommended)
-- **Storage**: 10GB free space minimum
+### 1️⃣ **Prerequisites**
 
-### ☁️ **Cloud Services Required**
-- **Google Cloud Console**: Project with APIs enabled
-- **Gemini API**: API key for AI functionality
-- **Google Drive**: Access to documents (via OAuth)
+- **Node.js** 16.0+ ([Download](https://nodejs.org/))
+- **Python** 3.11+ ([Download](https://www.python.org/downloads/))
+- **Git** ([Download](https://git-scm.com/downloads))
+- **Docker** 20.0+ (optional, [Download](https://www.docker.com/products/docker-desktop))
 
-### 🔑 **API Keys & Credentials**
-- Google OAuth Client ID & Secret
-- Gemini API Key
-- Google Drive API access
-
----
-
-## 🚀 **Complete Installation Guide**
-
-### 1️⃣ **Clone the Repository**
+### 2️⃣ **Clone Repository**
 
 ```bash
-# Clone the repository
 git clone https://github.com/suryahanjaya/lenrag.git
 cd lenrag
-
-# Check the project structure
-ls -la
 ```
 
-### 2️⃣ **Google Cloud Platform Setup**
+### 3️⃣ **Google Cloud Setup**
 
-#### Step 1: Create Google Cloud Project
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable the following APIs:
+2. Create new project
+3. Enable APIs:
    - Google Drive API
    - Google Docs API
-   - Google+ API (for profile information)
+   - Google+ API
+4. Create OAuth 2.0 credentials:
+   - Application type: Web application
+   - Authorized redirect URIs: `http://localhost:3000/auth/callback`
+5. Get Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+6. (Optional) Get Groq API key from [Groq Console](https://console.groq.com/)
 
-#### Step 2: Configure OAuth 2.0
-1. Navigate to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
-2. Application type: "Web application"
-3. Authorized redirect URIs:
-   - `http://localhost:3000/auth/callback` (development)
-   - `https://yourdomain.com/auth/callback` (production)
-4. Copy Client ID and Client Secret
+### 4️⃣ **Environment Configuration**
 
-#### Step 3: Get Gemini API Key
-1. Go to [Google AI Studio](https://aistudio.google.com/)
-2. Create a new API key
-3. Copy the key for environment variables
-
-### 3️⃣ **Environment Configuration**
-
-#### Frontend Environment (`.env.local`)
-
+**Frontend (`.env.local`):**
 ```bash
-# Copy the example file
-cp env.local.example .env.local
-
-# Edit with your values
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
 NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-#### Backend Environment (`.env`)
-
+**Backend (`backend/.env`):**
 ```bash
-# Copy the example file
-cd backend
-cp env.example .env
-
-# Edit with your values
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GEMINI_API_KEY=your_gemini_api_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+GROQ_API_KEY=your_groq_api_key
+LLM_PROVIDER=groq
 ENVIRONMENT=development
 ```
 
-### 4️⃣ **Backend Setup**
+### 5️⃣ **Installation & Run**
+
+**Option A: Local Development**
 
 ```bash
-# Navigate to backend directory
+# Backend
 cd backend
-
-# Create virtual environment
 python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
-
-# Start the backend server
 python main.py
-# Alternative: uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
 
-### 5️⃣ **Frontend Setup**
-
-```bash
-# Navigate to root directory
+# Frontend (new terminal)
 cd ..
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-### 6️⃣ **Access the Application**
-
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:8000](http://localhost:8000)
-- **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Interactive API**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
----
-
-## 🎯 **How DORA Works**
-
-<div align="center">
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend
-    participant B as Backend
-    participant G as Google APIs
-    participant C as ChromaDB
-    participant AI as Gemini AI
-
-    U->>F: Sign in with Google
-    F->>B: OAuth request
-    B->>G: Authenticate user
-    G-->>B: Access token
-    B-->>F: JWT token
-    F-->>U: Authentication success
-
-    U->>F: Select documents
-    F->>B: Get documents request
-    B->>G: Fetch user documents
-    G-->>B: Document list
-    B-->>F: Document data
-    F-->>U: Display documents
-
-    U->>F: Add to knowledge base
-    F->>B: Add documents request
-    B->>B: Process documents
-    B->>C: Store embeddings
-    C-->>B: Storage confirmation
-    B-->>F: Success response
-    F-->>U: Documents added
-
-    U->>F: Ask question
-    F->>B: Chat request
-    B->>C: Search embeddings
-    C-->>B: Relevant chunks
-    B->>AI: Generate response
-    AI-->>B: AI response
-    B-->>F: Chat response
-    F-->>U: Display answer
-```
-
-</div>
-
-### 🔄 **DORA RAG Pipeline Process**
-
-#### 1. **Document Ingestion Phase**
-- User selects documents from Google Drive
-- Documents are processed and chunked intelligently
-- Text embeddings are generated using Sentence Transformers
-- Embeddings are stored in ChromaDB vector database
-- Metadata is preserved for source attribution
-
-#### 2. **Query Processing Phase**
-- User asks a question in natural language
-- Question is converted to embedding vector
-- Similarity search finds relevant document chunks
-- Context is prepared for AI model
-- Source documents are identified
-
-#### 3. **Response Generation Phase**
-- Gemini 2.0 Flash processes the context and question
-- AI generates contextual response based on documents
-- If no relevant documents found, fallback to general knowledge
-- Response includes source attribution and confidence scores
-
----
-
-## 🐳 **Docker Deployment**
-
-### **⚡ Optimized for Fast Development**
-
-DORA's Docker setup has been optimized for **3-4x faster** build and startup times!
-
-**Performance Improvements:**
-- Build time: **2-3 minutes** (down from 5-10 minutes)
-- Startup time: **20-30 seconds** (down from 1-2 minutes)
-- Total time: **3-4 minutes** (down from 7-12 minutes)
-
-### **Quick Start**
+**Option B: Docker (Recommended)**
 
 ```bash
-# Build and start all services (first time)
+# Build and start all services
 docker-compose up --build
 
-# Run normally (after first build)
-docker-compose up
-
-# Run in background
+# Or run in background
 docker-compose up -d
 
 # View logs
@@ -427,413 +358,139 @@ docker-compose logs -f
 
 # Stop services
 docker-compose down
-
-# Clean restart (if you encounter issues)
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up
 ```
 
-### **What's Included**
+### 6️⃣ **Access Application**
 
-The Docker setup includes:
-- ✅ **Backend Service**: FastAPI server with auto-reload
-- ✅ **Frontend Service**: Next.js development server with hot-reload
-- ✅ **Vector Database**: Persistent ChromaDB storage
-- ✅ **Health Checks**: Automatic service monitoring
-- ✅ **Network**: Isolated Docker network for services
-
-### **Optimization Details**
-
-For detailed information about the Docker optimizations, see:
-- `DOCKER_QUICK.md` - Quick reference commands
-- `DOCKER_OPTIMIZATION_SUMMARY.md` - Complete optimization details
-
-### **Individual Container Build**
-
-#### Backend Container:
-```bash
-docker build -f Dockerfile.backend -t dora-backend .
-docker run -p 8000:8000 dora-backend
-```
-
-#### Frontend Container:
-```bash
-docker build -f Dockerfile.frontend -t dora-frontend .
-docker run -p 3000:3000 dora-frontend
-```
-
-### **Production Docker Configuration**
-
-For production deployment, use `docker-compose.prod.yml`:
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-This includes:
-- Multi-stage builds for smaller images
-- Resource limits and reservations
-- Production-optimized settings
-- Enhanced security configurations
-
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
 ---
 
-## 🚀 **Production Deployment**
+## 📚 **API Documentation**
 
-### **Vercel (Frontend Deployment)**
+### **Authentication**
 
-1. **Connect Repository**
-   - Connect your GitHub repository to Vercel
-   - Set framework preset to Next.js
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/google` | POST | Exchange Google auth code for JWT token |
+| `/auth/refresh` | POST | Refresh expired access token |
+| `/debug-auth` | GET | Test authentication status |
 
-2. **Environment Variables**
-   ```
-   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_client_id
-   NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=your_client_secret
-   NEXT_PUBLIC_BACKEND_URL=https://your-backend-url.com
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
+### **Document Management**
 
-3. **Deployment Settings**
-   - Root Directory: `.` (root)
-   - Build Command: `npm run build`
-   - Output Directory: `.next`
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/documents` | GET | List user's Google Drive documents |
+| `/documents/folder` | POST | Get documents from specific folder |
+| `/documents/folder/all` | POST | Recursively get all documents from folder |
+| `/documents/folder/stream` | POST | Stream documents progressively (SSE) |
+| `/bulk-upload-parallel-stream` | POST | Ultra-fast parallel upload with streaming |
+| `/knowledge-base` | POST | Add documents to knowledge base |
+| `/knowledge-base/{doc_id}` | DELETE | Remove document from knowledge base |
+| `/knowledge-base/clear` | DELETE | Clear entire knowledge base |
 
-### **Render (Backend Deployment)**
+### **Chat & AI**
 
-1. **Connect Repository**
-   - Connect your GitHub repository to Render
-   - Create a new Web Service
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/chat` | POST | Chat with documents using RAG |
+| `/user/profile` | GET | Get user profile information |
 
-2. **Configuration**
-   - Root Directory: `backend`
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `python main.py`
-   - Environment: Python 3.11
+### **Monitoring**
 
-3. **Environment Variables**
-   ```
-   GOOGLE_CLIENT_ID=your_client_id
-   GOOGLE_CLIENT_SECRET=your_client_secret
-   GEMINI_API_KEY=your_gemini_api_key
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   ENVIRONMENT=production
-   ```
-
-### **Alternative: Railway Deployment**
-
-1. **Install Railway CLI**
-   ```bash
-   npm install -g @railway/cli
-   railway login
-   ```
-
-2. **Deploy Backend**
-   ```bash
-   cd backend
-   railway init
-   railway up
-   ```
-
-3. **Deploy Frontend**
-   ```bash
-   cd ..
-   railway init
-   railway up
-   ```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check endpoint |
+| `/stats` | GET | Database statistics |
 
 ---
 
-## 📚 **Complete API Documentation**
+## 🎨 **Project Structure**
 
-### **Authentication Endpoints**
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| `POST` | `/auth/google` | Google OAuth authentication | `{ "code": "string" }` | `{ "access_token": "string", "user": {...} }` |
-| `GET` | `/health` | Health check | - | `{ "status": "healthy" }` |
-
-### **Document Management Endpoints**
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| `GET` | `/documents` | List user documents | - | `{ "documents": [...] }` |
-| `POST` | `/documents/add` | Add documents to knowledge base | `{ "document_ids": [...] }` | `{ "success": true, "added": [...] }` |
-| `DELETE` | `/documents/{id}` | Remove document from knowledge base | - | `{ "success": true }` |
-| `GET` | `/documents/folders` | Get documents from Google Drive folder | `{ "folder_url": "string" }` | `{ "documents": [...] }` |
-
-### **Chat & AI Endpoints**
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| `POST` | `/chat` | Chat with documents | `{ "message": "string" }` | `{ "response": "string", "sources": [...] }` |
-| `GET` | `/debug/knowledge-base` | Debug knowledge base content | - | `{ "collections": [...] }` |
-
-### **User Management Endpoints**
-
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| `GET` | `/user/profile` | Get user profile | - | `{ "user": {...} }` |
-
----
-
-## 🔍 **Troubleshooting & Debug Guide**
-
-### **Common Issues & Solutions**
-
-#### 1. **Authentication Failed**
-**Symptoms**: OAuth redirect not working, authentication errors
-**Solutions**:
-- Check Google Cloud Console redirect URI: `http://localhost:3000/auth/callback`
-- Ensure APIs are enabled (Drive, Docs, Google+)
-- Verify client ID and secret in environment variables
-- Check CORS settings in backend
-
-#### 2. **Documents Not Loading**
-**Symptoms**: Empty document list, API errors
-**Solutions**:
-- Check Google Drive API permissions
-- Verify access token is valid
-- Ensure proper scopes are requested
-- Check network connectivity
-
-#### 3. **Chat Not Working**
-**Symptoms**: No AI responses, errors in chat
-**Solutions**:
-- Check Gemini API key validity
-- Verify documents are added to knowledge base
-- Check backend logs for errors
-- Ensure sufficient API quota
-
-#### 4. **Vector Database Issues**
-**Symptoms**: Embeddings not stored, search not working
-**Solutions**:
-- Ensure ChromaDB is properly initialized
-- Check disk space for vector storage
-- Verify embedding model is loaded correctly
-- Check collection permissions
-
-### **Debug Endpoints**
-
-- `/debug` - OAuth configuration debug
-- `/debug-auth` - Authentication status and token testing
-- `/debug/knowledge-base` - Vector database content inspection
-
-### **Performance Optimization**
-
-#### 1. **Chunk Size Optimization**
-- Default: 1500 characters per chunk
-- Overlap: 150 characters for better context
-- Adjust based on document type and size
-- Legal documents: 2000 characters
-- Technical docs: 1000 characters
-
-#### 2. **Embedding Model Configuration**
-- Using `all-MiniLM-L6-v2` for balance of speed and accuracy
-- Supports 384-dimensional embeddings
-- Optimized for semantic similarity
-- Multilingual support included
-
-#### 3. **Vector Database Optimization**
-- ChromaDB with cosine similarity
-- Persistent storage for scalability
-- User-specific collections for privacy
-- Automatic cleanup of old embeddings
-
----
-
-## 🧪 **Testing & Quality Assurance**
-
-### **Frontend Testing**
-```bash
-# Run TypeScript checks
-npm run type-check
-
-# Run ESLint
-npm run lint
-
-# Run build test
-npm run build
 ```
-
-### **Backend Testing**
-```bash
-# Run Python tests
-python -m pytest tests/
-
-# Check code quality
-flake8 backend/
-black backend/
-```
-
-### **Integration Testing**
-```bash
-# Test API endpoints
-curl -X GET http://localhost:8000/health
-
-# Test authentication
-curl -X POST http://localhost:8000/auth/google \
-  -H "Content-Type: application/json" \
-  -d '{"code": "test_code"}'
+lenrag/
+├── 📁 app/                    # Next.js app directory
+│   ├── page.tsx              # Main dashboard page
+│   ├── layout.tsx            # Root layout
+│   └── auth/                 # Authentication pages
+├── 📁 components/            # React components
+│   ├── dashboard/           # Dashboard components
+│   ├── auth/                # Auth components
+│   └── ui/                  # Reusable UI components
+├── 📁 backend/              # FastAPI backend
+│   ├── main.py             # Main application
+│   ├── config.py           # Configuration
+│   ├── services/           # Business logic
+│   ├── routers/            # API routes
+│   ├── models/             # Data models
+│   └── utils/              # Utility functions
+├── 📁 docs/                # Documentation
+├── 🐳 docker-compose.yml   # Docker orchestration
+├── 🐳 Dockerfile.backend   # Backend container
+├── 🐳 Dockerfile.frontend  # Frontend container
+└── 📄 README.md           # This file
 ```
 
 ---
 
-## 🤝 **Contributing Guidelines**
+## 🤝 **Contributing**
 
-### **Development Workflow**
+We welcome contributions! Please follow these steps:
 
-1. **Fork the Repository**
-   ```bash
-   git fork https://github.com/suryahanjaya/lenrag.git
-   ```
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
-2. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-
-3. **Make Changes**
-   - Follow TypeScript best practices
-   - Write comprehensive tests
-   - Update documentation
-   - Follow existing code style
-
-4. **Commit Changes**
-   ```bash
-   git commit -m 'Add amazing feature'
-   ```
-
-5. **Push and Create PR**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-
-### **Code Standards**
-
-- **TypeScript**: Strict mode enabled, comprehensive type definitions
-- **Python**: PEP 8 compliance, type hints required
-- **Testing**: Minimum 80% code coverage
-- **Documentation**: Update README for new features
-- **Error Handling**: Comprehensive error handling and logging
+**Code Standards:**
+- TypeScript: Strict mode, comprehensive types
+- Python: PEP 8, type hints required
+- Testing: Minimum 80% coverage
+- Documentation: Update README for new features
 
 ---
 
-## 📝 **License & Legal**
+## 📝 **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-### **Third-party Licenses**
-- Next.js: MIT License
-- FastAPI: MIT License
-- ChromaDB: Apache 2.0 License
-- Google AI: Google Terms of Service
 
 ---
 
 ## 🙏 **Acknowledgments**
 
-### **Open Source Libraries**
 - **Google APIs** for document integration and authentication
-- **Gemini AI** for intelligent response generation
-- **ChromaDB** for vector storage and similarity search
-- **Next.js and FastAPI** communities for excellent frameworks
-- **Sentence Transformers** for embedding generation
-
-### **Original Inspiration**
-- **Repository**: [codemet-rag-chatbot](https://github.com/santoshnaya/codemet-rag-chatbot) by [santoshnaya](https://github.com/santoshnaya)
-- **Concept**: RAG-based document retrieval systems
-- **Community**: AI and ML open source contributors
+- **Groq** for ultra-fast LLM inference
+- **ChromaDB** for vector storage excellence
+- **Next.js** and **FastAPI** communities
+- **Original Inspiration**: [codemet-rag-chatbot](https://github.com/santoshnaya/codemet-rag-chatbot) by [santoshnaya](https://github.com/santoshnaya)
 
 ---
 
 ## 📞 **Support & Contact**
-
-### **Getting Help**
-
-If you encounter any issues or have questions:
-
-1. **Check Documentation**: Review this README thoroughly
-2. **Search Issues**: Look through [GitHub Issues](https://github.com/suryahanjaya/lenrag/issues)
-3. **Create Issue**: Open a new issue with detailed information
-4. **Include Details**: Error logs, environment details, steps to reproduce
-
-### **Issue Template**
-```markdown
-**Describe the bug**
-A clear description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. See error
-
-**Expected behavior**
-What you expected to happen.
-
-**Environment**
-- OS: [e.g. Windows 10, macOS 12, Ubuntu 20.04]
-- Node.js version: [e.g. 18.0.0]
-- Python version: [e.g. 3.11.0]
-- Browser: [e.g. Chrome 120, Firefox 119]
-
-**Additional context**
-Add any other context about the problem here.
-```
-
----
-
-## 🔗 **Connect with the Developer**
 
 <div align="center">
 
 ### **Surya Hanjaya**
 *Full-Stack Developer & AI Enthusiast*
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-surya--hanjaya-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/surya-hanjaya/)
-[![GitHub](https://img.shields.io/badge/GitHub-suryahanjaya-black?style=for-the-badge&logo=github)](https://github.com/suryahanjaya?tab=repositories)
-[![Instagram](https://img.shields.io/badge/Instagram-h4njy-pink?style=for-the-badge&logo=instagram)](https://www.instagram.com/h4njy/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-surya--hanjaya-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/surya-hanjaya/)
+[![GitHub](https://img.shields.io/badge/GitHub-suryahanjaya-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/suryahanjaya)
+[![Instagram](https://img.shields.io/badge/Instagram-h4njy-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/h4njy/)
 
-**About the Developer:**
-- 🚀 Passionate about AI and Machine Learning
-- 💻 Full-Stack Developer with expertise in React, Python, and AI
-- 🌟 Open Source Contributor and Tech Enthusiast
-- 📚 Continuous learner in emerging technologies
-- 🤝 Always open to collaboration and new opportunities
+**Questions?** Open an [issue](https://github.com/suryahanjaya/lenrag/issues) or reach out!
 
 </div>
 
 ---
 
-## 🎯 **Project Roadmap**
-
-### **Current Version: 2.0.0**
-- ✅ Google Drive Integration
-- ✅ Multi-format Document Support
-- ✅ Advanced RAG Pipeline
-- ✅ Real-time Chat Interface
-- ✅ Vector Database Storage
-
-### **Upcoming Features**
-- 🔄 **Version 2.1.0**: Advanced Analytics Dashboard
-- 🔄 **Version 2.2.0**: Multi-language Support
-- 🔄 **Version 2.3.0**: Team Collaboration Features
-- 🔄 **Version 2.4.0**: Mobile Application
-- 🔄 **Version 3.0.0**: Enterprise Features
-
----
-
-**Built with ❤️ using FastAPI, Next.js, and Google AI**
-
 <div align="center">
 
-![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red?style=for-the-badge)
-![Powered by AI](https://img.shields.io/badge/Powered%20by-AI-purple?style=for-the-badge)
-![Open Source](https://img.shields.io/badge/Open%20Source-🌟-green?style=for-the-badge)
+**Made with ❤️ and ☕ by Surya Hanjaya**
+
+⭐ **Star this repo if you find it helpful!** ⭐
 
 </div>

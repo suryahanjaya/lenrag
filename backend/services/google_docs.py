@@ -310,12 +310,8 @@ class GoogleDocsService:
             
         except Exception as e:
             logger.error(f"Error listing documents from folder: {e}", exc_info=True)
-            logger.warning("Falling back to recent files due to error")
-            try:
-                return await self._get_recent_documents(access_token)
-            except Exception as fallback_error:
-                logger.error(f"Fallback to recent files also failed: {fallback_error}", exc_info=True)
-                raise e
+            # Do NOT fallback to recent files - let the user know fetch failed
+            raise e
     
     async def _get_recent_documents(self, access_token: str = None) -> List[Dict[str, Any]]:
         try:
@@ -470,7 +466,30 @@ class GoogleDocsService:
                 
                 # Use semaphore to control concurrent requests
                 async with self._semaphore:
-                    response = await client.get(url, params=params, headers=headers)
+                    # Retry logic for pagination
+                    import random
+                    import asyncio
+                    
+                    for attempt in range(3):
+                        try:
+                            response = await client.get(url, params=params, headers=headers)
+                            
+                            if response.status_code == 200:
+                                break
+                                
+                            if 500 <= response.status_code < 600:
+                                logger.warning(f"Google Drive 5xx error (Attempt {attempt+1}/3) on page {page_count}: {response.status_code}")
+                                if attempt == 2: raise Exception(f"Server error {response.status_code}")
+                                await asyncio.sleep((2 ** attempt) + random.random())
+                                continue
+                            
+                            # Client error (4xx) - do not retry
+                            break
+                            
+                        except Exception as e:
+                            logger.warning(f"Network error (Attempt {attempt+1}/3) on page {page_count}: {e}")
+                            if attempt == 2: raise e
+                            await asyncio.sleep((2 ** attempt) + random.random())
                 
                 if response.status_code != 200:
                     logger.error(f"Drive API error: {response.status_code} - {response.text}")
@@ -627,30 +646,54 @@ class GoogleDocsService:
             logger.error(f"Error in recursive document fetch for folder {folder_id}: {e}", exc_info=True)
     
     async def get_document_content(self, access_token: str, document_id: str, mime_type: str = None) -> str:
-        try:
-            if not mime_type:
-                file_info = await self._get_file_info(access_token, document_id)
-                mime_type = file_info.get('mimeType', '')
-            
-            logger.info(f"Extracting content for document {document_id} with MIME type: {mime_type}")
-            
-            if mime_type == 'application/vnd.google-apps.document':
-                return await self._get_google_doc_content(access_token, document_id)
-            
-            elif mime_type in ['application/pdf', 
-                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                             'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                             'text/plain',
-                             'application/vnd.google-apps.presentation']:
-                return await self._export_file_as_text(access_token, document_id, mime_type)
-            
-            else:
-                logger.warning(f"Unsupported MIME type: {mime_type}")
-                return f"Content extraction not supported for file type: {mime_type}"
+        """Get the content of a Google Doc with async retry logic"""
+        import asyncio
+        import random
+        
+        # Retry up to 3 times for transient errors
+        for attempt in range(3):
+            try:
+                # Use semaphore for metadata fetch if needed, but usually get_file_info handles it?
+                # Actually get_file_info inside calls get_http_client
                 
-        except Exception as e:
-            logger.error(f"Error getting document content for {document_id}: {e}", exc_info=True)
-            raise
+                if not mime_type:
+                    try:
+                        file_info = await self._get_file_info(access_token, document_id)
+                        mime_type = file_info.get('mimeType', '')
+                    except Exception as e:
+                        if attempt == 2: raise e
+                        logger.warning(f"Metadata fetch attempt {attempt+1} failed: {e}")
+                        await asyncio.sleep(1)
+                        continue
+                
+                logger.info(f"Extracting content for {document_id} ({mime_type}) - Attempt {attempt+1}")
+                
+                if mime_type == 'application/vnd.google-apps.document':
+                    return await self._get_google_doc_content(access_token, document_id)
+                
+                elif mime_type in ['application/pdf', 
+                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                                 'text/plain',
+                                 'application/vnd.google-apps.presentation']:
+                    return await self._export_file_as_text(access_token, document_id, mime_type)
+                
+                else:
+                    logger.warning(f"Unsupported MIME type: {mime_type}")
+                    return f"Content extraction not supported for file type: {mime_type}"
+                    
+            except Exception as e:
+                logger.warning(f"Attempt {attempt+1}/3 failed for {document_id}: {e}")
+                if attempt == 2:
+                    logger.error(f"❌ Failed to get content for {document_id} after 3 attempts")
+                    raise e
+                # Exponential backoff
+                delay = (2 ** attempt) + random.random()
+                await asyncio.sleep(delay)
+                # Reset mime_type if it was guessed, so we retry fresh
+                # mime_type = None 
+        
+        return "Error accessing file content"
     
     async def get_document_metadata(self, access_token: str, document_id: str) -> Dict[str, Any]:
         try:
@@ -695,11 +738,71 @@ class GoogleDocsService:
         content = self._extract_text_from_document(document)
         return content
     
+    def _parse_pdf_sync(self, content_bytes: bytes) -> str:
+        """Helper to parse PDF content synchronously (CPU-bound)"""
+        try:
+            pdf_reader = PdfReader(io.BytesIO(content_bytes))
+            text_parts = []
+            for page in pdf_reader.pages:
+                text_parts.append(page.extract_text())
+            return "\n\n".join(text_parts)
+        except Exception as e:
+            logger.error(f"PDF parsing error: {e}")
+            return None
+
+    def _parse_docx_sync(self, content_bytes: bytes) -> str:
+        """Helper to parse DOCX content synchronously (CPU-bound)"""
+        try:
+            doc = DocxDocument(io.BytesIO(content_bytes))
+            text_parts = [p.text for p in doc.paragraphs if p.text.strip()]
+            return "\n\n".join(text_parts)
+        except Exception as e:
+            logger.error(f"DOCX parsing error: {e}")
+            return None
+
+    def _parse_pptx_sync(self, content_bytes: bytes) -> str:
+        """Helper to parse PPTX content synchronously (CPU-bound)"""
+        try:
+            prs = Presentation(io.BytesIO(content_bytes))
+            text_parts = []
+            
+            for slide_num, slide in enumerate(prs.slides, 1):
+                slide_text = []
+                slide_text.append(f"=== Slide {slide_num} ===")
+                
+                # Extract text from all shapes in the slide
+                for shape in slide.shapes:
+                    if hasattr(shape, "text") and shape.text.strip():
+                        slide_text.append(shape.text.strip())
+                    
+                    # Extract text from tables
+                    if shape.has_table:
+                        table = shape.table
+                        for row in table.rows:
+                            row_text = []
+                            for cell in row.cells:
+                                if cell.text.strip():
+                                    row_text.append(cell.text.strip())
+                            if row_text:
+                                slide_text.append(" | ".join(row_text))
+                
+                if len(slide_text) > 1:  # More than just the slide header
+                    text_parts.append("\n".join(slide_text))
+            
+            logger.info(f"Extracted text from {len(prs.slides)} slides in PPTX")
+            return "\n\n".join(text_parts)
+        except Exception as e:
+            logger.error(f"PPTX parsing error: {e}")
+            import traceback
+            logger.error(f"PPTX traceback: {traceback.format_exc()}")
+            return None
+
     async def _export_file_as_text(self, access_token: str, file_id: str, mime_type: str) -> str:
         try:
             headers = {'Authorization': f'Bearer {access_token}'}
             content = None
             client = await get_http_client()
+            loop = asyncio.get_running_loop()
             
             if mime_type == 'text/plain':
                 url = f"{self.drive_api_base}/files/{file_id}?alt=media"
@@ -717,69 +820,26 @@ class GoogleDocsService:
                 url = f"{self.drive_api_base}/files/{file_id}?alt=media"
                 response = await client.get(url, headers=headers)
                 if response.status_code == 200 and PDF_AVAILABLE:
-                    try:
-                        pdf_content = response.content
-                        pdf_reader = PdfReader(io.BytesIO(pdf_content))
-                        text_parts = []
-                        for page in pdf_reader.pages:
-                            text_parts.append(page.extract_text())
-                        content = "\n\n".join(text_parts)
-                    except Exception as e:
-                        logger.error(f"PDF error: {e}")
+                    logger.info(f"Offloading PDF parsing for {file_id} to thread pool")
+                    content = await loop.run_in_executor(None, self._parse_pdf_sync, response.content)
             
             if not content and mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
                 url = f"{self.drive_api_base}/files/{file_id}?alt=media"
                 response = await client.get(url, headers=headers)
                 if response.status_code == 200 and DOCX_AVAILABLE:
-                    try:
-                        docx_content = response.content
-                        doc = DocxDocument(io.BytesIO(docx_content))
-                        text_parts = [p.text for p in doc.paragraphs if p.text.strip()]
-                        content = "\n\n".join(text_parts)
-                    except Exception as e:
-                        logger.error(f"DOCX error: {e}")
+                    logger.info(f"Offloading DOCX parsing for {file_id} to thread pool")
+                    content = await loop.run_in_executor(None, self._parse_docx_sync, response.content)
             
             # Extract text from PPTX files
             if not content and mime_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
                 url = f"{self.drive_api_base}/files/{file_id}?alt=media"
                 response = await client.get(url, headers=headers)
                 if response.status_code == 200 and PPTX_AVAILABLE:
-                    try:
-                        pptx_content = response.content
-                        prs = Presentation(io.BytesIO(pptx_content))
-                        text_parts = []
-                        
-                        for slide_num, slide in enumerate(prs.slides, 1):
-                            slide_text = []
-                            slide_text.append(f"=== Slide {slide_num} ===")
-                            
-                            # Extract text from all shapes in the slide
-                            for shape in slide.shapes:
-                                if hasattr(shape, "text") and shape.text.strip():
-                                    slide_text.append(shape.text.strip())
-                                
-                                # Extract text from tables
-                                if shape.has_table:
-                                    table = shape.table
-                                    for row in table.rows:
-                                        row_text = []
-                                        for cell in row.cells:
-                                            if cell.text.strip():
-                                                row_text.append(cell.text.strip())
-                                        if row_text:
-                                            slide_text.append(" | ".join(row_text))
-                            
-                            if len(slide_text) > 1:  # More than just the slide header
-                                text_parts.append("\n".join(slide_text))
-                        
-                        content = "\n\n".join(text_parts)
-                        logger.info(f"Extracted text from {len(prs.slides)} slides in PPTX")
-                    except Exception as e:
-                        logger.error(f"PPTX error: {e}")
-                        import traceback
-                        logger.error(f"PPTX traceback: {traceback.format_exc()}")
+                    logger.info(f"Offloading PPTX parsing for {file_id} to thread pool")
+                    content = await loop.run_in_executor(None, self._parse_pptx_sync, response.content)
             
             if not content:
+                # Last resort: try as PDF if possible (sometimes Drive converts)
                 return f"Content extraction not supported for {mime_type}"
             
             return content.strip()
@@ -787,8 +847,112 @@ class GoogleDocsService:
         except Exception as e:
             logger.error(f"Error extracting content from {mime_type}: {e}", exc_info=True)
             return f"Error accessing file content"
-    
-    def _extract_text_from_document(self, document: Dict[str, Any]) -> str:
+
+    async def download_document_raw(self, access_token: str, document_id: str, mime_type: str = None) -> Dict[str, Any]:
+        """
+        Download raw document content (bytes or text) WITHOUT parsing heavy files (PDF/PPTX).
+        Returns {'data': bytes/str, 'mime_type': str, 'idx': str}
+        """
+        try:
+            headers = {'Authorization': f'Bearer {access_token}'}
+            client = await get_http_client()
+            
+            # 1. Handle Google Docs (Native) - Always fetch as text
+            if mime_type == 'application/vnd.google-apps.document':
+                content = await self._get_google_doc_content(access_token, document_id)
+                return {'data': content, 'mime_type': mime_type, 'is_binary': False}
+                
+            # 2. Handle Binary Files (PDF, DOCX, PPTX) - Fetch as Bytes
+            export_mime = None
+            if mime_type == 'application/vnd.google-apps.presentation':
+                # Convert Google Slides to PPTX bytes
+                export_mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                url = f"{self.drive_api_base}/files/{document_id}/export?mimeType={export_mime}"
+            elif mime_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                url = f"{self.drive_api_base}/files/{document_id}?alt=media"
+                export_mime = mime_type
+            elif mime_type == 'application/pdf':
+                url = f"{self.drive_api_base}/files/{document_id}?alt=media"
+                export_mime = mime_type
+            elif mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                url = f"{self.drive_api_base}/files/{document_id}?alt=media"
+                export_mime = mime_type
+            elif mime_type == 'text/plain':
+                url = f"{self.drive_api_base}/files/{document_id}?alt=media"
+                export_mime = mime_type
+            else:
+                # Default/Fallback: try export as text
+                url = f"{self.drive_api_base}/files/{document_id}/export?mimeType=text/plain"
+                response = await client.get(url, headers=headers)
+                if response.status_code == 200:
+                    return {'data': response.text, 'mime_type': 'text/plain', 'is_binary': False}
+                return {'data': f"Unsupported type: {mime_type}", 'mime_type': 'text/plain', 'is_binary': False}
+            
+            # Fetch the binary content
+            response = await client.get(url, headers=headers)
+            if response.status_code == 200:
+                is_text = export_mime == 'text/plain'
+                return {
+                    'data': response.text if is_text else response.content, 
+                    'mime_type': export_mime, 
+                    'is_binary': not is_text
+                }
+            else:
+                logger.error(f"Failed to download raw file {document_id}: {response.status_code}")
+                return {'data': None, 'error': f"HTTP {response.status_code}"}
+                
+        except Exception as e:
+            logger.error(f"Error downloading raw document {document_id}: {e}")
+            return {'data': None, 'error': str(e)}
+
+    async def extract_text_from_raw(self, raw_data: bytes, mime_type: str) -> str:
+        """
+        Extract text from raw binary data. 
+        CPU-bound tasks (PDF/PPTX parsing) are offloaded to executor.
+        """
+        if not raw_data:
+            return ""
+            
+        loop = asyncio.get_running_loop()
+        
+        try:
+            if mime_type == 'application/pdf':
+                 return await loop.run_in_executor(None, self._parse_pdf_sync, raw_data)
+            
+            elif mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                 return await loop.run_in_executor(None, self._parse_docx_sync, raw_data)
+            
+            elif mime_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                 return await loop.run_in_executor(None, self._parse_pptx_sync, raw_data)
+            
+            elif mime_type == 'text/plain':
+                if isinstance(raw_data, bytes):
+                    return raw_data.decode('utf-8', errors='ignore')
+                return raw_data
+                
+            return "Content extraction not supported for this type."
+            
+        except Exception as e:
+            logger.error(f"Error extracting from raw bytes: {e}")
+            return f"Extraction error: {str(e)}"
+
+    async def _export_file_as_text(self, access_token: str, file_id: str, mime_type: str) -> str:
+        # Legacy method wrapper - uses the new pipeline internally to ensure consistency
+        # But we keep it simple to minimize changes to other parts
+        try:
+            download_result = await self.download_document_raw(access_token, file_id, mime_type)
+            if download_result.get('error'):
+                return f"Error: {download_result['error']}"
+            
+            data = download_result['data']
+            if not download_result['is_binary']:
+                return data
+            
+            return await self.extract_text_from_raw(data, download_result['mime_type'])
+                
+        except Exception as e:
+            logger.error(f"Error extracting content from {mime_type}: {e}", exc_info=True)
+            return f"Error accessing file content"
         try:
             content = document.get('body', {}).get('content', [])
             text_parts = []

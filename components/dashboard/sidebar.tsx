@@ -80,7 +80,7 @@ export function Sidebar({
     return (
         <>
             {/* Collapsible Sidebar with Red Gradient */}
-            <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gradient-to-b from-red-600 via-red-700 to-red-800 text-white flex flex-col h-screen transition-all duration-300 shadow-xl relative`}>
+            <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gradient-to-b from-red-600 via-red-700 to-red-800 dark:from-gray-800 dark:via-gray-900 dark:to-black text-white flex flex-col h-screen transition-all duration-300 shadow-xl relative`}>
                 {/* Toggle Button */}
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}

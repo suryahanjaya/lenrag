@@ -187,7 +187,7 @@ export function ChatPage({
 
                         return (
                             <div key={index} className="mb-3">
-                                <p className="text-gray-800 leading-relaxed text-[15px]">
+                                <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-[15px]">
                                     {cleanedParagraph}
                                 </p>
                             </div>
@@ -215,11 +215,11 @@ export function ChatPage({
     }
 
     return (
-        <div className="flex-1 flex flex-col h-screen bg-white">
+        <div className="flex-1 flex flex-col h-screen bg-white dark:bg-gray-900">
 
 
             {/* Chat Messages Area */}
-            <div ref={chatContainerRef} className={`flex-1 overflow-y-auto ${chatHistory.length === 0 ? 'bg-gradient-to-br from-gray-50 via-white to-gray-50' : 'bg-gray-50 py-6 px-6'}`}>
+            <div ref={chatContainerRef} className={`flex-1 overflow-y-auto ${chatHistory.length === 0 ? 'bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900' : 'bg-gray-50 dark:bg-gray-900 py-6 px-6'}`}>
                 {chatHistory.length === 0 ? (
                     <div className="h-full flex flex-col items-center relative overflow-hidden">
                         {/* Subtle Background Pattern */}
@@ -239,7 +239,7 @@ export function ChatPage({
 
                                 {/* Greeting */}
                                 <div>
-                                    <div className="text-base text-gray-500 font-medium mb-1">
+                                    <div className="text-base text-gray-500 dark:text-gray-400 font-medium mb-1">
                                         {greeting},
                                     </div>
                                     <h1 className={`text-4xl font-bold tracking-tight ${(() => {
@@ -266,13 +266,13 @@ export function ChatPage({
                                             onKeyPress={onKeyPress}
                                             placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask DORA anything..."}
                                             disabled={isChatLoading || knowledgeBaseCount === 0}
-                                            className="w-full px-6 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:border-gray-400 focus:ring-4 focus:ring-gray-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-base placeholder:text-gray-400 shadow-sm hover:shadow-md group-hover:border-gray-300"
+                                            className="w-full px-6 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-all duration-200 text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100 group-hover:border-gray-300 dark:group-hover:border-gray-600"
                                         />
                                     </div>
                                     <Button
                                         onClick={onSendMessage}
                                         disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
-                                        className="bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 text-white px-6 py-4 rounded-2xl font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none h-[56px] min-w-[56px]"
+                                        className="bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 disabled:bg-gray-200 dark:disabled:bg-gray-800 text-white px-6 py-4 rounded-2xl font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none h-[56px] min-w-[56px]"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -298,79 +298,79 @@ export function ChatPage({
                             {/* Quick Suggestions - Only show if has documents */}
                             {knowledgeBaseCount > 0 && (
                                 <div className="w-full">
-                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Suggested Prompts</p>
+                                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Suggested Prompts</p>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
                                             onClick={() => onChatMessageChange("Summarize the key points from my documents")}
-                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                            className="text-left px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all duration-200 group"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
-                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900 mb-1">Summarize documents</p>
-                                                    <p className="text-xs text-gray-500">Get key points from your files</p>
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">Summarize documents</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Get key points from your files</p>
                                                 </div>
                                             </div>
                                         </button>
 
                                         <button
                                             onClick={() => onChatMessageChange("What are the main topics covered?")}
-                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                            className="text-left px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all duration-200 group"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
-                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                                                     </svg>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900 mb-1">Find topics</p>
-                                                    <p className="text-xs text-gray-500">Discover main themes</p>
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">Find topics</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Discover main themes</p>
                                                 </div>
                                             </div>
                                         </button>
 
                                         <button
                                             onClick={() => onChatMessageChange("Extract important dates and deadlines")}
-                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                            className="text-left px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all duration-200 group"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
-                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                     </svg>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900 mb-1">Extract dates</p>
-                                                    <p className="text-xs text-gray-500">Find important deadlines</p>
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">Extract dates</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Find important deadlines</p>
                                                 </div>
                                             </div>
                                         </button>
 
                                         <button
                                             onClick={() => onChatMessageChange("Compare and contrast the documents")}
-                                            className="text-left px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                                            className="text-left px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all duration-200 group"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
-                                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                                                    <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                                     </svg>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900 mb-1">Compare docs</p>
-                                                    <p className="text-xs text-gray-500">Analyze differences</p>
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">Compare docs</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Analyze differences</p>
                                                 </div>
                                             </div>
                                         </button>
                                     </div>
 
                                     {/* Knowledge Base Stats */}
-                                    <div className="mt-6 px-5 py-4 bg-white border border-gray-200 rounded-xl">
+                                    <div className="mt-6 px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -379,8 +379,8 @@ export function ChatPage({
                                                     </svg>
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-semibold text-gray-900">{knowledgeBaseCount} documents ready</p>
-                                                    <p className="text-xs text-gray-500">Your knowledge base is active</p>
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{knowledgeBaseCount} documents ready</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Your knowledge base is active</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -398,14 +398,14 @@ export function ChatPage({
                                         {/* User Label */}
                                         {msg.role === 'user' && (
                                             <div className="flex items-center justify-end mb-2 px-1">
-                                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">You</span>
+                                                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">You</span>
                                             </div>
                                         )}
 
                                         {/* DORA Label */}
                                         {msg.role === 'assistant' && (
                                             <div className="flex items-center mb-2 px-1">
-                                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">DORA</span>
+                                                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">DORA</span>
                                             </div>
                                         )}
 
@@ -485,7 +485,7 @@ export function ChatPage({
                                                                                 onChangeVersionIndex(index, newIndex)
                                                                             }
                                                                         }}
-                                                                        className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                        className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-all"
                                                                         title="Previous version"
                                                                     >
                                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -493,7 +493,7 @@ export function ChatPage({
                                                                         </svg>
                                                                     </button>
 
-                                                                    <span className="text-xs font-medium text-gray-600 min-w-[40px] text-center">
+                                                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 min-w-[40px] text-center">
                                                                         {currentVersionIndex + 1}/{totalVersions}
                                                                     </span>
 
@@ -504,7 +504,7 @@ export function ChatPage({
                                                                                 onChangeVersionIndex(index, newIndex)
                                                                             }
                                                                         }}
-                                                                        className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                        className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-all"
                                                                         title="Next version"
                                                                     >
                                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -536,7 +536,7 @@ export function ChatPage({
                                                                         .catch(err => console.error('Failed to copy:', err))
                                                                 }}
                                                                 id={`copy-user-btn-${index}`}
-                                                                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                                                 title="Copy message"
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -552,7 +552,7 @@ export function ChatPage({
                                                                         setEditingMessageIndex(index)
                                                                         setEditedContent(displayContent)
                                                                     }}
-                                                                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                                                     title="Edit message"
                                                                 >
                                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -566,7 +566,7 @@ export function ChatPage({
                                             </div>
                                         ) : (
                                             /* AI Response */
-                                            <div className={`rounded-2xl px-5 py-4 bg-white border border-gray-200 text-gray-900 shadow-sm`}>
+                                            <div className={`rounded-2xl px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 shadow-sm`}>
                                                 <div className="flex-1">
                                                     {(() => {
                                                         const currentVersionIndex = msg.currentVersionIndex ?? 0
@@ -600,16 +600,16 @@ export function ChatPage({
                                                                     if (uniqueSources.length === 0) return null
 
                                                                     return (
-                                                                        <div className="mt-4 pt-4 border-t border-gray-100">
-                                                                            <p className="text-xs font-semibold text-gray-700 mb-3">
+                                                                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                                                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                                                                 Sumber:
                                                                             </p>
                                                                             <div className="space-y-2">
                                                                                 {uniqueSources.map((source, idx) => (
-                                                                                    <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 hover:border-red-200 transition-colors">
+                                                                                    <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600 hover:border-red-200 dark:hover:border-red-400 transition-colors">
                                                                                         <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                                             <div className="flex-1 min-w-0">
-                                                                                                <p className="text-xs font-medium text-gray-900 truncate">
+                                                                                                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
                                                                                                     {source.name || source.id}
                                                                                                 </p>
                                                                                             </div>
@@ -619,7 +619,7 @@ export function ChatPage({
                                                                                                 href={source.link}
                                                                                                 target="_blank"
                                                                                                 rel="noopener noreferrer"
-                                                                                                className="text-xs text-red-600 hover:text-red-700 font-medium ml-3 whitespace-nowrap"
+                                                                                                className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium ml-3 whitespace-nowrap"
                                                                                             >
                                                                                                 View
                                                                                             </a>
@@ -632,7 +632,7 @@ export function ChatPage({
                                                                 })()}
 
                                                                 {/* Action Buttons - Copy, Refresh, and Version Navigation */}
-                                                                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                                                <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">
                                                                         {/* Copy Button */}
                                                                         <button
@@ -656,7 +656,7 @@ export function ChatPage({
                                                                                     .catch(err => console.error('Failed to copy:', err))
                                                                             }}
                                                                             id={`copy-btn-${index}`}
-                                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
                                                                         >
                                                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -668,7 +668,7 @@ export function ChatPage({
                                                                         {onRefreshResponse && (
                                                                             <button
                                                                                 onClick={() => onRefreshResponse(index)}
-                                                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
                                                                             >
                                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -688,7 +688,7 @@ export function ChatPage({
                                                                                         onChangeVersionIndex(index, newIndex)
                                                                                     }
                                                                                 }}
-                                                                                className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                                className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-all"
                                                                                 title="Previous version"
                                                                             >
                                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -696,7 +696,7 @@ export function ChatPage({
                                                                                 </svg>
                                                                             </button>
 
-                                                                            <span className="text-xs font-medium text-gray-600 min-w-[40px] text-center">
+                                                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400 min-w-[40px] text-center">
                                                                                 {currentVersionIndex + 1}/{totalVersions}
                                                                             </span>
 
@@ -707,7 +707,7 @@ export function ChatPage({
                                                                                         onChangeVersionIndex(index, newIndex)
                                                                                     }
                                                                                 }}
-                                                                                className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+                                                                                className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-all"
                                                                                 title="Next version"
                                                                             >
                                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -732,16 +732,16 @@ export function ChatPage({
                                 <div className="flex justify-start">
                                     <div>
                                         <div className="flex items-center mb-2 px-1">
-                                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">DORA</span>
+                                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">DORA</span>
                                         </div>
-                                        <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
+                                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-4 shadow-sm">
                                             <div className="flex items-center space-x-3">
                                                 <div className="flex space-x-1">
-                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                                    <div className="w-2 h-2 bg-red-600 dark:bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                                    <div className="w-2 h-2 bg-red-600 dark:bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                                    <div className="w-2 h-2 bg-red-600 dark:bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                                                 </div>
-                                                <span className="text-sm text-gray-600">Thinking...</span>
+                                                <span className="text-sm text-gray-600 dark:text-gray-400">Thinking...</span>
                                             </div>
                                         </div>
                                     </div>
@@ -756,7 +756,7 @@ export function ChatPage({
             {/* Chat Input - Sticky at bottom when there are messages */}
             {
                 chatHistory.length > 0 && (
-                    <div className="sticky bottom-0 border-t border-gray-200 px-6 py-3 bg-white shadow-lg z-10">
+                    <div className="sticky bottom-0 border-t border-gray-200 dark:border-gray-700 px-6 py-3 bg-white dark:bg-gray-800 shadow-lg z-10">
                         <div className="max-w-5xl mx-auto">
                             <div className="flex gap-3 items-center">
                                 <div className="flex-1 relative">
@@ -768,7 +768,7 @@ export function ChatPage({
                                         onKeyPress={onKeyPress}
                                         placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask me anything..."}
                                         disabled={isChatLoading || knowledgeBaseCount === 0}
-                                        className="w-full px-5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-base placeholder:text-gray-400"
+                                        className="w-full px-5 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-all text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                                     />
                                 </div>
                                 <Button

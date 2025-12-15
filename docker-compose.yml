@@ -10,13 +10,15 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      # CPU Optimization for PyTorch & NumPy
+      # 🚀 OPTIMIZED: 60 Parallel Fetch + 15 Parallel Embedding
       - BULK_UPLOAD_BATCH_SIZE=60
-      - OMP_NUM_THREADS=8
-      - MKL_NUM_THREADS=8
-      - OPENBLAS_NUM_THREADS=8
-      - NUMEXPR_NUM_THREADS=8
-      - TORCH_NUM_THREADS=8
+      - EMBEDDING_BATCH_SIZE=15
+      # CPU Optimization for PyTorch & NumPy - INCREASED
+      - OMP_NUM_THREADS=16
+      - MKL_NUM_THREADS=16
+      - OPENBLAS_NUM_THREADS=16
+      - NUMEXPR_NUM_THREADS=16
+      - TORCH_NUM_THREADS=16
       # Disable TensorFlow warnings
       - TF_CPP_MIN_LOG_LEVEL=2
     volumes:
@@ -25,21 +27,15 @@ services:
     networks:
       - dora-network
     restart: unless-stopped
-    # Resource limits optimized for SPEED
-    deploy:
-      resources:
-        limits:
-          cpus: '8' # Use all CPU cores (adjust based on your system)
-          memory: 6G
-        reservations:
-          cpus: '4' # Guarantee at least 4 cores
-          memory: 3G
-    shm_size: '2gb'
+    # 🔥 UNLIMITED RESOURCES - No Docker limits!
+    # Docker will use as much CPU/RAM as needed for 60 fetch + 15 embedding
+    # Increased shared memory for large batch processing
+    shm_size: '4gb'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
-      interval: 10s
-      timeout: 10s
-      retries: 5
+      interval: 60s  # Reduced frequency to avoid interfering with embedding
+      timeout: 5s
+      retries: 3
       start_period: 60s
 
   frontend:
@@ -53,7 +49,7 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
-      - NODE_ENV=development
+      - NODE_ENV=production
     depends_on:
       backend:
         condition: service_healthy

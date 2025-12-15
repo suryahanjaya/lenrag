@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 import httpx
 from dotenv import load_dotenv
 import logging
+import time
 
 # Rate limiting
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -16,7 +17,7 @@ from slowapi.errors import RateLimitExceeded
 from services.google_auth import GoogleAuthService
 from services.google_docs import GoogleDocsService
 from services.rag_pipeline import DORAPipeline
-from config import settings
+from config import settings, RAGConfig
 
 from models.schemas import (
     AuthRequest, 
@@ -75,12 +76,51 @@ google_auth_service = GoogleAuthService()
 google_docs_service = GoogleDocsService()
 dora_pipeline = DORAPipeline()
 
+# Log configuration on startup for verification
+logger.info("=" * 60)
+logger.info("🚀 DORA BACKEND CONFIGURATION")
+logger.info("=" * 60)
+logger.info(f"📊 Environment: {settings.environment}")
+logger.info(f"🔧 Bulk Upload Batch Size: {settings.bulk_upload_batch_size} (parallel fetch)")
+logger.info(f"🧠 Embedding Batch Size: {settings.embedding_batch_size} (parallel embedding)")
+logger.info(f"📝 Chunk Size: {settings.chunk_size} characters")
+logger.info(f"🔄 Chunk Overlap: {settings.chunk_overlap} characters")
+logger.info(f"🤖 LLM Provider: {RAGConfig.LLM_PROVIDER}")
+logger.info(f"🎯 Primary Model: {RAGConfig.GROQ_MODEL if RAGConfig.LLM_PROVIDER == 'groq' else RAGConfig.GEMINI_MODEL}")
+logger.info(f"💾 ChromaDB Path: {settings.chroma_persist_directory}")
+logger.info(f"🌐 CORS Origins: {settings.cors_origins}")
+logger.info("=" * 60)
+
+# Simple in-memory cache for user info to prevent spamming Google API
+# Format: {access_token: (user_info, expiration_timestamp)}
+USER_INFO_CACHE = {}
+CACHE_TTL = 300  # 5 minutes
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Validate JWT token and get current user"""
+    token = credentials.credentials
+    
+    # Check cache first
+    current_time = time.time()
+    if token in USER_INFO_CACHE:
+        user_info, expires_at = USER_INFO_CACHE[token]
+        if current_time < expires_at:
+            return user_info
+        else:
+            # Expired, remove from cache
+            del USER_INFO_CACHE[token]
+            
     try:
-        token = credentials.credentials
         # Use Google Auth service to verify token
         user_info = await google_auth_service.get_user_info(token)
+        
+        # Cache the successful result
+        USER_INFO_CACHE[token] = (user_info, current_time + CACHE_TTL)
+        
+        # Simple cache cleanup to prevent memory leaks
+        if len(USER_INFO_CACHE) > 1000:
+            USER_INFO_CACHE.clear()
+            
         return user_info
     except Exception as e:
         logger.error(f"Token validation error: {e}")
@@ -359,177 +399,23 @@ async def get_all_documents_from_folder_stream(
     )
 
 
-
-@app.post("/documents/bulk-upload-from-folder")
-async def bulk_upload_from_folder(
+@app.post("/documents/bulk-upload-parallel-stream")
+async def bulk_upload_parallel_stream(
     request: FolderRequest,
+    fastapi_req: Request,
     x_google_token: Optional[str] = Header(None),
     current_user = Depends(get_current_user)
 ):
-    """Bulk upload ALL documents from a folder and its subfolders - PARALLEL BATCH PROCESSING"""
-    import asyncio
-    
-    try:
-        # Get access token from header
-        access_token = x_google_token
-        if not access_token:
-            raise HTTPException(status_code=400, detail="Google access token not found")
-        
-        user_id = current_user.get('sub', current_user.get('id', 'default_user'))
-        logger.info(f"📁 BULK UPLOAD FROM FOLDER: {request.folder_url} for user {user_id}")
-        
-        # Step 1: Get ALL documents from folder and subfolders
-        logger.info("🔍 STEP 1: Fetching all documents from folder and subfolders...")
-        all_documents = await google_docs_service.list_all_documents_from_folder(request.folder_url, access_token)
-        logger.info(f"📊 Found {len(all_documents)} documents in folder and subfolders")
-        
-        if not all_documents:
-            return {
-                "message": "No documents found in the specified folder",
-                "processed_count": 0,
-                "total_found": 0,
-                "failed_documents": []
-            }
-        
-        # Step 2: Process documents in PARALLEL BATCHES for faster processing
-        processed_count = 0
-        failed_documents = []
-        
-        # Configuration for parallel processing (from config.py or environment variable)
-        BATCH_SIZE = settings.bulk_upload_batch_size  # Default: 100 (MAXIMUM SPEED!), configurable via BULK_UPLOAD_BATCH_SIZE env var
-        
-        async def process_single_document(doc, index, total):
-            """Process a single document with error handling"""
-            try:
-                doc_id = doc['id']
-                doc_name = doc['name']
-                logger.info(f"📄 [{index}/{total}] Processing: {doc_name}")
-                
-                # Get document content
-                content = await google_docs_service.get_document_content(access_token, doc_id)
-                
-                content_len = len(content.strip()) if content else 0
-                logger.debug(f"📄 Document content length: {content_len} chars")
-                if not content or not content.strip():
-                    logger.warning(f"[{index}/{total}] Empty content for: {doc_name}")
-                    return {
-                        "success": False,
-                        "doc": {
-                            "id": doc_id,
-                            "name": doc_name,
-                            "error": "Empty or no content available"
-                        }
-                    }
-                
-                logger.info(f"[{index}/{total}] Content fetched: {len(content)} characters")
-                
-                # Add to DORA pipeline (this will chunk and store)
-                chunks_added = await dora_pipeline.add_document(
-                    user_id=user_id,
-                    document_id=doc_id,
-                    content=content,
-                    document_name=doc_name,
-                    mime_type=doc.get('mime_type', 'unknown')
-                )
-                
-                if chunks_added > 0:
-                    logger.info(f"✅ [{index}/{total}] Successfully processed: {doc_name} ({chunks_added} chunks)")
-                    return {"success": True, "chunks": chunks_added}
-                else:
-                    logger.warning(f"[{index}/{total}] No chunks generated for: {doc_name}")
-                    return {
-                        "success": False,
-                        "doc": {
-                            "id": doc_id, 
-                            "name": doc_name, 
-                            "error": "No chunks generated (content too short or chunking failed)"
-                        }
-                    }
-                
-            except Exception as e:
-                error_msg = str(e)
-                logger.error(f"Failed to process {doc.get('name', 'Unknown')}: {error_msg}")
-                logger.error(f"Error type: {type(e).__name__}")
-                import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                return {
-                    "success": False,
-                    "doc": {
-                        "id": doc.get('id', 'unknown'),
-                        "name": doc.get('name', 'Unknown'),
-                        "error": str(e)
-                    }
-                }
-        
-        # Process documents in batches
-        logger.info(f"🚀 STEP 2: Processing documents in parallel batches of {BATCH_SIZE}...")
-        total_docs = len(all_documents)
-        
-        for batch_start in range(0, total_docs, BATCH_SIZE):
-            batch_end = min(batch_start + BATCH_SIZE, total_docs)
-            batch = all_documents[batch_start:batch_end]
-            
-            logger.info(f"🔄 Processing batch {batch_start//BATCH_SIZE + 1}: documents {batch_start+1}-{batch_end} of {total_docs}")
-            
-            # Process batch in parallel using asyncio.gather
-            tasks = [
-                process_single_document(doc, batch_start + i + 1, total_docs) 
-                for i, doc in enumerate(batch)
-            ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # Collect results
-            for result in results:
-                if isinstance(result, Exception):
-                    logger.error(f"❌ Exception in batch processing: {result}")
-                    failed_documents.append({
-                        "id": "unknown",
-                        "name": "Unknown",
-                        "error": str(result)
-                    })
-                elif result.get("success"):
-                    processed_count += 1
-                else:
-                    failed_documents.append(result.get("doc", {}))
-            
-            logger.info(f"✅ Batch {batch_start//BATCH_SIZE + 1} completed: {processed_count}/{batch_end} successful so far")
-        
-        # Step 3: Refresh Google Drive documents list
-        logger.info("🔄 STEP 3: Refreshing Google Drive documents list...")
-        try:
-            refreshed_documents = await google_docs_service.list_documents(access_token)
-            logger.info(f"📊 Refreshed documents list: {len(refreshed_documents)} documents")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not refresh documents list: {e}")
-        
-        logger.info(f"🎉 BULK UPLOAD COMPLETED: {processed_count}/{total_docs} successful, {len(failed_documents)} failed")
-        
-        return {
-            "message": f"Bulk upload completed: {processed_count} documents processed successfully out of {total_docs}",
-            "processed_count": processed_count,
-            "total_found": len(all_documents),
-            "failed_documents": failed_documents,
-            "refreshed_documents_count": len(refreshed_documents) if 'refreshed_documents' in locals() else 0,
-            "batch_size": BATCH_SIZE
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in bulk upload from folder: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/documents/bulk-upload-from-folder-stream")
-async def bulk_upload_from_folder_stream(
-    request: FolderRequest,
-    x_google_token: Optional[str] = Header(None),
-    current_user = Depends(get_current_user)
-):
-    """🚀 STREAMING Bulk upload - Shows progress as each file is saved!"""
+    """🚀 ULTRA FAST: Parallel fetch (60) + Parallel embedding (5) + Real-time streaming!"""
     from fastapi.responses import StreamingResponse
     import json
     import asyncio
     
+    logger.info("🚀 PARALLEL STREAM ENDPOINT CALLED!")
+    logger.info(f"📁 Folder URL: {request.folder_url}")
+    
     async def upload_stream():
-        """Stream upload progress in real-time"""
+        """Stream upload progress with parallel batch processing"""
         try:
             access_token = x_google_token
             if not access_token:
@@ -545,54 +431,169 @@ async def bulk_upload_from_folder_stream(
             total = len(all_documents)
             
             if total == 0:
-                yield f"data: {json.dumps({'status': 'complete', 'processed': 0, 'total': 0, 'message': 'No documents found'})}\n\n"
+                yield f"data: {json.dumps({'status': 'error', 'error': 'No documents found'})}\n\n"
                 return
             
-            yield f"data: {json.dumps({'status': 'found', 'total': total, 'message': f'📊 Found {total} files'})}\n\n"
+            yield f"data: {json.dumps({'status': 'found', 'total': total, 'message': f'📊 Found {total} files - ULTRA FAST MODE: 60 parallel fetch + 15 parallel embedding!'})}\n\n"
             
-            # Step 2: Process each document and stream progress
+            # Step 2: Process in PARALLEL BATCHES
+            FETCH_BATCH_SIZE = settings.bulk_upload_batch_size  # 60 for fetch (Network Bound)
+            EMBED_BATCH_SIZE = settings.embedding_batch_size  # 15 for Extraction & Embedding (CPU Bound)
             processed = 0
             failed = []
             
-            for i, doc in enumerate(all_documents, 1):
+            async def fetch_raw_only(doc):
+                """Fetch RAW content (bytes) without parsing. Fast!"""
                 try:
                     doc_id = doc['id']
-                    doc_name = doc['name']
+                    mime_type = doc.get('mimeType', doc.get('mime_type'))
                     
-                    # Send progress update
-                    yield f"data: {json.dumps({'status': 'processing', 'current': i, 'total': total, 'doc_name': doc_name, 'message': f'⚡ Processing {i}/{total}: {doc_name}'})}\n\n"
+                    # New method that gets bytes but doesn't parse PDF/PPTX yet
+                    result = await google_docs_service.download_document_raw(access_token, doc_id, mime_type)
                     
-                    # Get content
-                    content = await google_docs_service.get_document_content(access_token, doc_id)
+                    if result.get('error'):
+                        return {'success': False, 'doc': doc, 'error': result['error']}
                     
-                    if not content or not content.strip():
-                        yield f"data: {json.dumps({'status': 'skipped', 'current': i, 'total': total, 'doc_name': doc_name, 'reason': 'Empty content'})}\n\n"
-                        failed.append({'id': doc_id, 'name': doc_name, 'error': 'Empty content'})
-                        continue
-                    
-                    # Add to pipeline
-                    chunks_added = await dora_pipeline.add_document(
-                        user_id=user_id,
-                        document_id=doc_id,
-                        content=content,
-                        document_name=doc_name,
-                        mime_type=doc.get('mime_type', 'unknown')
-                    )
-                    
-                    if chunks_added > 0:
-                        processed += 1
-                        # Send success update - THIS IS KEY! Frontend can show file immediately
-                        yield f"data: {json.dumps({'status': 'saved', 'current': i, 'total': total, 'processed': processed, 'doc_name': doc_name, 'doc_id': doc_id, 'chunks': chunks_added, 'percentage': int((i/total)*100)})}\n\n"
-                    else:
-                        failed.append({'id': doc_id, 'name': doc_name, 'error': 'No chunks generated'})
-                        yield f"data: {json.dumps({'status': 'failed', 'current': i, 'total': total, 'doc_name': doc_name, 'reason': 'No chunks generated'})}\n\n"
-                    
+                    return {
+                        'success': True, 
+                        'doc': doc, 
+                        'raw_data': result['data'], 
+                        'mime_type': result['mime_type'],
+                        'is_binary': result['is_binary']
+                    }
                 except Exception as e:
-                    failed.append({'id': doc.get('id'), 'name': doc.get('name'), 'error': str(e)})
-                    yield f"data: {json.dumps({'status': 'error', 'current': i, 'total': total, 'doc_name': doc.get('name'), 'error': str(e)})}\n\n"
+                    return {'success': False, 'doc': doc, 'error': str(e)}
+
+            # Process in batches
+            for batch_start in range(0, total, FETCH_BATCH_SIZE):
+                if await fastapi_req.is_disconnected():
+                    logger.info("❌ Client disconnected, stopping upload")
+                    return
+
+                batch_end = min(batch_start + FETCH_BATCH_SIZE, total)
+                batch = all_documents[batch_start:batch_end]
+                batch_num = batch_start // FETCH_BATCH_SIZE + 1
+                total_batches = (total + FETCH_BATCH_SIZE - 1) // FETCH_BATCH_SIZE
+                
+                yield f"data: {json.dumps({'status': 'batch_start', 'batch': batch_num, 'total_batches': total_batches, 'message': f'⚡ Batch {batch_num}/{total_batches}: Downloading {len(batch)} files (RAW)...'})}\n\n"
+                
+                # STEP 1: Fetch ALL RAW DATA in parallel (60 at once) - Network Bound (Fast)
+                fetch_tasks = [fetch_raw_only(doc) for doc in batch]
+                fetch_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+                
+                # Filter successful fetches
+                ready_for_processing = []
+                for result in fetch_results:
+                    if isinstance(result, Exception):
+                        failed.append({'id': 'unknown', 'name': 'Unknown', 'error': str(result)})
+                    elif result.get('success'):
+                        ready_for_processing.append(result)
+                    else:
+                        failed.append(result)
+                        yield f"data: {json.dumps({'status': 'failed', 'doc_name': result['doc']['name'], 'reason': result.get('error', 'Unknown')})}\n\n"
+                
+                yield f"data: {json.dumps({'status': 'fetched', 'message': f'✅ Downloaded {len(ready_for_processing)} files. Starting Batch Extraction & Embedding (15 at a time)...'})}\n\n"
+                
+                # STEP 2: Extract Text + Embed + Save (in groups of 15) - CPU/GPU Bound
+                # This moves the heavy PPTX/PDF parsing to this smaller batch!
+                
+                for proc_start in range(0, len(ready_for_processing), EMBED_BATCH_SIZE):
+                    if await fastapi_req.is_disconnected():
+                        logger.info("❌ Client disconnected, stopping upload")
+                        return
+                    
+                    proc_end = min(proc_start + EMBED_BATCH_SIZE, len(ready_for_processing))
+                    proc_batch = ready_for_processing[proc_start:proc_end]
+                    
+                    logger.info(f"  🚀 Processing batch of {len(proc_batch)} files (Extract + Embed)...")
+                    
+                    try:
+                        # a. Bulk Extraction (Parallel)
+                        bulk_docs_input = []
+                        valid_docs_map = {} # map id -> doc_info
+                        
+                        # Prepare tasks for extraction
+                        extract_tasks = []
+                        for item in proc_batch:
+                            extract_tasks.append(
+                                google_docs_service.extract_text_from_raw(item['raw_data'], item['mime_type'])
+                            )
+                        
+                        # run extractions in parallel
+                        extracted_texts = await asyncio.gather(*extract_tasks)
+                        
+                        # Prepare for embedding
+                        for i, text in enumerate(extracted_texts):
+                            item = proc_batch[i]
+                            doc_info = item['doc']
+                            
+                            if not text or not text.strip():
+                                failed.append({'id': doc_info['id'], 'name': doc_info['name'], 'error': 'Empty content after extraction'})
+                                continue
+                                
+                            bulk_docs_input.append({
+                                'id': doc_info['id'], 
+                                'content': text,
+                                'name': doc_info['name'],
+                                'mime_type': doc_info.get('mimeType', doc_info.get('mime_type'))
+                            })
+                            valid_docs_map[doc_info['id']] = doc_info
+
+                        if not bulk_docs_input:
+                            continue
+
+                        # b. Bulk Embedding & Saving
+                        # TIMEOUT INCREASED: 130k+ chunks can take 10+ minutes. Setting to 30 mins (1800s) to be safe.
+                        bulk_results = await asyncio.wait_for(
+                            dora_pipeline.add_documents_bulk(user_id, bulk_docs_input),
+                            timeout=1800.0
+                        )
+                        
+                        # Call the new BULK method
+                        # 5 minute timeout per bulk batch
+                        bulk_results = await asyncio.wait_for(
+                            dora_pipeline.add_documents_bulk(user_id, bulk_docs_input),
+                            timeout=300.0
+                        )
+                        
+                        logger.info(f"  ✅ Bulk process finished: {len(bulk_results)} docs saved")
+                        
+                        # Stream results for each document in the batch
+                        for doc_id, doc_info in valid_docs_map.items():
+                            if doc_id in bulk_results:
+                                chunks_count = bulk_results[doc_id]['chunks']
+                                if bulk_results[doc_id]['success']:
+                                    processed += 1
+                                    yield f"data: {json.dumps({'status': 'saved', 'current': processed, 'total': total, 'processed': processed, 'doc_name': doc_info['name'], 'doc_id': doc_id, 'chunks': chunks_count, 'percentage': int((processed/total)*100)})}\n\n"
+                                else:
+                                    failed.append({'id': doc_id, 'name': doc_info['name'], 'error': bulk_results[doc_id].get('error', 'Unknown error')})
+                                    yield f"data: {json.dumps({'status': 'failed', 'doc_name': doc_info['name'], 'reason': bulk_results[doc_id].get('error', 'Unknown error')})}\n\n"
+                            else:
+                                failed.append({'id': doc_id, 'name': doc_info['name'], 'error': 'Processing failed'})
+                                yield f"data: {json.dumps({'status': 'failed', 'doc_name': doc_info['name'], 'reason': 'Processing failed'})}\n\n"
+
+                    except asyncio.TimeoutError:
+                        logger.error(f"❌ Batch embedding TIMED OUT after 1800s!")
+                        for item in proc_batch:
+                            doc_info = item['doc']
+                            failed.append({'id': doc_info['id'], 'name': doc_info['name'], 'error': 'Bulk processing timed out'})
+                            yield f"data: {json.dumps({'status': 'failed', 'doc_name': doc_info['name'], 'reason': 'Bulk processing timed out'})}\n\n"
+                    except Exception as e:
+                        logger.error(f"❌ Batch embedding error: {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+                        for item in proc_batch:
+                            doc_info = item['doc']
+                            failed.append({'id': doc_info['id'], 'name': doc_info['name'], 'error': str(e)})
+                            yield f"data: {json.dumps({'status': 'failed', 'doc_name': doc_info['name'], 'reason': str(e)})}\n\n"
+                    
+                    # Small breath for event loop
+                    await asyncio.sleep(0.1)
+                
+                yield f"data: {json.dumps({'status': 'batch_complete', 'batch': batch_num, 'processed': processed, 'total': total, 'message': f'✅ Batch {batch_num}/{total_batches} complete: {processed}/{total} files'})}\n\n"
             
             # Send completion
-            yield f"data: {json.dumps({'status': 'complete', 'processed': processed, 'total': total, 'failed': len(failed), 'message': f'✅ Complete! {processed}/{total} files uploaded'})}\n\n"
+            yield f"data: {json.dumps({'status': 'complete', 'processed': processed, 'total': total, 'failed': len(failed), 'message': f'{processed}/{total} files uploaded'})}\n\n"
             
         except Exception as e:
             logger.error(f"Streaming upload error: {e}")
@@ -763,18 +764,30 @@ async def get_user_profile(current_user = Depends(get_current_user)):
         logger.error(f"Error fetching user profile: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/documents/{document_id}")
-async def remove_document_from_knowledge_base(
-    document_id: str,
+@app.delete("/knowledge-base/{doc_id}")
+async def delete_single_document(
+    doc_id: str,
     current_user = Depends(get_current_user)
 ):
-    """Remove a document from the user's knowledge base"""
+    """Delete a single document from knowledge base"""
     try:
         user_id = current_user.get('sub', current_user.get('id', 'default_user'))
-        await dora_pipeline.remove_document(user_id, document_id)
-        return {"message": "Document removed successfully"}
+        logger.info(f"Deleting document {doc_id} for user {user_id}")
+        
+        # Use existing remove_document method from DORAPipeline
+        success = await dora_pipeline.remove_document(user_id, doc_id)
+        
+        if success:
+            logger.info(f"Successfully deleted document {doc_id}")
+            return {"message": "Document deleted successfully", "document_id": doc_id}
+        else:
+            logger.warning(f"Document {doc_id} not found")
+            raise HTTPException(status_code=404, detail="Document not found")
+            
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error removing document: {e}")
+        logger.error(f"Error deleting document {doc_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/clear-all-documents")
@@ -829,21 +842,13 @@ async def clear_all_documents(
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    try:
-        # Test ChromaDB connection
-        test_collection = dora_pipeline._get_user_collection("test_user")
-        chroma_status = "operational"
-    except Exception as e:
-        chroma_status = f"error: {str(e)}"
-    
+    """Lightweight health check endpoint - optimized to not interfere with heavy operations"""
+    # Simple status check without testing ChromaDB to avoid resource contention
+    # during embedding operations
     return {
         "status": "healthy",
         "services": {
-            "google_auth": "operational",
-            "dora_pipeline": "operational",
-            "database": "operational",
-            "chromadb": chroma_status
+            "api": "operational"
         }
     }
 

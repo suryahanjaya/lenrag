@@ -11,6 +11,7 @@ import json
 import re
 from datetime import datetime
 import time
+import asyncio
 from config import RAGConfig
 
 logger = logging.getLogger(__name__)
@@ -500,6 +501,129 @@ class DORAPipeline:
         
         return [text]
 
+    async def add_documents_bulk(self, user_id: str, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Add multiple documents to the vector store efficiently in parallel batches.
+        
+        Args:
+            user_id: The ID of the user owning the documents
+            documents: List of dicts with keys: id, content, name, mime_type
+            
+        Returns:
+            Dict mapping document_id to number of chunks added
+        """
+        try:
+            collection = self._get_user_collection(user_id)
+            
+            all_chunks = []
+            all_metadatas = []
+            all_ids = []
+            doc_chunk_counts = {}
+            doc_status = {}
+            
+            logger.info(f"🚀 PROCESSING BULK BATCH: {len(documents)} documents")
+            
+            # 1. Processing / Chunking (Parallelize if needed, but fast enough sequentially usually)
+            # We can use ThreadPool for chunking if it's heavy
+            
+            loop = asyncio.get_running_loop()
+            
+            for doc in documents:
+                doc_id = doc.get('id')
+                content = doc.get('content', '')
+                name = doc.get('name', 'Unknown')
+                mime = doc.get('mime_type')
+                
+                if not content or not content.strip():
+                    doc_status[doc_id] = {'success': False, 'error': 'Empty content'}
+                    continue
+                
+                # Split text into chunks
+                chunks = self._split_text(content, mime)
+                
+                if not chunks:
+                    doc_status[doc_id] = {'success': False, 'error': 'No chunks generated'}
+                    continue
+                    
+                doc_chunk_counts[doc_id] = len(chunks)
+                doc_status[doc_id] = {'success': True, 'chunks': len(chunks)}
+                
+                # Prepare metadata
+                for i, chunk in enumerate(chunks):
+                    all_chunks.append(chunk)
+                    all_ids.append(f"{doc_id}_{i}")
+                    all_metadatas.append({
+                        "document_id": doc_id,
+                        "document_name": name,
+                        "chunk_index": i,
+                        "mime_type": mime or "text/plain",
+                        "timestamp": str(datetime.now().isoformat())
+                    })
+            
+            if not all_chunks:
+                logger.warning("No chunks to add to ChromaDB from bulk batch")
+                return doc_status
+
+            # 2. Embedding (Heavy - Batch Process)
+            # Encode all chunks in one go (or large batches)
+            logger.info(f"🧠 Generating embeddings for {len(all_chunks)} chunks from {len(documents)} documents...")
+            
+            # ADAPTIVE BATCH SIZE for embeddings to prevent memory spikes
+            # Small batches (< 1000 chunks): Use 128 for speed
+            # Medium batches (1000-5000): Use 64 for balance
+            # Large batches (5000+): Use 32 for safety
+            if len(all_chunks) < 1000:
+                embedding_batch_size = 128  # Fast for small batches
+            elif len(all_chunks) < 5000:
+                embedding_batch_size = 64   # Balanced for medium batches
+            else:
+                embedding_batch_size = 32   # Safe for large batches
+            
+            logger.info(f"📊 Using embedding batch size: {embedding_batch_size} (total chunks: {len(all_chunks)})")
+            
+            all_embeddings = []
+            if len(all_chunks) > 0:
+                 # Run blocking encode in executor
+                 all_embeddings = await loop.run_in_executor(
+                    None,
+                    lambda: self.embedding_model.encode(all_chunks, batch_size=embedding_batch_size, show_progress_bar=False).tolist()
+                )
+            
+            # 3. Save to DB (IO/Lock bound)
+            # ChromaDB has a limit around 5461 items per batch. We should safe-guard with 4000.
+            MAX_CHROMA_BATCH = 4000
+            
+            logger.info(f"💾 Bulk saving {len(all_chunks)} chunks to ChromaDB...")
+            
+            if all_chunks:
+                total_chunks = len(all_chunks)
+                for i in range(0, total_chunks, MAX_CHROMA_BATCH):
+                    end_idx = min(i + MAX_CHROMA_BATCH, total_chunks)
+                    
+                    batch_docs = all_chunks[i:end_idx]
+                    batch_metas = all_metadatas[i:end_idx]
+                    batch_ids = all_ids[i:end_idx]
+                    batch_embeddings = all_embeddings[i:end_idx]
+                    
+                    logger.info(f"  > Saving db batch {i//MAX_CHROMA_BATCH + 1}/{(total_chunks-1)//MAX_CHROMA_BATCH + 1} ({len(batch_docs)} items)...")
+                    
+                    await loop.run_in_executor(
+                        None,
+                        lambda: collection.add(
+                            documents=batch_docs,
+                            metadatas=batch_metas,
+                            ids=batch_ids,
+                            embeddings=batch_embeddings
+                        )
+                    )
+            
+            logger.info(f"✅ Bulk save complete for {len(documents)} documents!")
+            return doc_status
+            
+        except Exception as e:
+            logger.error(f"Error in bulk add: {e}")
+            raise
+
     async def add_document(self, user_id: str, document_id: str, content: str, document_name: str, mime_type: str = None) -> int:
         """Add a document to the vector store. Returns the number of chunks added."""
         try:
@@ -520,8 +644,10 @@ class DORAPipeline:
             logger.info(f"Adding {len(chunks)} chunks for document {document_id}")
             
             # MEMORY OPTIMIZATION: Process embeddings in batches for very large documents
-            # This prevents OOM errors when processing files with 1000+ chunks
-            EMBEDDING_BATCH_SIZE = 100  # Process 100 chunks at a time
+            EMBEDDING_BATCH_SIZE = 100
+            
+            # Helper to run blocking encode in thread pool
+            loop = asyncio.get_event_loop()
             
             if len(chunks) > EMBEDDING_BATCH_SIZE:
                 logger.info(f"🔄 Large document: Processing {len(chunks)} chunks in batches of {EMBEDDING_BATCH_SIZE}")
@@ -530,13 +656,22 @@ class DORAPipeline:
                 for i in range(0, len(chunks), EMBEDDING_BATCH_SIZE):
                     batch_chunks = chunks[i:i+EMBEDDING_BATCH_SIZE]
                     logger.info(f"  Processing embedding batch {i//EMBEDDING_BATCH_SIZE + 1}/{(len(chunks)-1)//EMBEDDING_BATCH_SIZE + 1}")
-                    batch_embeddings = self.embedding_model.encode(batch_chunks, show_progress_bar=False).tolist()
-                    all_embeddings.extend(batch_embeddings)
+                    
+                    # Run blocking encode in executor
+                    batch_embeddings_list = await loop.run_in_executor(
+                        None, 
+                        lambda: self.embedding_model.encode(batch_chunks, show_progress_bar=False).tolist()
+                    )
+                    all_embeddings.extend(batch_embeddings_list)
                 embeddings = all_embeddings
             else:
                 # For smaller documents, process all at once
                 logger.info(f"Generating embeddings using {self.embedding_model}")
-                embeddings = self.embedding_model.encode(chunks, show_progress_bar=False).tolist()
+                # Run blocking encode in executor
+                embeddings = await loop.run_in_executor(
+                    None,
+                    lambda: self.embedding_model.encode(chunks, show_progress_bar=False).tolist()
+                )
             
             # Prepare data for ChromaDB
             ids = [f"{document_id}_{i}" for i in range(len(chunks))]
@@ -549,11 +684,16 @@ class DORAPipeline:
             } for i in range(len(chunks))]
             
             # Add to collection with our custom embeddings
-            collection.add(
-                documents=chunks,
-                metadatas=metadatas,
-                ids=ids,
-                embeddings=embeddings
+            # Run blocking add in executor to prevent main loop blocking and potential UI freezes
+            logger.info(f"💾 Saving {len(chunks)} chunks to ChromaDB for {document_id}...")
+            await loop.run_in_executor(
+                None,
+                lambda: collection.add(
+                    documents=chunks,
+                    metadatas=metadatas,
+                    ids=ids,
+                    embeddings=embeddings
+                )
             )
             
             logger.info(f"Successfully added document {document_id} with {len(chunks)} chunks")
@@ -563,7 +703,7 @@ class DORAPipeline:
             logger.error(f"Error adding document {document_id}: {e}")
             raise
 
-    async def remove_document(self, user_id: str, document_id: str):
+    async def remove_document(self, user_id: str, document_id: str) -> bool:
         """Remove a document from the vector store"""
         try:
             collection = self._get_user_collection(user_id)
@@ -580,15 +720,17 @@ class DORAPipeline:
             if results['ids']:
                 collection.delete(ids=results['ids'])
                 logger.info(f"Successfully removed {len(results['ids'])} chunks for document {document_id}")
+                return True
             else:
                 logger.warning(f"No chunks found for document {document_id}. It may have already been deleted.")
+                return False
             
         except Exception as e:
             logger.error(f"Error removing document {document_id}: {e}")
             logger.error(f"Error type: {type(e)}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
-            raise
+            return False
     
     async def query(self, user_id: str, query: str, use_fallback: bool = False) -> Dict[str, Any]:
         """Query the RAG system"""

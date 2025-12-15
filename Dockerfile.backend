@@ -16,23 +16,27 @@ COPY backend/requirements.docker.txt requirements.txt
 
 # Install PyTorch CPU-only FIRST to avoid 900MB GPU version
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    pip install --no-cache-dir --timeout 300 --retries 10 torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-# Install other dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install other dependencies with increased timeout and retries
+RUN pip install --no-cache-dir --timeout 300 --retries 10 -r requirements.txt
 
 # Set environment variables for MAXIMUM PERFORMANCE
+# 🚀 OPTIMIZED FOR: 60 Parallel Fetch + 15 Parallel Embedding
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
-    # CPU Optimization
-    OMP_NUM_THREADS=8 \
-    MKL_NUM_THREADS=8 \
-    OPENBLAS_NUM_THREADS=8 \
-    NUMEXPR_NUM_THREADS=8 \
-    TORCH_NUM_THREADS=8 \
+    # CPU Optimization - INCREASED for parallel processing
+    OMP_NUM_THREADS=16 \
+    MKL_NUM_THREADS=16 \
+    OPENBLAS_NUM_THREADS=16 \
+    NUMEXPR_NUM_THREADS=16 \
+    TORCH_NUM_THREADS=16 \
     # Disable warnings for cleaner logs
-    TF_CPP_MIN_LOG_LEVEL=2
+    TF_CPP_MIN_LOG_LEVEL=2 \
+    # Batch configuration
+    BULK_UPLOAD_BATCH_SIZE=60 \
+    EMBEDDING_BATCH_SIZE=15
 
 # Create necessary directories
 RUN mkdir -p /app/chroma_db /app/cache
@@ -48,4 +52,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
 EXPOSE 8000
 
 # PRODUCTION MODE: Multiple workers, NO reload (FAST!)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# 🚀 8 workers = optimal for 60 parallel fetch + 15 parallel embedding
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "8"]

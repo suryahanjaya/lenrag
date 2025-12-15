@@ -9,26 +9,22 @@ services:
       dockerfile: Dockerfile.backend
       args:
         - BUILDKIT_INLINE_CACHE=1
+    env_file:
+      - backend/.env
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ENVIRONMENT=production
       - PYTHONUNBUFFERED=1
-      # Performance Optimization - SPEED FOCUSED
+      # 🚀 PRODUCTION OPTIMIZED: 60 Parallel Fetch + 15 Parallel Embedding
       - BULK_UPLOAD_BATCH_SIZE=60
-      # CPU Thread Optimization for PyTorch & NumPy
-      - OMP_NUM_THREADS=8
-      - MKL_NUM_THREADS=8
-      - OPENBLAS_NUM_THREADS=8
-      - NUMEXPR_NUM_THREADS=8
-      - TORCH_NUM_THREADS=8
+      - EMBEDDING_BATCH_SIZE=15
+      # CPU Thread Optimization - INCREASED for production performance
+      - OMP_NUM_THREADS=16
+      - MKL_NUM_THREADS=16
+      - OPENBLAS_NUM_THREADS=16
+      - NUMEXPR_NUM_THREADS=16
+      - TORCH_NUM_THREADS=16
       - TF_CPP_MIN_LOG_LEVEL=2
     volumes:
       - chroma_db:/app/chroma_db
@@ -36,21 +32,15 @@ services:
     networks:
       - dora-network
     restart: always
-    # Production Resource Limits - Optimized for Speed
-    deploy:
-      resources:
-        limits:
-          cpus: '8'
-          memory: 6G
-        reservations:
-          cpus: '4'
-          memory: 3G
-    shm_size: '2gb'
+    # 🔥 PRODUCTION: UNLIMITED RESOURCES for maximum performance
+    # No resource limits - Docker will use all available CPU/RAM as needed
+    # Increased shared memory for large batch processing
+    shm_size: '4gb'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
-      interval: 10s
-      timeout: 10s
-      retries: 10
+      interval: 60s # Reduced frequency to avoid interfering with embedding
+      timeout: 5s
+      retries: 3
       start_period: 120s
 
     logging:
@@ -68,18 +58,16 @@ services:
       args:
         - BUILDKIT_INLINE_CACHE=1
         - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
-        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-        - NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=1037561815320-nto28rqlmfj2os81om1mm6tgjpuk85gs.apps.googleusercontent.com
+    env_file:
+      - .env.local
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - NEXT_PUBLIC_BACKEND_URL=http://backend:8000
-      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      # IMPORTANT: Use localhost:8000 because frontend is accessed from browser
+      # Browser cannot resolve internal Docker network names like 'backend'
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=1037561815320-nto28rqlmfj2os81om1mm6tgjpuk85gs.apps.googleusercontent.com
       - NODE_ENV=production
     depends_on:
       backend:

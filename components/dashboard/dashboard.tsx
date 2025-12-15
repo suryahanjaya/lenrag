@@ -65,6 +65,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Document management state
   const [searchTerm, setSearchTerm] = useState('');
+  const [kbSearchTerm, setKbSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('modified');
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
@@ -92,6 +93,34 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Time state for navbar
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Theme state
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const darkMode = savedTheme === 'dark' || document.documentElement.classList.contains('dark');
+    setIsDarkMode(darkMode);
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   // Update time every second
   useEffect(() => {
@@ -556,7 +585,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     setMessage('Menghapus dokumen...');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/remove/${docId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/knowledge-base/${docId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -687,7 +716,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
     setIsBulkUploading(true);
     setBulkUploadProgress({ current: 0, total: 0, percentage: 0 });
-    setBulkUploadStatus('⚡ Processing 60 files in parallel... Please wait (this is MUCH faster!)');
+    setBulkUploadStatus('🚀 Preparing upload...');
 
     // Create abort controller for cancellation
     uploadAbortController.current = new AbortController();
@@ -745,6 +774,9 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 setBulkUploadStatus(data.message);
               } else if (data.status === 'batch_start') {
                 setBulkUploadStatus(data.message);
+              } else if (data.status === 'fetched') {
+                // New status: files fetched, now embedding
+                setBulkUploadStatus(data.message);
               } else if (data.status === 'saved') {
                 // 🎯 KEY FEATURE: Update progress AND refresh knowledge base immediately!
                 setBulkUploadProgress({
@@ -752,12 +784,12 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                   total: data.total,
                   percentage: data.percentage
                 });
-                setBulkUploadStatus(`✅ Saved ${data.processed}/${data.total}: ${data.doc_name}`);
+                setBulkUploadStatus(`✅ ${data.doc_name}`);
 
                 // 🚀 PROGRESSIVE: Refresh knowledge base to show new file immediately!
                 fetchKnowledgeBase();
               } else if (data.status === 'failed') {
-                setBulkUploadStatus(`⚠️ Skipped: ${data.doc_name} - ${data.reason || 'Unknown error'}`);
+                setBulkUploadStatus(`⚠️ ${data.doc_name} (${data.reason || 'error'})`);
               } else if (data.status === 'batch_complete') {
                 setBulkUploadStatus(data.message);
               } else if (data.status === 'complete') {
@@ -817,7 +849,32 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     }
 
     const userMessage = chatMessage.trim();
-    const currentChatId = activeChatId; // Capture current chat ID
+    let currentId = activeChatId; // Capture current chat ID
+
+    // 🚀 AUTO-CREATE SESSION IF NONE EXISTS (Fixes "History not showing" bug)
+    if (!currentId) {
+      const newSessionId = `chat_${Date.now()}`;
+      currentId = newSessionId;
+
+      const newSession: ChatSession = {
+        id: newSessionId,
+        title: userMessage.substring(0, 30) + (userMessage.length > 30 ? '...' : ''),
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      // Immediately save new session to state and localStorage
+      setChatSessions(prev => {
+        const updated = [newSession, ...prev];
+        localStorage.setItem('chatSessions', JSON.stringify(updated));
+        return updated;
+      });
+
+      setActiveChatId(newSessionId);
+      localStorage.setItem('activeChatId', newSessionId);
+    }
+
     setChatMessage('');
     setIsChatLoading(true);
 
@@ -845,7 +902,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       const data = await response.json();
 
       // Only add response if still in the same chat
-      if (currentChatId === activeChatId) {
+      // Check against localStorage to get real-time active ID (bypassing closure staleness on new chat)
+      if (currentId === localStorage.getItem('activeChatId')) {
         setChatHistory((prev) => [...prev, {
           role: 'assistant',
           content: formatAIResponse(data.message || 'Tidak ada respons dari AI.'),
@@ -855,7 +913,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
     } catch (error) {
       // Only add error if still in the same chat
-      if (currentChatId === activeChatId) {
+      if (currentId === localStorage.getItem('activeChatId')) {
         setChatHistory((prev) => [...prev, {
           role: 'assistant',
           content: 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.'
@@ -1279,7 +1337,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <Sidebar
         chatHistory={chatHistory}
@@ -1295,7 +1353,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation Bar - Broken White Gradient */}
-        <nav className="bg-gradient-to-r from-gray-50 via-slate-50 to-stone-50 backdrop-blur-sm border-b border-gray-200/50 px-6 py-4">
+        <nav className="bg-gradient-to-r from-gray-50 via-slate-50 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Left: Logo + Greeting - Only show when chat started */}
             {chatHistory.length > 0 && (
@@ -1303,7 +1361,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 <img src="/1T.png" alt="DORA" className="h-10 w-10" />
                 {user && (
                   <div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       {(() => {
                         const hour = currentTime.getHours();
                         if (hour >= 5 && hour < 12) return 'Good Morning';
@@ -1312,7 +1370,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                         return 'Good Night';
                       })()},
                     </div>
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
                       {user.name}
                     </div>
                   </div>
@@ -1323,25 +1381,42 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             {/* Spacer when no chat */}
             {chatHistory.length === 0 && <div></div>}
 
-            {/* Right: Time | Date | Profile | Logout */}
+            {/* Right: Time | Date | Theme Toggle | Profile | Logout */}
             <div className="flex items-center gap-4">
               {/* Time with Seconds | Date */}
               <div className="flex items-center gap-3 text-sm">
-                <span className="font-mono font-semibold text-gray-900">
+                <span className="font-mono font-semibold text-gray-900 dark:text-gray-100">
                   {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
-                <span className="text-gray-400">|</span>
-                <span className="text-gray-600">
+                <span className="text-gray-400 dark:text-gray-500">|</span>
+                <span className="text-gray-600 dark:text-gray-300">
                   {currentTime.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
+
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all"
+                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {isDarkMode ? (
+                  <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
 
               {/* Profile Picture */}
               {user.picture ? (
                 <img
                   src={user.picture}
                   alt={user.name || 'User'}
-                  className="w-9 h-9 rounded-full border-2 border-gray-200"
+                  className="w-9 h-9 rounded-full border-2 border-gray-200 dark:border-gray-600"
                   onError={(e) => {
                     // Fallback to initials avatar if image fails to load
                     const target = e.target as HTMLImageElement;
@@ -1353,7 +1428,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               ) : null}
               {/* Fallback Avatar with Initials */}
               <div
-                className="w-9 h-9 rounded-full border-2 border-gray-200 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm"
+                className="w-9 h-9 rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm"
                 style={{ display: user.picture ? 'none' : 'flex' }}
               >
                 {user.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
@@ -1363,7 +1438,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
               {onLogout && (
                 <button
                   onClick={onLogout}
-                  className="px-5 py-2 text-sm font-medium text-gray-700 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all border border-gray-200 hover:border-red-200"
+                  className="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all border border-gray-200 dark:border-gray-600 hover:border-red-200 dark:hover:border-red-700"
                 >
                   Logout
                 </button>
@@ -1395,6 +1470,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             isLoading={isLoading}
             message={message}
             searchTerm={searchTerm}
+            kbSearchTerm={kbSearchTerm}
             sortBy={sortBy}
             isMultiSelectMode={isMultiSelectMode}
             folderUrl={folderUrl}
@@ -1420,6 +1496,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             fetchKnowledgeBase={fetchKnowledgeBase}
             fetchAllDocumentsFromFolder={fetchAllDocumentsFromFolder}
             setSearchTerm={setSearchTerm}
+            setKbSearchTerm={setKbSearchTerm}
             setSortBy={setSortBy}
             setIsMultiSelectMode={setIsMultiSelectMode}
             setFolderUrl={setFolderUrl}

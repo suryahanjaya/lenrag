@@ -20,12 +20,12 @@ class HTTPClientManager:
         """Get or create HTTP client - ULTRA EXTREME PERFORMANCE for maximum speed"""
         if cls._instance is None or cls._instance.is_closed:
             cls._instance = httpx.AsyncClient(
-                # Ultra-fast timeouts
+                # Ultra-fast timeouts but safe for large files
                 timeout=httpx.Timeout(
-                    connect=3.0,      # Faster connection timeout (was 5.0)
-                    read=30.0,        # Longer read for large responses (was 20.0)
+                    connect=10.0,     # Safer connection timeout (was 3.0)
+                    read=120.0,       # MUCH longer read for large PDFs (was 30.0)
                     write=10.0,       # Write timeout
-                    pool=3.0          # Faster pool timeout (was 5.0)
+                    pool=10.0         # Safer pool timeout (was 3.0)
                 ),
                 limits=httpx.Limits(
                     # ULTRA EXTREME: Maximum possible connections

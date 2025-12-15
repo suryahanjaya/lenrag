@@ -10,6 +10,32 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // Initialize theme
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme')
+    const darkMode = savedTheme === 'dark' || document.documentElement.classList.contains('dark')
+    setIsDarkMode(darkMode)
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [])
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    const newMode = !isDarkMode
+    setIsDarkMode(newMode)
+    if (newMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }
 
   useEffect(() => {
     // Initialize TokenManager on app start
@@ -72,8 +98,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 dark:border-red-500"></div>
       </div>
     )
   }
@@ -84,9 +110,9 @@ export default function Home() {
 
   // Premium Split-Screen Login Page - Compact & Red Theme
   return (
-    <div className="min-h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-white to-red-50/20">
+    <div className="min-h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-white to-red-50/20 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Left Side - White Form Section */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white/80 backdrop-blur-xl relative">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl relative">
         {/* Subtle animated background */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 left-0 w-80 h-80 bg-gradient-to-br from-red-100 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
@@ -96,22 +122,26 @@ export default function Home() {
         <div className="w-full max-w-sm relative z-10">
           {/* Logo with animation - Smaller */}
           <div className="flex items-center mb-8 animate-fade-in-down">
-            <div className="relative">
+            <div
+              className="relative cursor-pointer group"
+              onClick={toggleTheme}
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
               <div className="absolute inset-0 bg-red-500/20 blur-lg rounded-full animate-pulse"></div>
-              <img src="/2.png" alt="DORA Logo" className="h-9 w-9 mr-2.5 relative z-10 hover:scale-110 transition-transform duration-300" />
+              <img src="/2.png" alt="DORA Logo" className="h-9 w-9 mr-2.5 relative z-10 group-hover:scale-110 transition-transform duration-300" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-red-700 to-gray-900 bg-clip-text text-transparent">DORA</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-red-700 to-gray-900 dark:from-gray-100 dark:via-red-400 dark:to-gray-100 bg-clip-text text-transparent">DORA</span>
           </div>
 
           {/* Welcome Text - Smaller */}
           <div className="mb-7 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <div className="mb-2">
-              <p className="text-sm text-gray-900 mb-1">Welcome to</p>
-              <h1 className="text-4xl font-bold leading-tight bg-gradient-to-r from-red-600 via-red-500 to-orange-500 bg-clip-text text-transparent animate-gradient-x">
+              <p className="text-sm text-gray-900 dark:text-gray-100 mb-1">Welcome to</p>
+              <h1 className="text-4xl font-bold leading-tight bg-gradient-to-r from-red-600 via-red-500 to-orange-500 dark:from-red-400 dark:via-red-300 dark:to-orange-400 bg-clip-text text-transparent animate-gradient-x">
                 DORA
               </h1>
             </div>
-            <p className="text-sm text-gray-600">Your intelligent document assistant</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Your intelligent document assistant</p>
           </div>
 
           {/* Google Sign In Button */}
@@ -122,7 +152,7 @@ export default function Home() {
           {/* Feature Cards - Compact & All Red */}
           <div className="space-y-3 mb-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             {/* Secure Authentication */}
-            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 rounded-xl p-3.5 border border-red-100 hover:border-red-300 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
+            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 dark:from-gray-700 dark:via-gray-800 dark:to-gray-700/50 rounded-xl p-3.5 border border-red-100 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-500 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,14 +160,14 @@ export default function Home() {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-red-600 transition-colors">Secure Authentication</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">Sign in securely with your Google account using OAuth 2.0 encryption</p>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">Secure Authentication</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Sign in securely with your Google account using OAuth 2.0 encryption</p>
                 </div>
               </div>
             </div>
 
             {/* Document Integration - Red theme */}
-            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 rounded-xl p-3.5 border border-red-100 hover:border-red-300 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
+            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 dark:from-gray-700 dark:via-gray-800 dark:to-gray-700/50 rounded-xl p-3.5 border border-red-100 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-500 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,14 +175,14 @@ export default function Home() {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-red-600 transition-colors">Document Integration</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">Access and analyze all your Google Drive documents seamlessly</p>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">Document Integration</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Access and analyze all your Google Drive documents seamlessly</p>
                 </div>
               </div>
             </div>
 
             {/* AI Intelligence - Red theme */}
-            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 rounded-xl p-3.5 border border-red-100 hover:border-red-300 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
+            <div className="group bg-gradient-to-br from-red-50 via-white to-red-50/50 dark:from-gray-700 dark:via-gray-800 dark:to-gray-700/50 rounded-xl p-3.5 border border-red-100 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-500 transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,15 +190,15 @@ export default function Home() {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-red-600 transition-colors">AI Intelligence</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">Universal document understanding powered by advanced AI</p>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">AI Intelligence</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Universal document understanding powered by advanced AI</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Description Text - Smaller */}
-          <p className="text-center text-xs text-gray-500 italic animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400 italic animate-fade-in" style={{ animationDelay: '0.6s' }}>
             Your intelligent companion for document understanding and knowledge management
           </p>
         </div>
@@ -176,11 +206,11 @@ export default function Home() {
 
 
       {/* Right Side - Enhanced Premium Visual */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-red-500 via-red-600 to-red-700 items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-red-500 via-red-600 to-red-700 dark:from-gray-800 dark:via-gray-900 dark:to-black items-center justify-center p-12 relative overflow-hidden">
         {/* Animated Gradient Orbs - More dynamic */}
-        <div className="absolute top-10 right-10 w-96 h-96 bg-gradient-to-br from-white/30 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '3s' }}></div>
-        <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-gradient-to-tr from-red-900/50 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-white/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }}></div>
+        <div className="absolute top-10 right-10 w-96 h-96 bg-gradient-to-br from-white/30 dark:from-blue-500/20 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '3s' }}></div>
+        <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-gradient-to-tr from-red-900/50 dark:from-gray-700/50 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
+        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-white/15 dark:bg-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }}></div>
 
         {/* Geometric Shapes - More variety */}
         <div className="absolute top-20 left-20 w-40 h-40 border-4 border-white/25 rounded-3xl rotate-12 animate-float"></div>
@@ -201,7 +231,11 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-white/10 to-white/40 rounded-full blur-2xl animate-spin" style={{ animationDuration: '6s' }}></div>
 
             {/* Main Logo Circle - Larger and more prominent */}
-            <div className="relative w-[450px] h-[450px] bg-gradient-to-br from-white/30 to-white/10 rounded-full backdrop-blur-3xl border-2 border-white/40 shadow-2xl flex items-center justify-center group hover:scale-110 transition-all duration-700 hover:border-white/60">
+            <div
+              onClick={toggleTheme}
+              className="relative w-[450px] h-[450px] bg-gradient-to-br from-white/30 to-white/10 rounded-full backdrop-blur-3xl border-2 border-white/40 shadow-2xl flex items-center justify-center group hover:scale-110 transition-all duration-700 hover:border-white/60 cursor-pointer"
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
               {/* Inner Glow - Stronger */}
               <div className="absolute inset-10 bg-gradient-to-br from-white/25 to-transparent rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
 
@@ -230,7 +264,7 @@ export default function Home() {
         </div>
 
         {/* Bottom Gradient Overlay - Enhanced */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-red-900/70 via-red-800/30 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-red-900/70 via-red-800/30 dark:from-gray-900/70 dark:via-gray-800/30 to-transparent"></div>
 
         {/* Subtle Grid Pattern */}
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
