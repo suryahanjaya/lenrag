@@ -42,7 +42,7 @@ export default function AuthCallback() {
     try {
       console.log('Exchanging authorization code for tokens...')
 
-      const response = await fetch('http://localhost:8000/auth/google', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
