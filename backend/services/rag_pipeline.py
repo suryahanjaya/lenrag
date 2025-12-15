@@ -271,13 +271,13 @@ class DORAPipeline:
         doc_length = len(text)
         if doc_length < 3000:  # Very small document
             base_chunk_size = 500  # Smaller chunks
-            logger.info(f"Very small document ({doc_length} chars) - chunk size: {base_chunk_size}")
+            logger.debug(f"Very small document ({doc_length} chars) - chunk size: {base_chunk_size}")
         elif doc_length < 10000:  # Small document
             base_chunk_size = 700  # Medium chunks
-            logger.info(f"Small document ({doc_length} chars) - chunk size: {base_chunk_size}")
+            logger.debug(f"Small document ({doc_length} chars) - chunk size: {base_chunk_size}")
         else:  # Medium to large document
             base_chunk_size = 850  # Optimal chunks
-            logger.info(f"Document ({doc_length} chars) - chunk size: {base_chunk_size}")
+            logger.debug(f"Document ({doc_length} chars) - chunk size: {base_chunk_size}")
         
         if mime_type == 'application/pdf':
             optimal_chunk_size = self.document_chunk_sizes.get('pdf', base_chunk_size)
@@ -288,15 +288,15 @@ class DORAPipeline:
         else:
             optimal_chunk_size = self.document_chunk_sizes.get(doc_type, base_chunk_size)
         
-        logger.info(f"Document type: {doc_type}, MIME: {mime_type}, chunk size: {optimal_chunk_size}")
-        logger.info(f"Processing: {doc_length} characters")
-        logger.info(f"TARGET: Balanced chunking (850 chars) for detail + speed")
+        logger.debug(f"Document type: {doc_type}, MIME: {mime_type}, chunk size: {optimal_chunk_size}")
+        logger.debug(f"Processing: {doc_length} characters")
+        logger.debug(f"TARGET: Balanced chunking (850 chars) for detail + speed")
         
         # Debug logging for large documents
         if len(text) > 50000:  # Large document
-            logger.info(f"Processing large document: {len(text)} characters, type: {doc_type}")
+            logger.debug(f"Processing large document: {len(text)} characters, type: {doc_type}")
             expected_chunks = len(text) // optimal_chunk_size
-            logger.info(f"Expected chunks for this document: ~{expected_chunks} (target: 300 for 100 pages)")
+            logger.debug(f"Expected chunks for this document: ~{expected_chunks} (target: 300 for 100 pages)")
         
         # Strategy 1: Document-specific splitting with optimal chunk sizes
         if doc_type == 'legal':
@@ -311,10 +311,10 @@ class DORAPipeline:
             sections = self._split_general_document(text)
         
         # Process sections into chunks with optimal chunk size
-        logger.info(f"Processing {len(sections)} sections into chunks with optimal size: {optimal_chunk_size}")
-        logger.info(f"LEGAL DOCUMENT DEBUG: Document type: {doc_type}, MIME: {mime_type}")
-        logger.info(f"LEGAL DOCUMENT DEBUG: Total text length: {len(text)} characters")
-        logger.info(f"LEGAL DOCUMENT DEBUG: Number of sections found: {len(sections)}")
+        logger.debug(f"Processing {len(sections)} sections into chunks with optimal size: {optimal_chunk_size}")
+        logger.debug(f"Document type: {doc_type}, MIME: {mime_type}")
+        logger.debug(f"Total text length: {len(text)} characters")
+        logger.debug(f"Number of sections found: {len(sections)}")
         
         # SIMPLIFIED CHUNKING ALGORITHM - Target: 100 halaman = 300 chunks
         # Process all sections into chunks with optimal chunk size
@@ -331,7 +331,7 @@ class DORAPipeline:
                 # Save current chunk if it has content
                 if current_chunk.strip():
                     chunks.append(current_chunk.strip())
-                    logger.info(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+                    logger.debug(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
                 
                 # Start new chunk with current section
                 if len(section) <= optimal_chunk_size:
@@ -348,7 +348,7 @@ class DORAPipeline:
                             # Save current chunk if it has content
                             if current_chunk.strip():
                                 chunks.append(current_chunk.strip())
-                                logger.info(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+                                logger.debug(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
                             
                             # Start new chunk with current paragraph
                             if len(paragraph) <= optimal_chunk_size:
@@ -364,18 +364,18 @@ class DORAPipeline:
                                     else:
                                         if temp_chunk.strip():
                                             chunks.append(temp_chunk.strip())
-                                            logger.info(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
+                                            logger.debug(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
                                         temp_chunk = sentence + ". "
                                 
                                 if temp_chunk.strip():
                                     chunks.append(temp_chunk.strip())
-                                    logger.info(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
+                                    logger.debug(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
                                 current_chunk = ""
         
         # Add final chunk if it has content
         if current_chunk.strip():
             chunks.append(current_chunk.strip())
-            logger.info(f"Added final chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+            logger.debug(f"Added final chunk {len(chunks)}: {len(current_chunk.strip())} characters")
         
         # Apply overlap if we have multiple chunks for better context preservation
         if len(chunks) > 1 and self.chunk_overlap > 0:
@@ -388,7 +388,7 @@ class DORAPipeline:
                     prev_chunk = chunks[i-1]
                     overlap_text = prev_chunk[-self.chunk_overlap:] if len(prev_chunk) > self.chunk_overlap else prev_chunk
                     overlapped_chunks.append(overlap_text + " " + chunk)
-            logger.info(f"Applied overlap: {len(overlapped_chunks)} chunks with {self.chunk_overlap} character overlap")
+            logger.debug(f"Applied overlap: {len(overlapped_chunks)} chunks with {self.chunk_overlap} character overlap")
             return overlapped_chunks
         
         logger.info(f"Final chunk count: {len(chunks)}")

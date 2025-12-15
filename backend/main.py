@@ -37,19 +37,28 @@ ALLOWED_ORIGINS = os.getenv(
 ).split(",")
 
 
-# Configure logging
-log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+# Configure logging - Production optimized
+# Default to WARNING in production to reduce Railway log spam
+environment = os.getenv("ENVIRONMENT", "development")
+default_log_level = "WARNING" if environment == "production" else "INFO"
+log_level = os.getenv("LOG_LEVEL", default_log_level).upper()
+
 logging.basicConfig(
     level=getattr(logging, log_level),
     format='%(levelname)s:%(name)s:%(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Reduce verbosity of httpx and other noisy loggers
-logging.getLogger("httpx").setLevel(logging.WARNING)
+# Aggressively reduce verbosity of noisy loggers
+logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("httpcore").setLevel(logging.ERROR)
 logging.getLogger("services.google_auth").setLevel(logging.WARNING)
-logging.getLogger("services.google_docs").setLevel(logging.INFO)  # Changed to INFO to see optimizations
-logging.getLogger("services.rag_pipeline").setLevel(logging.INFO)  # Keep RAG pipeline logs
+logging.getLogger("services.google_docs").setLevel(logging.WARNING)
+logging.getLogger("services.rag_pipeline").setLevel(logging.WARNING)
+logging.getLogger("utils.http_client").setLevel(logging.ERROR)
+logging.getLogger("utils.cache").setLevel(logging.WARNING)
+logging.getLogger("chromadb").setLevel(logging.ERROR)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 app = FastAPI(title="DORA - Document Retrieval Assistant", version="2.0.0")
 
@@ -76,20 +85,24 @@ google_auth_service = GoogleAuthService()
 google_docs_service = GoogleDocsService()
 dora_pipeline = DORAPipeline()
 
-# Log configuration on startup for verification
-logger.info("=" * 60)
-logger.info("🚀 DORA BACKEND CONFIGURATION")
-logger.info("=" * 60)
-logger.info(f"📊 Environment: {settings.environment}")
-logger.info(f"🔧 Bulk Upload Batch Size: {settings.bulk_upload_batch_size} (parallel fetch)")
-logger.info(f"🧠 Embedding Batch Size: {settings.embedding_batch_size} (parallel embedding)")
-logger.info(f"📝 Chunk Size: {settings.chunk_size} characters")
-logger.info(f"🔄 Chunk Overlap: {settings.chunk_overlap} characters")
-logger.info(f"🤖 LLM Provider: {RAGConfig.LLM_PROVIDER}")
-logger.info(f"🎯 Primary Model: {RAGConfig.GROQ_MODEL if RAGConfig.LLM_PROVIDER == 'groq' else RAGConfig.GEMINI_MODEL}")
-logger.info(f"💾 ChromaDB Path: {settings.chroma_persist_directory}")
-logger.info(f"🌐 CORS Origins: {settings.cors_origins}")
-logger.info("=" * 60)
+# Log configuration on startup (only in non-production)
+if environment != "production":
+    logger.info("=" * 60)
+    logger.info("🚀 DORA BACKEND CONFIGURATION")
+    logger.info("=" * 60)
+    logger.info(f"📊 Environment: {settings.environment}")
+    logger.info(f"🔧 Bulk Upload Batch Size: {settings.bulk_upload_batch_size} (parallel fetch)")
+    logger.info(f"🧠 Embedding Batch Size: {settings.embedding_batch_size} (parallel embedding)")
+    logger.info(f"📝 Chunk Size: {settings.chunk_size} characters")
+    logger.info(f"🔄 Chunk Overlap: {settings.chunk_overlap} characters")
+    logger.info(f"🤖 LLM Provider: {RAGConfig.LLM_PROVIDER}")
+    logger.info(f"🎯 Primary Model: {RAGConfig.GROQ_MODEL if RAGConfig.LLM_PROVIDER == 'groq' else RAGConfig.GEMINI_MODEL}")
+    logger.info(f"💾 ChromaDB Path: {settings.chroma_persist_directory}")
+    logger.info(f"🌐 CORS Origins: {settings.cors_origins}")
+    logger.info("=" * 60)
+else:
+    # Single line startup log for production
+    logger.warning(f"DORA Backend Started - Env: {settings.environment}, Log Level: {log_level}")
 
 # Simple in-memory cache for user info to prevent spamming Google API
 # Format: {access_token: (user_info, expiration_timestamp)}

@@ -16,6 +16,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=WARNING # Reduce logging to prevent Railway rate limits
       # 🚀 PRODUCTION OPTIMIZED: 60 Parallel Fetch + 15 Parallel Embedding
       - BULK_UPLOAD_BATCH_SIZE=60
       - EMBEDDING_BATCH_SIZE=15

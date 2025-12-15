@@ -40,12 +40,8 @@ class HTTPClientManager:
                     retries=5,  # Increased from 3 to 5 retries
                 )
             )
-            logger.info("🔥🔥🔥 Created ULTRA EXTREME HTTP client - MAXIMUM PERFORMANCE MODE")
-            logger.info(f"   - Max connections: 2000 (ULTRA EXTREME!)")
-            logger.info(f"   - Max keepalive: 500")
-            logger.info(f"   - HTTP/2 enabled with multiplexing")
-            logger.info(f"   - Auto-retry: 5 attempts")
-            logger.info(f"   - Optimized timeouts for speed")
+            # Only log once at debug level to avoid spam
+            logger.debug(\"HTTP client initialized with connection pooling (2000 max connections, HTTP/2 enabled)\")
         return cls._instance
     
     @classmethod
