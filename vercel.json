@@ -7,16 +7,6 @@
     "regions": [
         "sin1"
     ],
-    "env": {
-        "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "@google-client-id",
-        "NEXT_PUBLIC_API_URL": "@api-url"
-    },
-    "build": {
-        "env": {
-            "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "@google-client-id",
-            "NEXT_PUBLIC_API_URL": "@api-url"
-        }
-    },
     "headers": [
         {
             "source": "/(.*)",
