@@ -1,219 +1,219 @@
-# Dependencies
-node_modules/
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-*.pyc
-*.pyo
-*.pyd
-__pycache__/
+# # Dependencies
+# node_modules/
+# backend/venv/
+# backend/__pycache__/
+# backend/**/__pycache__/
+# *.pyc
+# *.pyo
+# *.pyd
+# __pycache__/
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-backend/.env
+# # Environment variables
+# .env
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
+# backend/.env
 
-# Next.js
-.next/
-out/
-build/
-dist/
+# # Next.js
+# .next/
+# out/
+# build/
+# dist/
 
-# Production
-/build
-/dist
+# # Production
+# /build
+# /dist
 
-# Runtime data
-pids
-*.pid
-*.seed
-# *.pid.lock
+# # Runtime data
+# pids
+# *.pid
+# *.seed
+# # *.pid.lock
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+# # Logs
+# logs
+# *.log
+# npm-debug.log*
+# yarn-debug.log*
+# yarn-error.log*
+# lerna-debug.log*
 
-# Diagnostic reports
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+# # Diagnostic reports
+# report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
+# # Coverage directory used by tools like istanbul
+# coverage/
+# *.lcov
 
-# nyc test coverage
-.nyc_output
+# # nyc test coverage
+# .nyc_output
 
-# Dependency directories
-node_modules/
-jspm_packages/
+# # Dependency directories
+# node_modules/
+# jspm_packages/
 
-# Optional npm cache directory
-.npm
+# # Optional npm cache directory
+# .npm
 
-# Optional eslint cache
-.eslintcache
+# # Optional eslint cache
+# .eslintcache
 
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
+# # Microbundle cache
+# .rpt2_cache/
+# .rts2_cache_cjs/
+# .rts2_cache_es/
+# .rts2_cache_umd/
 
-# Optional REPL history
-.node_repl_history
+# # Optional REPL history
+# .node_repl_history
 
-# Output of 'npm pack'
-*.tgz
+# # Output of 'npm pack'
+# *.tgz
 
-# Yarn Integrity file
-.yarn-integrity
+# # Yarn Integrity file
+# .yarn-integrity
 
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
+# # parcel-bundler cache (https://parceljs.org/)
+# .cache
+# .parcel-cache
 
-# Next.js build output
-.next
+# # Next.js build output
+# .next
 
-# Nuxt.js build / generate output
-.nuxt
-dist
+# # Nuxt.js build / generate output
+# .nuxt
+# dist
 
-# Gatsby files
-.cache/
-public
+# # Gatsby files
+# .cache/
+# public
 
-# Storybook build outputs
-.out
-.storybook-out
+# # Storybook build outputs
+# .out
+# .storybook-out
 
-# Temporary folders
-tmp/
-temp/
+# # Temporary folders
+# tmp/
+# temp/
 
-# Editor directories and files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# # Editor directories and files
+# .vscode/
+# .idea/
+# *.swp
+# *.swo
+# *~
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# # OS generated files
+# .DS_Store
+# .DS_Store?
+# ._*
+# .Spotlight-V100
+# .Trashes
+# ehthumbs.db
+# Thumbs.db
 
-# Python
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# # Python
+# *.py[cod]
+# *$py.class
+# *.so
+# .Python
+# env/
+# venv/
+# ENV/
+# env.bak/
+# venv.bak/
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# # Distribution / packaging
+# .Python
+# build/
+# develop-eggs/
+# dist/
+# downloads/
+# eggs/
+# .eggs/
+# lib/
+# lib64/
+# parts/
+# sdist/
+# var/
+# wheels/
+# *.egg-info/
+# .installed.cfg
+# *.egg
+# MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
+# # PyInstaller
+# *.manifest
+# *.spec
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# # Installer logs
+# pip-log.txt
+# pip-delete-this-directory.txt
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
+# # Unit test / coverage reports
+# htmlcov/
+# .tox/
+# .coverage
+# .coverage.*
+# .cache
+# nosetests.xml
+# coverage.xml
+# *.cover
+# .hypothesis/
+# .pytest_cache/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# # Jupyter Notebook
+# .ipynb_checkpoints
 
-# IPython
-profile_default/
-ipython_config.py
+# # IPython
+# profile_default/
+# ipython_config.py
 
-# pyenv
-.python-version
+# # pyenv
+# .python-version
 
-# celery beat schedule file
-celerybeat-schedule
+# # celery beat schedule file
+# celerybeat-schedule
 
-# SageMath parsed files
-*.sage.py
+# # SageMath parsed files
+# *.sage.py
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# # Spyder project settings
+# .spyderproject
+# .spyproject
 
-# Rope project settings
-.ropeproject
+# # Rope project settings
+# .ropeproject
 
-# mkdocs documentation
-/site
+# # mkdocs documentation
+# /site
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# # mypy
+# .mypy_cache/
+# .dmypy.json
+# dmypy.json
 
-# ChromaDB
-chroma_db/
-*.db
-*.sqlite
-*.sqlite3
+# # ChromaDB
+# chroma_db/
+# *.db
+# *.sqlite
+# *.sqlite3
 
-# Local development files
-.local/
-*.local
+# # Local development files
+# .local/
+# *.local
 
-# Deployment files (keep templates)
-render.yaml.bak
-vercel.json.bak
+# # Deployment files (keep templates)
+# render.yaml.bak
+# vercel.json.bak
 
-# Backup files
-*.backup
-*.bak
+# # Backup files
+# *.backup
+# *.bak
 
-# webserver.txt
-# webservercreden.txt
+# # webserver.txt
+# # webservercreden.txt
 
 
