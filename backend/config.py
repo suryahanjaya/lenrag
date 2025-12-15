@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     # API Keys
     google_client_id: str = Field(..., env="GOOGLE_CLIENT_ID")
     google_client_secret: str = Field(..., env="GOOGLE_CLIENT_SECRET")
-    gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
-    groq_api_key: str = Field(default="", env="GROQ_API_KEY")
+    gemini_api_key: str = Field(default="", env="GEMINI_API_KEY")  # Optional - only needed if using Gemini
+    groq_api_key: str = Field(default="", env="GROQ_API_KEY")  # Optional - only needed if using Groq
     
     # Optional Supabase (for future use)
     supabase_url: str = Field(default="", env="SUPABASE_URL")

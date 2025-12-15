@@ -33,7 +33,8 @@ ENV PYTHONUNBUFFERED=1 \
     TORCH_NUM_THREADS=16 \
     TF_CPP_MIN_LOG_LEVEL=2 \
     BULK_UPLOAD_BATCH_SIZE=60 \
-    EMBEDDING_BATCH_SIZE=15
+    EMBEDDING_BATCH_SIZE=15 \
+    PORT=8000
 
 # Create necessary directories
 RUN mkdir -p /app/chroma_db /app/cache
@@ -41,12 +42,13 @@ RUN mkdir -p /app/chroma_db /app/cache
 # Copy backend code
 COPY backend/ .
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+# Health check - use PORT env var with default fallback
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# Expose port (Railway will set $PORT)
-EXPOSE $PORT
+# Expose port (Railway will set $PORT dynamically)
+EXPOSE ${PORT:-8000}
 
-# Start command - Railway uses $PORT environment variable
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
+# Start command - use PORT env var with default fallback
+# Use shell form to allow environment variable substitution
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --log-level info
