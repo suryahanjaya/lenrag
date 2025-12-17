@@ -14,7 +14,10 @@ __pycache__/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.railway
 backend/.env
+backend/.env.production
+backend/.env.railway
 
 # Next.js
 .next/
