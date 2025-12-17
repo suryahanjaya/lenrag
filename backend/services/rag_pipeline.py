@@ -125,6 +125,79 @@ class DORAPipeline:
         """Generate a unique ID for a document chunk"""
         return f"{document_id}_chunk_{chunk_index}"
     
+    def document_exists(self, user_id: str, document_id: str) -> bool:
+        """
+        Check if a document already exists in the user's knowledge base.
+        
+        Args:
+            user_id: The ID of the user
+            document_id: The Google Drive document ID to check
+            
+        Returns:
+            True if document exists, False otherwise
+        """
+        try:
+            collection = self._get_user_collection(user_id)
+            
+            # Query for any chunks with this document_id
+            results = collection.get(
+                where={"document_id": document_id},
+                limit=1  # We only need to know if at least one exists
+            )
+            
+            # If we found any chunks, the document exists
+            exists = len(results['ids']) > 0
+            
+            if exists:
+                logger.debug(f"Document {document_id} already exists in knowledge base")
+            
+            return exists
+            
+        except Exception as e:
+            logger.error(f"Error checking if document exists: {e}")
+            # If there's an error, assume it doesn't exist to allow upload attempt
+            return False
+    
+    def get_existing_document_ids(self, user_id: str, document_ids: List[str]) -> set:
+        """
+        Batch check which documents already exist in the knowledge base.
+        More efficient than checking one by one.
+        
+        Args:
+            user_id: The ID of the user
+            document_ids: List of Google Drive document IDs to check
+            
+        Returns:
+            Set of document IDs that already exist
+        """
+        try:
+            collection = self._get_user_collection(user_id)
+            existing_ids = set()
+            
+            # Get all documents in the collection
+            # We'll check metadata for document_id
+            all_results = collection.get(
+                include=["metadatas"]
+            )
+            
+            if all_results and all_results.get('metadatas'):
+                # Extract unique document IDs from metadata
+                for metadata in all_results['metadatas']:
+                    doc_id = metadata.get('document_id')
+                    if doc_id in document_ids:
+                        existing_ids.add(doc_id)
+            
+            # Only log summary in production, details in debug mode
+            if len(existing_ids) > 0:
+                logger.warning(f"Duplicate check: {len(existing_ids)}/{len(document_ids)} already exist")
+            
+            return existing_ids
+            
+        except Exception as e:
+            logger.error(f"Error batch checking existing documents: {e}")
+            # If there's an error, return empty set to allow all uploads
+            return set()
+    
     def _generate_content_with_retry(self, prompt: str, max_retries: int = 3) -> str:
         """
         Generate content with automatic retry and fallback to other models if quota exceeded.
@@ -271,13 +344,11 @@ class DORAPipeline:
         doc_length = len(text)
         if doc_length < 3000:  # Very small document
             base_chunk_size = 500  # Smaller chunks
-            logger.debug(f"Very small document ({doc_length} chars) - chunk size: {base_chunk_size}")
+            # Reduced logging for production
         elif doc_length < 10000:  # Small document
             base_chunk_size = 700  # Medium chunks
-            logger.debug(f"Small document ({doc_length} chars) - chunk size: {base_chunk_size}")
         else:  # Medium to large document
             base_chunk_size = 850  # Optimal chunks
-            logger.debug(f"Document ({doc_length} chars) - chunk size: {base_chunk_size}")
         
         if mime_type == 'application/pdf':
             optimal_chunk_size = self.document_chunk_sizes.get('pdf', base_chunk_size)
@@ -311,10 +382,9 @@ class DORAPipeline:
             sections = self._split_general_document(text)
         
         # Process sections into chunks with optimal chunk size
-        logger.debug(f"Processing {len(sections)} sections into chunks with optimal size: {optimal_chunk_size}")
-        logger.debug(f"Document type: {doc_type}, MIME: {mime_type}")
-        logger.debug(f"Total text length: {len(text)} characters")
-        logger.debug(f"Number of sections found: {len(sections)}")
+        # Reduced logging - only log for very large documents
+        if len(text) > 50000:
+            logger.debug(f"Processing {len(sections)} sections, type: {doc_type}, size: {len(text)} chars")
         
         # SIMPLIFIED CHUNKING ALGORITHM - Target: 100 halaman = 300 chunks
         # Process all sections into chunks with optimal chunk size
@@ -331,7 +401,7 @@ class DORAPipeline:
                 # Save current chunk if it has content
                 if current_chunk.strip():
                     chunks.append(current_chunk.strip())
-                    logger.debug(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+                    # Chunk added (logging removed for production)
                 
                 # Start new chunk with current section
                 if len(section) <= optimal_chunk_size:
@@ -348,7 +418,7 @@ class DORAPipeline:
                             # Save current chunk if it has content
                             if current_chunk.strip():
                                 chunks.append(current_chunk.strip())
-                                logger.debug(f"Added chunk {len(chunks)}: {len(current_chunk.strip())} characters")
+                                # Chunk added
                             
                             # Start new chunk with current paragraph
                             if len(paragraph) <= optimal_chunk_size:
@@ -364,18 +434,16 @@ class DORAPipeline:
                                     else:
                                         if temp_chunk.strip():
                                             chunks.append(temp_chunk.strip())
-                                            logger.debug(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
+                                            # Chunk added
                                         temp_chunk = sentence + ". "
                                 
                                 if temp_chunk.strip():
                                     chunks.append(temp_chunk.strip())
-                                    logger.debug(f"Added chunk {len(chunks)}: {len(temp_chunk.strip())} characters")
                                 current_chunk = ""
         
         # Add final chunk if it has content
         if current_chunk.strip():
             chunks.append(current_chunk.strip())
-            logger.debug(f"Added final chunk {len(chunks)}: {len(current_chunk.strip())} characters")
         
         # Apply overlap if we have multiple chunks for better context preservation
         if len(chunks) > 1 and self.chunk_overlap > 0:
@@ -388,7 +456,7 @@ class DORAPipeline:
                     prev_chunk = chunks[i-1]
                     overlap_text = prev_chunk[-self.chunk_overlap:] if len(prev_chunk) > self.chunk_overlap else prev_chunk
                     overlapped_chunks.append(overlap_text + " " + chunk)
-            logger.debug(f"Applied overlap: {len(overlapped_chunks)} chunks with {self.chunk_overlap} character overlap")
+            # Overlap applied
             return overlapped_chunks
         
         logger.info(f"Final chunk count: {len(chunks)}")
@@ -521,7 +589,7 @@ class DORAPipeline:
             doc_chunk_counts = {}
             doc_status = {}
             
-            logger.info(f"🚀 PROCESSING BULK BATCH: {len(documents)} documents")
+            logger.warning(f"🚀 Bulk batch: {len(documents)} docs")
             
             # 1. Processing / Chunking (Parallelize if needed, but fast enough sequentially usually)
             # We can use ThreadPool for chunking if it's heavy
@@ -566,7 +634,7 @@ class DORAPipeline:
 
             # 2. Embedding (Heavy - Batch Process)
             # Encode all chunks in one go (or large batches)
-            logger.info(f"🧠 Generating embeddings for {len(all_chunks)} chunks from {len(documents)} documents...")
+            logger.warning(f"🧠 Embedding {len(all_chunks)} chunks")
             
             # ADAPTIVE BATCH SIZE for embeddings to prevent memory spikes
             # Small batches (< 1000 chunks): Use 128 for speed
@@ -579,7 +647,7 @@ class DORAPipeline:
             else:
                 embedding_batch_size = 32   # Safe for large batches
             
-            logger.info(f"📊 Using embedding batch size: {embedding_batch_size} (total chunks: {len(all_chunks)})")
+            # Embedding batch size determined
             
             all_embeddings = []
             if len(all_chunks) > 0:
@@ -593,7 +661,7 @@ class DORAPipeline:
             # ChromaDB has a limit around 5461 items per batch. We should safe-guard with 4000.
             MAX_CHROMA_BATCH = 4000
             
-            logger.info(f"💾 Bulk saving {len(all_chunks)} chunks to ChromaDB...")
+            logger.warning(f"💾 Saving {len(all_chunks)} chunks")
             
             if all_chunks:
                 total_chunks = len(all_chunks)
@@ -605,7 +673,7 @@ class DORAPipeline:
                     batch_ids = all_ids[i:end_idx]
                     batch_embeddings = all_embeddings[i:end_idx]
                     
-                    logger.info(f"  > Saving db batch {i//MAX_CHROMA_BATCH + 1}/{(total_chunks-1)//MAX_CHROMA_BATCH + 1} ({len(batch_docs)} items)...")
+                    # DB batch save (logging reduced)
                     
                     await loop.run_in_executor(
                         None,
@@ -617,7 +685,7 @@ class DORAPipeline:
                         )
                     )
             
-            logger.info(f"✅ Bulk save complete for {len(documents)} documents!")
+            logger.warning(f"✅ Bulk complete: {len(documents)} docs")
             return doc_status
             
         except Exception as e:
@@ -641,7 +709,7 @@ class DORAPipeline:
                 logger.warning(f"No chunks generated for document {document_id}")
                 return 0
             
-            logger.info(f"Adding {len(chunks)} chunks for document {document_id}")
+            # Adding chunks (logging reduced)
             
             # MEMORY OPTIMIZATION: Process embeddings in batches for very large documents
             EMBEDDING_BATCH_SIZE = 100
@@ -650,12 +718,12 @@ class DORAPipeline:
             loop = asyncio.get_event_loop()
             
             if len(chunks) > EMBEDDING_BATCH_SIZE:
-                logger.info(f"🔄 Large document: Processing {len(chunks)} chunks in batches of {EMBEDDING_BATCH_SIZE}")
+                # Large document batch processing
                 
                 all_embeddings = []
                 for i in range(0, len(chunks), EMBEDDING_BATCH_SIZE):
                     batch_chunks = chunks[i:i+EMBEDDING_BATCH_SIZE]
-                    logger.info(f"  Processing embedding batch {i//EMBEDDING_BATCH_SIZE + 1}/{(len(chunks)-1)//EMBEDDING_BATCH_SIZE + 1}")
+                    # Processing batch
                     
                     # Run blocking encode in executor
                     batch_embeddings_list = await loop.run_in_executor(
@@ -666,7 +734,7 @@ class DORAPipeline:
                 embeddings = all_embeddings
             else:
                 # For smaller documents, process all at once
-                logger.info(f"Generating embeddings using {self.embedding_model}")
+                # Generating embeddings
                 # Run blocking encode in executor
                 embeddings = await loop.run_in_executor(
                     None,
@@ -685,7 +753,7 @@ class DORAPipeline:
             
             # Add to collection with our custom embeddings
             # Run blocking add in executor to prevent main loop blocking and potential UI freezes
-            logger.info(f"💾 Saving {len(chunks)} chunks to ChromaDB for {document_id}...")
+            # Saving to ChromaDB
             await loop.run_in_executor(
                 None,
                 lambda: collection.add(
@@ -696,7 +764,7 @@ class DORAPipeline:
                 )
             )
             
-            logger.info(f"Successfully added document {document_id} with {len(chunks)} chunks")
+            logger.warning(f"✅ Added doc {document_id[:8]}: {len(chunks)} chunks")
             return len(chunks)
             
         except Exception as e:
@@ -739,7 +807,7 @@ class DORAPipeline:
             
             # Check if collection has any documents
             count = collection.count()
-            logger.info(f"Collection for user {user_id} has {count} documents")
+            # Collection count checked
             
             if count == 0:
                 logger.warning(f"No documents in knowledge base for user {user_id}")
@@ -752,8 +820,7 @@ class DORAPipeline:
             
             # Create expanded query for better understanding
             expanded_query = self._expand_query(query)
-            logger.info(f"Original query: {query}")
-            logger.info(f"Expanded query: {expanded_query}")
+            # Query expanded
             
             # Generate query embedding using our MPNet model
             query_embedding = self.embedding_model.encode([expanded_query], show_progress_bar=False).tolist()
@@ -769,8 +836,7 @@ class DORAPipeline:
             metadatas = results['metadatas'][0] if results['metadatas'] else []
             distances = results['distances'][0] if results['distances'] else []
             
-            logger.info(f"Query results: {len(documents)} documents found")
-            logger.info(f"Distances: {distances}")
+            # Query results retrieved
             
             # More lenient threshold for better recall with high-quality embeddings
             if documents and distances and min(distances) < 1.0:  # Relaxed from 0.95

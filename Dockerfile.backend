@@ -1,13 +1,14 @@
-# Backend Dockerfile - Optimized for PRODUCTION PERFORMANCE
+# Backend Dockerfile - PRODUCTION OPTIMIZED with HTTP/2 & Connection Pooling
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install minimal system dependencies
+# Install minimal system dependencies + HTTP/2 support
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libgomp1 \
     curl \
+    libnghttp2-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -22,7 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 RUN pip install --no-cache-dir --timeout 300 --retries 10 -r requirements.txt
 
 # Set environment variables for MAXIMUM PERFORMANCE
-# 🚀 OPTIMIZED FOR: 60 Parallel Fetch + 15 Parallel Embedding
+# 🚀 PRODUCTION OPTIMIZED: HTTP/2 + Connection Pooling (2000 max connections)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
@@ -34,9 +35,18 @@ ENV PYTHONUNBUFFERED=1 \
     TORCH_NUM_THREADS=16 \
     # Disable warnings for cleaner logs
     TF_CPP_MIN_LOG_LEVEL=2 \
-    # Batch configuration
+    # HTTP/2 & Connection Pooling Configuration
+    HTTPX_HTTP2=1 \
+    HTTPX_MAX_CONNECTIONS=2000 \
+    HTTPX_MAX_KEEPALIVE=500 \
+    HTTPX_KEEPALIVE_EXPIRY=180 \
+    # Batch configuration for optimal performance
     BULK_UPLOAD_BATCH_SIZE=60 \
-    EMBEDDING_BATCH_SIZE=15
+    EMBEDDING_BATCH_SIZE=15 \
+    # Adaptive embedding batch sizes
+    EMBEDDING_BATCH_SMALL=128 \
+    EMBEDDING_BATCH_MEDIUM=64 \
+    EMBEDDING_BATCH_LARGE=32
 
 # Create necessary directories
 RUN mkdir -p /app/chroma_db /app/cache
@@ -44,13 +54,18 @@ RUN mkdir -p /app/chroma_db /app/cache
 # Copy backend code
 COPY backend/ .
 
-# Simple health check using curl
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
+# Pre-download embedding model to speed up first run
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Health check with longer intervals to avoid interference
+HEALTHCHECK --interval=60s --timeout=10s --start-period=120s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Expose port
 EXPOSE 8000
 
-# PRODUCTION MODE: Multiple workers, NO reload (FAST!)
+# PRODUCTION MODE: Multiple workers with optimal configuration
 # 🚀 8 workers = optimal for 60 parallel fetch + 15 parallel embedding
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "8"]
+# --timeout-keep-alive 120 for long-running requests (large file processing)
+# --limit-concurrency 1000 for high throughput
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "8", "--timeout-keep-alive", "120", "--limit-concurrency", "1000"]

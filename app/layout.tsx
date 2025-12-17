@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Outfit, Playfair_Display } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
+const outfit = Outfit({ subsets: ['latin'], weight: ['700'] })
+const playfairDisplay = Playfair_Display({ subsets: ['latin'], weight: ['400'] })
 
 export const metadata: Metadata = {
   title: 'DORA',

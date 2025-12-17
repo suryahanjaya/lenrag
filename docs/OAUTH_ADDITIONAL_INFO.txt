@@ -1,0 +1,95 @@
+DORA - Document Retrieval Assistant
+OAuth Consent Screen - Additional Information
+
+=== APPLICATION OVERVIEW ===
+DORA is an AI-powered document retrieval and question-answering system that helps users interact with their Google Drive documents using natural language queries. The application uses advanced RAG (Retrieval-Augmented Generation) technology to provide intelligent, context-aware responses.
+
+=== WHY WE NEED THESE SCOPES ===
+
+1. userinfo.email & userinfo.profile
+   - Purpose: User authentication and identification
+   - Usage: Display user name and email in the application UI
+   - Data handling: Stored securely in JWT tokens for session management
+
+2. drive.readonly
+   - Purpose: Access user's Google Drive documents
+   - Usage: Fetch documents from folders selected by the user
+   - Data handling: Documents are processed and converted to embeddings for AI search
+   - Important: We ONLY READ documents, never modify or delete
+
+3. documents.readonly
+   - Purpose: Read content from Google Docs
+   - Usage: Extract text content from Google Docs for AI processing
+   - Data handling: Text is chunked and embedded for semantic search
+   - Important: Read-only access, no modifications made
+
+=== HOW THE APPLICATION WORKS ===
+
+1. User authenticates with Google OAuth
+2. User selects a Google Drive folder to index
+3. Application fetches documents (Google Docs, PDFs, DOCX, etc.)
+4. Documents are processed and converted to vector embeddings
+5. User asks questions in natural language
+6. AI retrieves relevant document chunks and generates answers
+7. Responses include source attribution with links to original documents
+
+=== DATA SECURITY & PRIVACY ===
+
+- All data transmission uses HTTPS encryption
+- User data is isolated (each user has their own vector database collection)
+- Documents are processed locally and stored as embeddings only
+- Original documents remain in user's Google Drive (we don't store copies)
+- Users can delete their knowledge base at any time
+- Full privacy policy: https://dora-j.vercel.app/privacy
+
+=== TEST CREDENTIALS ===
+
+Primary Test Account:
+- Email: suryahanajaya76@gmail.com
+- Purpose: Development and testing
+
+Test Instructions:
+1. Visit https://dora-j.vercel.app
+2. Click "Sign in with Google"
+3. Authorize the requested permissions
+4. Select a Google Drive folder with documents
+5. Ask questions about your documents
+
+=== TECHNICAL DETAILS ===
+
+Frontend:
+- Deployed on Vercel: https://dora-j.vercel.app
+- Technology: Next.js 14, React, TypeScript
+
+Backend:
+- Deployed on Railway/Render
+- Technology: FastAPI (Python), ChromaDB, Sentence Transformers
+- LLM Providers: Groq (Llama 3.1) / Google Gemini
+
+Repository:
+- GitHub: https://github.com/suryahanjaya/lenrag
+- Open source under MIT License
+
+=== COMPLIANCE ===
+
+- Privacy Policy: https://dora-j.vercel.app/privacy
+- Terms of Service: https://dora-j.vercel.app/terms
+- User data retention: Only as long as user maintains their account
+- Data deletion: Available through application interface
+- GDPR compliant: Users can request data export/deletion
+
+=== CONTACT INFORMATION ===
+
+Developer: Surya Hanjaya
+Email: suryahanajaya76@gmail.com
+Support: GitHub Issues (https://github.com/suryahanjaya/lenrag/issues)
+
+=== ADDITIONAL NOTES ===
+
+- This is an educational/portfolio project demonstrating AI and RAG technology
+- Currently in testing phase with limited users
+- No commercial use or monetization at this time
+- All user data is handled with enterprise-grade security practices
+- Application follows Google's OAuth 2.0 best practices
+
+Last Updated: December 16, 2025

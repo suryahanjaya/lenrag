@@ -1,200 +1,225 @@
-# CODE AUDIT REPORT - DORA Application
-**Date**: 2025-12-09
-**Auditor**: AI Assistant
+# 🔍 CODE AUDIT REPORT - LENRAG PROJECT
 
-## Executive Summary
-Total files audited: 6 main files
-Total lines of code: ~2,500 lines
-Issues found: Multiple optimization opportunities
+**Tanggal Audit:** 2025-12-17  
+**Auditor:** Antigravity AI  
+**Tujuan:** Identifikasi dan hapus kode duplikat, error, dan endpoint yang tidak digunakan
 
 ---
 
-## 1. DASHBOARD.TSX (2,144 lines) ⚠️ CRITICAL
+## 📊 RINGKASAN EKSEKUTIF
 
-### Issues Found:
+### Temuan Utama:
+1. ✅ **Duplikasi Kode:** Beberapa endpoint test yang tidak digunakan di production
+2. ✅ **Endpoint Tidak Digunakan:** 7+ endpoint test/debug yang harus dihapus
+3. ✅ **Kode Duplikat:** Timeout duplikat di bulk upload (line 606 & 613)
+4. ✅ **Router Tidak Digunakan:** `routers/health.py` tidak terintegrasi ke main.py
 
-#### A. Duplicate Helper Functions (Can be extracted to utils)
-1. **formatAIResponse** (85 lines) - Text formatting logic
-2. **detectIncompleteResponse** (17 lines) - Response validation
-3. **getQuestionSuggestions** (21 lines) - Suggestion generation
-4. **getFileIcon** (12 lines) - Icon mapping
-5. **getFileTypeName** (12 lines) - Type name mapping
-6. **formatFileSize** (8 lines) - Size formatting
-7. **formatDate** (16 lines) - Date formatting
+---
 
-**Recommendation**: Extract to `/lib/utils/formatting.ts` and `/lib/utils/fileHelpers.ts`
-**Impact**: Reduce ~171 lines from dashboard.tsx
+## 🚨 MASALAH KRITIS
 
-#### B. Redundant State Management
-- Multiple useState hooks that could be combined
-- Some states are derived and don't need useState
+### 1. ENDPOINT TEST/DEBUG YANG TIDAK DIGUNAKAN (PRODUCTION)
 
-**Current**:
-```typescript
-const [isLoading, setIsLoading] = useState(true);
-const [message, setMessage] = useState('');
-const [isChatLoading, setIsChatLoading] = useState(false);
-const [isLoadingFolder, setIsLoadingFolder] = useState(false);
-const [isBulkUploading, setIsBulkUploading] = useState(false);
+**File:** `backend/main.py`
+
+#### Endpoint yang harus DIHAPUS:
+
+| Line | Endpoint | Alasan |
+|------|----------|--------|
+| 960-974 | `GET /auth-status` | Debug endpoint, tidak digunakan di frontend |
+| 976-1012 | `GET /test-token` | Test endpoint, tidak digunakan di production |
+| 1014-1046 | `POST /test-folder-access` | Test endpoint, tidak digunakan di production |
+| 1048-1075 | `GET /test-google-docs-service` | Test endpoint, tidak digunakan di production |
+| 1077-1150 | `GET /test-drive-direct` | Test endpoint, tidak digunakan di production |
+
+**Total Lines to Delete:** ~190 lines
+
+---
+
+### 2. KODE DUPLIKAT - TIMEOUT SETTING
+
+**File:** `backend/main.py`  
+**Lines:** 606-616
+
+```python
+# DUPLIKASI! Ada 2x timeout setting untuk bulk_results
+# Line 606-609
+bulk_results = await asyncio.wait_for(
+    dora_pipeline.add_documents_bulk(user_id, bulk_docs_input),
+    timeout=1800.0
+)
+
+# Line 613-616 (DUPLIKAT!)
+bulk_results = await asyncio.wait_for(
+    dora_pipeline.add_documents_bulk(user_id, bulk_docs_input),
+    timeout=300.0
+)
 ```
 
-**Recommendation**: Combine into loading state object
-```typescript
-const [loadingStates, setLoadingStates] = useState({
-  documents: true,
-  chat: false,
-  folder: false,
-  bulkUpload: false
-});
-```
-
-#### C. Repeated Fetch Logic
-- `fetchDocuments`, `fetchDocumentsFromFolder`, `fetchAllDocumentsFromFolder` have similar patterns
-- Can be abstracted into a single function with parameters
-
-**Recommendation**: Create `/lib/api/documents.ts` with unified fetch function
-
-#### D. Inline Styles and Repeated Class Names
-- Many repeated Tailwind class combinations
-- Should be extracted to CSS classes or constants
+**Solusi:** Hapus salah satu (line 613-616 yang timeout 300s)
 
 ---
 
-## 2. STYLES.CSS (48,186 bytes) ⚠️ LARGE
+### 3. ROUTER TIDAK TERINTEGRASI
 
-### Issues Found:
+**File:** `backend/routers/health.py`
 
-#### A. Unused CSS Classes
-Need to scan for unused classes. Potential candidates:
-- Old animation keyframes that might not be used
-- Duplicate gradient definitions
-- Unused glassmorphism variants
+Router ini TIDAK digunakan karena:
+- Tidak di-import di `main.py`
+- Endpoint `/health` sudah ada di `main.py` (line 935-945)
+- Endpoint `/database-stats` sudah ada di `main.py` (line 947-956)
 
-#### B. Repeated Gradient Patterns
-Multiple similar gradient definitions that could be consolidated
-
-**Recommendation**: 
-1. Run CSS purge to remove unused classes
-2. Create CSS variables for common gradients
-3. Use Tailwind's JIT mode more effectively
+**Solusi:** 
+- Hapus file `backend/routers/health.py` (redundant)
+- Atau integrasikan jika ingin menggunakan router pattern
 
 ---
 
-## 3. PAGE.TSX (210 lines) ✅ GOOD
+### 4. ENDPOINT YANG TIDAK DIGUNAKAN DI FRONTEND
 
-### Minor Issues:
+Berdasarkan analisis `components/dashboard/dashboard.tsx`, endpoint berikut TIDAK dipanggil:
 
-#### A. Session Management Logic
-- Could be extracted to a custom hook `useAuth()`
-
-**Recommendation**: Create `/lib/hooks/useAuth.ts`
-
----
-
-## 4. AUTH CALLBACK (76 lines) ✅ GOOD
-
-### Minor Issues:
-
-#### A. Hardcoded API URL
-```typescript
-const response = await fetch('http://localhost:8000/auth/google', {
-```
-
-**Recommendation**: Use environment variable
-```typescript
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const response = await fetch(`${API_URL}/auth/google`, {
-```
+| Endpoint | Status | Rekomendasi |
+|----------|--------|-------------|
+| `/documents/from-folder-all-stream` | ✅ DIGUNAKAN | Keep (line 288) |
+| `/documents/bulk-upload-parallel-stream` | ✅ DIGUNAKAN | Keep (line 767) |
+| `/documents/from-folder-all` | ✅ DIGUNAKAN | Keep (fallback, line 377) |
+| `/documents/from-folder` | ⚠️ TIDAK DIGUNAKAN | Hapus? (ada di main.py line 269) |
+| `/auth-status` | ❌ DEBUG ONLY | **HAPUS** |
+| `/test-token` | ❌ DEBUG ONLY | **HAPUS** |
+| `/test-folder-access` | ❌ DEBUG ONLY | **HAPUS** |
+| `/test-google-docs-service` | ❌ DEBUG ONLY | **HAPUS** |
+| `/test-drive-direct` | ❌ DEBUG ONLY | **HAPUS** |
 
 ---
 
-## 5. COMPONENTS
+## 📝 ENDPOINT YANG MASIH DIGUNAKAN (KEEP)
 
-### TimeDisplay.tsx (61 lines) ✅ GOOD
-- Well structured
-- No issues found
+### Authentication
+- ✅ `POST /auth/google` - Login dengan Google
+- ✅ `POST /auth/refresh` - Refresh token
 
-### ProfilePicture.tsx - Need to audit
-### GoogleAuthButton.tsx (86 lines) - Has hardcoded URL issue (same as callback)
+### Documents
+- ✅ `GET /documents` - Fetch user documents
+- ✅ `POST /documents/from-folder-all` - Fetch all docs from folder (fallback)
+- ✅ `POST /documents/from-folder-all-stream` - Streaming fetch (primary)
+- ✅ `POST /documents/bulk-upload-parallel-stream` - Bulk upload dengan streaming
+- ✅ `POST /documents/add` - Add documents to knowledge base
 
----
+### Knowledge Base
+- ✅ `GET /knowledge-base` - Get knowledge base documents
+- ✅ `DELETE /knowledge-base/{doc_id}` - Delete single document
+- ✅ `DELETE /clear-all-documents` - Clear all documents
 
-## OPTIMIZATION PLAN
+### Chat
+- ✅ `POST /chat` - Chat with DORA
 
-### Phase 1: Extract Utilities (High Priority)
-**Files to create**:
-1. `/lib/utils/formatting.ts` - All formatting functions
-2. `/lib/utils/fileHelpers.ts` - File type, icon, size helpers
-3. `/lib/utils/aiHelpers.ts` - AI response formatting
-4. `/lib/hooks/useAuth.ts` - Auth session management
-5. `/lib/api/documents.ts` - Document fetch logic
-6. `/lib/constants/api.ts` - API URLs and endpoints
+### User
+- ✅ `GET /user/profile` - Get user profile
 
-**Expected reduction**: ~300-400 lines from dashboard.tsx
-
-### Phase 2: Refactor State Management (Medium Priority)
-1. Combine related states into objects
-2. Use useReducer for complex state logic
-3. Extract chat logic to custom hook
-
-**Expected reduction**: ~50-100 lines
-
-### Phase 3: CSS Optimization (Medium Priority)
-1. Run PurgeCSS to remove unused styles
-2. Consolidate gradient definitions
-3. Create CSS custom properties for common values
-
-**Expected reduction**: ~5,000-10,000 bytes from styles.css
-
-### Phase 4: Component Extraction (Low Priority)
-1. Extract chat component from dashboard
-2. Extract document list component
-3. Extract knowledge base component
-
-**Expected reduction**: ~500-700 lines from dashboard.tsx
+### Health
+- ✅ `GET /health` - Basic health check
+- ✅ `GET /database-stats` - Database statistics
 
 ---
 
-## ESTIMATED IMPACT
+## 🗑️ ENDPOINT YANG HARUS DIHAPUS
 
-### Before Optimization:
-- dashboard.tsx: 2,144 lines
-- styles.css: 48,186 bytes
-- Total complexity: HIGH
+### 1. `/documents/from-folder` (Line 269-315)
+**Alasan:** Tidak digunakan di frontend, ada versi `-all` yang lebih lengkap
 
-### After Optimization:
-- dashboard.tsx: ~1,200-1,400 lines (44% reduction)
-- styles.css: ~35,000-40,000 bytes (20% reduction)
-- New utility files: ~500 lines (reusable)
-- Total complexity: MEDIUM
+### 2. Semua Test Endpoints (Line 960-1150)
+**Alasan:** Debug only, tidak untuk production
+
+---
+
+## 🔧 REKOMENDASI PERBAIKAN
+
+### Priority 1 (CRITICAL) - Hapus Sekarang
+1. ❌ Hapus 5 test endpoints (line 960-1150)
+2. ❌ Hapus duplikasi timeout (line 613-616)
+3. ❌ Hapus `backend/routers/health.py` atau integrasikan
+
+### Priority 2 (HIGH) - Review & Hapus
+1. ⚠️ Review `/documents/from-folder` - apakah masih diperlukan?
+2. ⚠️ Review logging yang berlebihan di production
+
+### Priority 3 (MEDIUM) - Cleanup
+1. 🧹 Cleanup import yang tidak digunakan
+2. 🧹 Cleanup komentar yang sudah tidak relevan
+3. 🧹 Standardisasi error messages
+
+---
+
+## 📈 ESTIMASI DAMPAK
+
+### Sebelum Cleanup:
+- **Total Lines:** 1,211 lines (main.py)
+- **Endpoints:** 22 endpoints
+- **Test Endpoints:** 5 endpoints
+
+### Setelah Cleanup:
+- **Total Lines:** ~1,020 lines (main.py) - **15% reduction**
+- **Endpoints:** 17 endpoints - **23% reduction**
+- **Test Endpoints:** 0 endpoints - **100% removal**
 
 ### Benefits:
-1. ✅ Better code maintainability
-2. ✅ Easier testing (isolated functions)
-3. ✅ Better performance (smaller bundles)
-4. ✅ Reusable utilities across app
-5. ✅ Easier onboarding for new developers
+- ✅ Kode lebih bersih dan mudah di-maintain
+- ✅ Mengurangi attack surface (security)
+- ✅ Mengurangi confusion untuk developer baru
+- ✅ Mengurangi ukuran deployment
 
 ---
 
-## PRIORITY ACTIONS (DO NOW)
+## 🎯 ACTION ITEMS
 
-1. **Extract formatting utilities** - 2 hours
-2. **Create useAuth hook** - 1 hour
-3. **Fix hardcoded API URLs** - 30 minutes
-4. **Combine loading states** - 1 hour
+### Immediate Actions:
+1. [ ] Hapus 5 test endpoints dari `main.py`
+2. [ ] Hapus duplikasi timeout di bulk upload
+3. [ ] Hapus atau integrasikan `routers/health.py`
 
-**Total time**: ~4.5 hours
-**Impact**: Immediate 20-30% code reduction
+### Review Actions:
+1. [ ] Review apakah `/documents/from-folder` masih diperlukan
+2. [ ] Review logging level di production
+3. [ ] Review error handling consistency
+
+### Documentation Actions:
+1. [ ] Update API documentation
+2. [ ] Update README dengan endpoint yang valid
+3. [ ] Create migration guide jika ada breaking changes
 
 ---
 
-## NEXT STEPS
+## 📌 CATATAN TAMBAHAN
 
-Would you like me to:
-1. Start with Phase 1 (Extract Utilities)?
-2. Create the utility files and refactor dashboard.tsx?
-3. Fix the hardcoded API URLs first?
-4. Run CSS audit and cleanup?
+### Endpoint yang Mungkin Berguna untuk Development
+Jika ingin keep test endpoints untuk development:
+- Pindahkan ke file terpisah: `backend/routers/debug.py`
+- Hanya load router jika `ENVIRONMENT != "production"`
+- Tambahkan prefix `/debug/` untuk semua test endpoints
 
-Please confirm which optimization you'd like to proceed with first.
+### Contoh Implementation:
+```python
+# main.py
+if os.getenv("ENVIRONMENT") != "production":
+    from routers import debug
+    app.include_router(debug.router, prefix="/debug", tags=["debug"])
+```
+
+---
+
+## ✅ KESIMPULAN
+
+Total cleanup yang direkomendasikan:
+- **~190 lines** kode yang bisa dihapus
+- **5 endpoints** yang tidak digunakan
+- **1 file** yang redundant
+- **1 duplikasi** kode yang harus diperbaiki
+
+**Estimasi Waktu:** 30-45 menit  
+**Risk Level:** LOW (semua endpoint yang dihapus tidak digunakan di frontend)  
+**Testing Required:** Regression test untuk memastikan semua fitur utama masih berfungsi
+
+---
+
+**End of Report**

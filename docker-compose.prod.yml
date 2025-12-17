@@ -10,16 +10,25 @@ services:
       args:
         - BUILDKIT_INLINE_CACHE=1
     env_file:
-      - backend/.env
+      - backend/.env.production
     ports:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=WARNING # Reduce logging to prevent Railway rate limits
-      # 🚀 PRODUCTION OPTIMIZED: 60 Parallel Fetch + 15 Parallel Embedding
+      # 🚀 PRODUCTION OPTIMIZED: HTTP/2 + Connection Pooling (2000 max connections)
+      - HTTPX_HTTP2=1
+      - HTTPX_MAX_CONNECTIONS=2000
+      - HTTPX_MAX_KEEPALIVE=500
+      - HTTPX_KEEPALIVE_EXPIRY=180
+      # Parallel Processing Configuration
       - BULK_UPLOAD_BATCH_SIZE=60
       - EMBEDDING_BATCH_SIZE=15
+      # Adaptive Embedding Batch Sizes
+      - EMBEDDING_BATCH_SMALL=128
+      - EMBEDDING_BATCH_MEDIUM=64
+      - EMBEDDING_BATCH_LARGE=32
       # CPU Thread Optimization - INCREASED for production performance
       - OMP_NUM_THREADS=16
       - MKL_NUM_THREADS=16
@@ -40,7 +49,7 @@ services:
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 60s # Reduced frequency to avoid interfering with embedding
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 120s
 

@@ -215,20 +215,44 @@ export function ChatPage({
     }
 
     return (
-        <div className="flex-1 flex flex-col h-screen bg-white dark:bg-gray-900">
+        <div className="flex-1 flex flex-col h-screen bg-transparent md:bg-white md:dark:bg-gray-900">
 
 
             {/* Chat Messages Area */}
-            <div ref={chatContainerRef} className={`flex-1 overflow-y-auto ${chatHistory.length === 0 ? 'bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900' : 'bg-gray-50 dark:bg-gray-900 py-6 px-6'}`}>
+            <div ref={chatContainerRef} className={`flex-1 overflow-y-auto ${chatHistory.length === 0 ? 'bg-gradient-to-br from-red-600 via-red-700 to-red-800 md:from-gray-50 md:via-white md:to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900' : 'bg-gray-50 dark:bg-gray-900 py-6 px-4 sm:px-6'}`}>
                 {chatHistory.length === 0 ? (
-                    <div className="h-full flex flex-col items-center relative overflow-hidden">
-                        {/* Subtle Background Pattern */}
-                        <div className="absolute inset-0 opacity-[0.02]" style={{
-                            backgroundImage: 'radial-gradient(circle at 1px 1px, rgb(0 0 0) 1px, transparent 0)',
+                    /* MOBILE: HUGE TEXT | DESKTOP: ORIGINAL LAYOUT */
+                    <div className="h-full flex flex-col items-center justify-between relative overflow-hidden px-6 py-8 md:px-8 md:pt-[20vh]">
+                        {/* Background Pattern - Subtle */}
+                        <div className="absolute inset-0 opacity-10 md:opacity-[0.02]" style={{
+                            backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
                             backgroundSize: '40px 40px'
                         }}></div>
 
-                        <div className="w-full max-w-4xl mx-auto flex flex-col mt-[20vh] px-8 relative z-10">
+                        {/* Large Background DORA Logo - Mobile Only, Above Chat Box */}
+                        <div className="md:hidden absolute -bottom-[93px] -right-[154px] opacity-20 pointer-events-none z-0">
+                            <img
+                                src="/2T.png"
+                                alt="DORA Background"
+                                className="h-[527px] w-[527px] object-contain"
+                            />
+                        </div>
+
+                        {/* MOBILE: Text Only - Top Position, Aligned with Chat Box */}
+                        <div className="flex-1 flex flex-col items-start justify-start w-full relative z-10 pt-16 md:hidden">
+                            {/* HUGE Text - Left Aligned with Padding to Match Chat Box */}
+                            <div className="text-left w-full max-w-4xl pl-4">
+                                <h1 className="text-6xl sm:text-7xl font-bold text-white mb-2 tracking-tight leading-none" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+                                    Hey {userName.split(' ')[0]}!
+                                </h1>
+                                <p className="text-6xl sm:text-7xl font-bold text-white/60 leading-none" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+                                    How can I help you?
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* DESKTOP: ORIGINAL LAYOUT - Hidden on mobile */}
+                        <div className="hidden md:flex w-full max-w-4xl mx-auto flex-col relative z-10">
                             {/* Logo and Greeting */}
                             <div className="flex items-center gap-6 mb-10">
                                 {/* Logo DORA with subtle shadow */}
@@ -242,13 +266,7 @@ export function ChatPage({
                                     <div className="text-base text-gray-500 dark:text-gray-400 font-medium mb-1">
                                         {greeting},
                                     </div>
-                                    <h1 className={`text-4xl font-bold tracking-tight ${(() => {
-                                        const hour = currentTime.getHours();
-                                        if (hour >= 5 && hour < 12) return 'bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent';
-                                        if (hour >= 12 && hour < 15) return 'bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent';
-                                        if (hour >= 15 && hour < 18) return 'bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent';
-                                        return 'bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent';
-                                    })()}`}>
+                                    <h1 className={`text-4xl font-bold tracking-tight ${greetingGradient}`}>
                                         {userName}
                                     </h1>
                                 </div>
@@ -387,6 +405,51 @@ export function ChatPage({
                                     </div>
                                 </div>
                             )}
+                        </div>
+
+                        {/* MOBILE: Floating Chat Input - Bottom with Margins - Smaller Height */}
+                        <div className="w-full px-4 pb-6 relative z-20 md:hidden">
+                            <div className="bg-white/10 dark:bg-white/5 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/30 dark:border-white/20 p-2.5">
+                                <div className="flex gap-3 items-center">
+                                    <div className="flex-1 relative">
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            value={chatMessage}
+                                            onChange={(e) => onChatMessageChange(e.target.value)}
+                                            onKeyPress={onKeyPress}
+                                            placeholder={knowledgeBaseCount === 0 ? "Add documents first..." : "Ask DORA anything..."}
+                                            disabled={isChatLoading || knowledgeBaseCount === 0}
+                                            className="w-full px-5 py-4 bg-transparent border-none focus:outline-none disabled:cursor-not-allowed transition-all text-base sm:text-lg placeholder:text-white/50 dark:placeholder:text-white/40 text-white font-medium"
+                                        />
+                                    </div>
+                                    <Button
+                                        onClick={onSendMessage}
+                                        disabled={!chatMessage.trim() || isChatLoading || knowledgeBaseCount === 0}
+                                        className="bg-white/20 hover:bg-white/30 disabled:bg-white/10 text-white p-3 sm:p-4 rounded-2xl font-medium transition-all shadow-lg hover:shadow-xl disabled:shadow-none min-w-[48px] sm:min-w-[56px] h-[48px] sm:h-[56px] flex items-center justify-center touch-manipulation backdrop-blur-sm"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                    </Button>
+                                </div>
+
+                                {/* Warning if no documents - Compact */}
+                                {knowledgeBaseCount === 0 && (
+                                    <div className="mt-3 px-4 py-2.5 bg-amber-500/20 backdrop-blur-sm border border-amber-300/30 rounded-xl">
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-4 h-4 text-amber-200 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                            <p className="text-xs sm:text-sm text-amber-100 font-medium">
+                                                Add documents to start chatting
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+
+                            </div>
                         </div>
                     </div>
                 ) : (

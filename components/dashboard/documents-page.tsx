@@ -182,25 +182,25 @@ export function DocumentsPage({
         })
 
     return (
-        <div className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-blue-50/30 via-white to-blue-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-gradient-to-br from-blue-50/30 via-white to-blue-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
             <div className="max-w-7xl mx-auto">
                 {/* Header with Inline Notification */}
-                <div className="mb-6">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="mb-4 md:mb-6">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent mb-2">
+                            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent mb-1 md:mb-2">
                                 Documents Management
                             </h1>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                                 Kelola dokumen Google Drive dan Knowledge Base Anda
                             </p>
                         </div>
 
                         {/* Inline Message Display */}
                         {message && (
-                            <div className="flex items-center gap-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-xl shadow-lg border border-blue-200 dark:border-gray-700 px-4 py-2.5 animate-in fade-in slide-in-from-right-4 duration-500">
+                            <div className="flex items-start gap-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-xl shadow-lg border border-blue-200 dark:border-gray-700 px-3 md:px-4 py-2.5 animate-in fade-in slide-in-from-right-4 duration-500 max-w-full md:max-w-md">
                                 {/* Status Indicator */}
-                                <div className={`w-2 h-2 rounded-full ${message.includes('berhasil') || message.includes('dimuat')
+                                <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${message.includes('berhasil') || message.includes('dimuat')
                                     ? 'bg-green-500'
                                     : message.includes('gagal') || message.includes('error')
                                         ? 'bg-red-500'
@@ -208,7 +208,7 @@ export function DocumentsPage({
                                     }`} />
 
                                 {/* Message Text */}
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white whitespace-nowrap">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white break-words">
                                     {message}
                                 </p>
                             </div>
@@ -218,23 +218,23 @@ export function DocumentsPage({
 
 
                 {/* Two Column Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                     {/* Google Drive Section */}
-                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-2xl flex flex-col max-h-[750px]">
+                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl md:rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-2xl flex flex-col max-h-[600px] md:max-h-[750px]">
                         {/* Header */}
-                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 p-4 text-white relative overflow-hidden flex-shrink-0">
+                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 p-3 md:p-4 text-white relative overflow-hidden flex-shrink-0">
                             <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]"></div>
                             <div className="relative">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                                            <FolderIcon className="w-6 h-6" />
+                                <div className="flex items-center justify-between mb-2 md:mb-3">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <div className="p-1.5 md:p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                                            <FolderIcon className="w-5 h-5 md:w-6 md:h-6" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold">Google Drive</h2>
+                                            <h2 className="text-lg md:text-xl font-bold">Google Drive</h2>
                                             {/* Breadcrumb for subfolder */}
                                             {folderHistory.length > 0 ? (
-                                                <div className="flex items-center gap-1.5 text-sm text-blue-100">
+                                                <div className="flex items-center gap-1.5 text-xs md:text-sm text-blue-100">
                                                     <span className="opacity-70">Root</span>
                                                     {folderHistory.map((folder, index) => (
                                                         <React.Fragment key={folder.id}>
@@ -252,7 +252,7 @@ export function DocumentsPage({
                                                     )}
                                                 </div>
                                             ) : (
-                                                <p className="text-sm text-blue-100">
+                                                <p className="text-xs md:text-sm text-blue-100">
                                                     {isShowingRecentFiles ? 'Dokumen Terbaru' : currentFolderName || 'Pilih dokumen'}
                                                 </p>
                                             )}
@@ -261,20 +261,21 @@ export function DocumentsPage({
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5 md:gap-2">
                                     <Button
                                         onClick={() => setShowFolderInput(!showFolderInput)}
-                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2 border border-white/20"
+                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs md:text-sm px-3 md:px-4 h-8 md:h-10 rounded-lg transition-all flex items-center gap-1.5 md:gap-2 border border-white/20"
                                     >
-                                        <FolderIcon className="w-4 h-4" />
-                                        Folder URL
+                                        <FolderIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                        <span className="hidden sm:inline">Folder URL</span>
+                                        <span className="sm:hidden">Folder</span>
                                     </Button>
                                     {(currentFolderId || folderHistory.length > 0) && (
                                         <Button
                                             onClick={onBackToParent}
-                                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2 border border-white/20"
+                                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs md:text-sm px-3 md:px-4 h-8 md:h-10 rounded-lg transition-all flex items-center gap-1.5 md:gap-2 border border-white/20"
                                         >
-                                            <ArrowLeftIcon className="w-4 h-4" />
+                                            <ArrowLeftIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                             Back
                                         </Button>
                                     )}
@@ -284,9 +285,9 @@ export function DocumentsPage({
                                             fetchKnowledgeBase()
                                         }}
                                         disabled={isLoading}
-                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2 border border-white/20 disabled:opacity-50"
+                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs md:text-sm px-3 md:px-4 h-8 md:h-10 rounded-lg transition-all flex items-center gap-1.5 md:gap-2 border border-white/20 disabled:opacity-50"
                                     >
-                                        <RefreshIcon className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                        <RefreshIcon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isLoading ? 'animate-spin' : ''}`} />
                                         Refresh
                                     </Button>
                                 </div>
@@ -487,42 +488,43 @@ export function DocumentsPage({
                     </div>
 
                     {/* Knowledge Base Section */}
-                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-2xl flex flex-col max-h-[750px]">
+                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl md:rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-2xl flex flex-col max-h-[600px] md:max-h-[750px]">
                         {/* Header */}
-                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 p-4 text-white relative overflow-hidden flex-shrink-0">
+                        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 p-3 md:p-4 text-white relative overflow-hidden flex-shrink-0">
                             <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]"></div>
                             <div className="relative">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                                            <DatabaseIcon className="w-6 h-6" />
+                                <div className="flex items-center justify-between mb-2 md:mb-3">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <div className="p-1.5 md:p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                                            <DatabaseIcon className="w-5 h-5 md:w-6 md:h-6" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold">Knowledge Base</h2>
-                                            <p className="text-sm text-blue-100">{knowledgeBase.length} dokumen</p>
+                                            <h2 className="text-lg md:text-xl font-bold">Knowledge Base</h2>
+                                            <p className="text-xs md:text-sm text-blue-100">{knowledgeBase.length} dokumen</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Search and Clear All */}
-                                <div className="flex gap-2">
+                                <div className="flex gap-1.5 md:gap-2">
                                     <div className="relative flex-1">
-                                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                                        <SearchIcon className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 text-white/70 w-3.5 h-3.5 md:w-4 md:h-4" />
                                         <input
                                             type="text"
                                             placeholder="Cari di KB..."
                                             value={kbSearchTerm}
                                             onChange={(e) => setKbSearchTerm(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white placeholder-white/70 text-sm rounded-lg transition-all border border-white/20 focus:ring-2 focus:ring-white/40 focus:border-transparent"
+                                            className="w-full h-8 md:h-10 pl-8 md:pl-10 pr-3 md:pr-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white placeholder-white/70 text-xs md:text-sm rounded-lg transition-all border border-white/20 focus:ring-2 focus:ring-white/40 focus:border-transparent"
                                         />
                                     </div>
                                     {knowledgeBase.length > 0 && (
                                         <Button
                                             onClick={onClearAllDocuments}
-                                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2 border border-white/20"
+                                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs md:text-sm px-3 md:px-4 h-8 md:h-10 rounded-lg transition-all flex items-center gap-1.5 md:gap-2 border border-white/20"
                                         >
-                                            <TrashIcon className="w-4 h-4" />
-                                            Clear All
+                                            <TrashIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                            <span className="hidden sm:inline">Clear All</span>
+                                            <span className="sm:hidden">Clear</span>
                                         </Button>
                                     )}
                                 </div>

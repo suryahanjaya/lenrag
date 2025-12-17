@@ -13,6 +13,19 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-slot'],
   },
 
+  // Reduce logging verbosity in development
+  logging: {
+    fetches: {
+      fullUrl: false, // Don't log full URLs
+    },
+  },
+
+  // Suppress some compilation logs
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 5,
+  },
+
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],

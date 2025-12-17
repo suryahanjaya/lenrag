@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface ChatSession {
     id: string;
@@ -39,27 +38,11 @@ export function Sidebar({
     onDeleteChat
 }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-    const [chatToDelete, setChatToDelete] = useState<string | null>(null)
     const messageCount = chatHistory.length
 
     const handleDeleteClick = (sessionId: string, e: React.MouseEvent) => {
         e.stopPropagation()
-        setChatToDelete(sessionId)
-        setDeleteDialogOpen(true)
-    }
-
-    const handleConfirmDelete = () => {
-        if (chatToDelete) {
-            onDeleteChat(chatToDelete)
-        }
-        setDeleteDialogOpen(false)
-        setChatToDelete(null)
-    }
-
-    const handleCancelDelete = () => {
-        setDeleteDialogOpen(false)
-        setChatToDelete(null)
+        onDeleteChat(sessionId)
     }
 
     const formatDate = (timestamp: number) => {
@@ -80,13 +63,20 @@ export function Sidebar({
     return (
         <>
             {/* Collapsible Sidebar with Red Gradient */}
-            <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gradient-to-b from-red-600 via-red-700 to-red-800 dark:from-gray-800 dark:via-gray-900 dark:to-black text-white flex flex-col h-screen transition-all duration-300 shadow-xl relative`}>
-                {/* Toggle Button */}
+            <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gradient-to-b from-red-600 via-red-700 to-red-800 dark:from-gray-800 dark:via-gray-900 dark:to-black text-white flex flex-col h-screen shadow-xl relative`}
+                style={{
+                    transition: 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+            >
+                {/* Toggle Button - Desktop Only - Positioned at center between sidebar and content */}
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="absolute -right-3 top-6 w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors z-10"
+                    className="hidden lg:flex absolute right-[-12px] top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-gray-700 rounded-full shadow-lg items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors z-10 border border-gray-200 dark:border-gray-600"
+                    style={{
+                        transition: 'all 500ms cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}
                 >
-                    <span className="text-red-600 text-xs font-bold">
+                    <span className="text-red-600 dark:text-cyan-400 text-xs font-bold">
                         {isCollapsed ? '›' : '‹'}
                     </span>
                 </button>
@@ -104,9 +94,9 @@ export function Sidebar({
                     ) : (
                         <button
                             onClick={onNewChat}
-                            className="w-full bg-white/20 hover:bg-white/30 rounded-xl py-3 flex items-center justify-center transition-all"
+                            className="w-full aspect-square bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-all border border-white/20"
                         >
-                            <span className="text-xl">+</span>
+                            <span className="text-2xl font-bold">+</span>
                         </button>
                     )}
                 </div>
@@ -117,46 +107,64 @@ export function Sidebar({
                         {/* Chat View Button */}
                         <button
                             onClick={() => onViewChange('chat')}
-                            className={`w-full text-left px-4 py-3 rounded-xl transition-all ${currentView === 'chat'
-                                ? 'bg-white/25 text-white shadow-lg backdrop-blur-sm border border-white/30'
-                                : 'hover:bg-white/10 text-white/80 hover:text-white'
+                            className={`w-full text-left transition-all ${isCollapsed
+                                ? `aspect-square rounded-lg flex items-center justify-center ${currentView === 'chat'
+                                    ? 'bg-white/25 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                    : 'bg-white/10 hover:bg-white/15 text-white/80 hover:text-white border border-white/20'
+                                }`
+                                : `px-4 py-3 rounded-xl ${currentView === 'chat'
+                                    ? 'bg-white/25 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                    : 'hover:bg-white/10 text-white/80 hover:text-white'
+                                }`
                                 }`}
                             title="Chat"
                         >
                             {!isCollapsed ? (
                                 <div className="flex items-center gap-3">
+                                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-semibold truncate text-sm">Chat</p>
                                         <p className="text-xs text-white/70">{messageCount} messages</p>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex justify-center">
-                                    <span className="text-lg">💬</span>
-                                </div>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
                             )}
                         </button>
 
                         {/* Documents View Button */}
                         <button
                             onClick={() => onViewChange('documents')}
-                            className={`w-full text-left px-4 py-3 rounded-xl transition-all ${currentView === 'documents'
-                                ? 'bg-white/25 text-white shadow-lg backdrop-blur-sm border border-white/30'
-                                : 'hover:bg-white/10 text-white/80 hover:text-white'
+                            className={`w-full text-left transition-all ${isCollapsed
+                                ? `aspect-square rounded-lg flex items-center justify-center ${currentView === 'documents'
+                                    ? 'bg-white/25 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                    : 'bg-white/10 hover:bg-white/15 text-white/80 hover:text-white border border-white/20'
+                                }`
+                                : `px-4 py-3 rounded-xl ${currentView === 'documents'
+                                    ? 'bg-white/25 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                    : 'hover:bg-white/10 text-white/80 hover:text-white'
+                                }`
                                 }`}
                             title="Documents"
                         >
                             {!isCollapsed ? (
                                 <div className="flex items-center gap-3">
+                                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-semibold truncate text-sm">Documents</p>
                                         <p className="text-xs text-white/70">Manage files</p>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex justify-center">
-                                    <span className="text-lg">📁</span>
-                                </div>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
                             )}
                         </button>
                     </div>
@@ -211,22 +219,27 @@ export function Sidebar({
 
                 {/* Footer */}
                 {!isCollapsed && (
-                    <div className="p-4 border-t border-white/20">
+                    <div className="p-4 border-t border-white/20 space-y-3">
                         <p className="text-xs text-white/70 text-center font-medium">DORA AI Assistant</p>
+                        <div className="flex flex-col gap-2">
+                            <a
+                                href="/privacy"
+                                target="_blank"
+                                className="text-xs text-white/60 hover:text-white text-center transition-colors duration-200 hover:underline"
+                            >
+                                Privacy Policy
+                            </a>
+                            <a
+                                href="/terms"
+                                target="_blank"
+                                className="text-xs text-white/60 hover:text-white text-center transition-colors duration-200 hover:underline"
+                            >
+                                Terms of Service
+                            </a>
+                        </div>
                     </div>
                 )}
             </div>
-
-            {/* Confirm Delete Dialog */}
-            <ConfirmDialog
-                isOpen={deleteDialogOpen}
-                title="Delete Chat?"
-                message="This chat will be permanently deleted. This action cannot be undone."
-                confirmText="Delete"
-                cancelText="Cancel"
-                onConfirm={handleConfirmDelete}
-                onCancel={handleCancelDelete}
-            />
         </>
     )
 }

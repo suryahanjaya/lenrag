@@ -2,9 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException, Depends, status, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-import httpx
 from dotenv import load_dotenv
 import logging
 import time
@@ -54,11 +52,12 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("httpcore").setLevel(logging.ERROR)
 logging.getLogger("services.google_auth").setLevel(logging.WARNING)
 logging.getLogger("services.google_docs").setLevel(logging.WARNING)
-logging.getLogger("services.rag_pipeline").setLevel(logging.WARNING)
+logging.getLogger("services.rag_pipeline").setLevel(logging.ERROR)
 logging.getLogger("utils.http_client").setLevel(logging.ERROR)
 logging.getLogger("utils.cache").setLevel(logging.WARNING)
 logging.getLogger("chromadb").setLevel(logging.ERROR)
-logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+# Suppress HTTP access logs completely (OPTIONS, GET, POST, etc.)
+logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
 
 app = FastAPI(title="DORA - Document Retrieval Assistant", version="2.0.0")
 
@@ -91,8 +90,20 @@ if environment != "production":
     logger.info("🚀 DORA BACKEND CONFIGURATION")
     logger.info("=" * 60)
     logger.info(f"📊 Environment: {settings.environment}")
-    logger.info(f"🔧 Bulk Upload Batch Size: {settings.bulk_upload_batch_size} (parallel fetch)")
-    logger.info(f"🧠 Embedding Batch Size: {settings.embedding_batch_size} (parallel embedding)")
+    
+    # Railway/Vercel Detection
+    if settings.is_memory_constrained:
+        logger.warning("⚠️ MEMORY CONSTRAINED MODE ACTIVE (Railway/Vercel)")
+        logger.warning("🔧 Using optimized settings for limited memory:")
+        logger.warning(f"   - Bulk Upload Batch: {settings.bulk_upload_batch_size} files (vs 60 on Docker)")
+        logger.warning(f"   - Embedding Batch: {settings.embedding_batch_size} files (vs 15 on Docker)")
+        logger.warning(f"   - Log Level: WARNING (vs INFO on Docker)")
+        logger.warning("💡 For bulk uploads, consider using Docker/localhost")
+    else:
+        logger.info("🚀 HIGH PERFORMANCE MODE (Docker/Localhost)")
+        logger.info(f"🔧 Bulk Upload Batch Size: {settings.bulk_upload_batch_size} (parallel fetch)")
+        logger.info(f"🧠 Embedding Batch Size: {settings.embedding_batch_size} (parallel embedding)")
+    
     logger.info(f"📝 Chunk Size: {settings.chunk_size} characters")
     logger.info(f"🔄 Chunk Overlap: {settings.chunk_overlap} characters")
     logger.info(f"🤖 LLM Provider: {RAGConfig.LLM_PROVIDER}")
@@ -136,7 +147,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             
         return user_info
     except Exception as e:
-        logger.error(f"Token validation error: {e}")
+        # Only log authentication errors occasionally to prevent spam
+        # Don't log every single auth failure (too verbose when token expires)
+        error_msg = str(e)
+        if "UNAUTHENTICATED" not in error_msg and "invalid" not in error_msg.lower():
+            # Only log unexpected errors, not common auth failures
+            logger.error(f"Token validation error: {e}")
+        
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials"
@@ -247,53 +264,6 @@ async def get_user_documents(
         logger.error(f"Unexpected error fetching documents: {e}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-@app.post("/documents/from-folder", response_model=List[DocumentResponse])
-async def get_documents_from_folder(
-    request: FolderRequest,
-    x_google_token: Optional[str] = Header(None),
-    current_user = Depends(get_current_user)
-):
-    """Fetch documents from a specific Google Drive folder (public or private)"""
-    try:
-        # Get access token from header
-        access_token = x_google_token
-            
-        logger.info(f"Fetching documents from folder: {request.folder_url}")
-        
-        # Fetch documents from the specific folder
-        try:
-            documents = await google_docs_service.list_documents_from_folder(
-                request.folder_url, 
-                access_token
-            )
-            logger.info(f"Successfully fetched {len(documents)} documents from folder")
-            return documents
-        except Exception as api_error:
-            logger.error(f"Google API error: {api_error}")
-            
-            # If it's an auth error, provide clear instructions
-            if "401" in str(api_error) or "invalid" in str(api_error).lower():
-                raise HTTPException(
-                    status_code=401,
-                    detail="Google access token is invalid or expired. Please sign out and sign in again with Google."
-                )
-            elif "403" in str(api_error) or "permission" in str(api_error).lower():
-                raise HTTPException(
-                    status_code=403,
-                    detail="Insufficient permissions or folder is not accessible. Please check if the folder is public or you have access to it."
-                )
-            else:
-                # For other errors, return the actual error to help debug
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to fetch documents from folder: {str(api_error)}"
-                )
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error fetching documents from folder: {e}")
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.post("/documents/from-folder-all", response_model=List[DocumentResponse])
 async def get_all_documents_from_folder(
@@ -437,23 +407,49 @@ async def bulk_upload_parallel_stream(
             
             user_id = current_user.get('sub', current_user.get('id', 'default_user'))
             
-            # Step 1: Get all documents
+            # Step 1: Get all documents from folder
             yield f"data: {json.dumps({'status': 'scanning', 'message': '🔍 Scanning folder...'})}\n\n"
             
             all_documents = await google_docs_service.list_all_documents_from_folder(request.folder_url, access_token)
-            total = len(all_documents)
+            total_found = len(all_documents)
             
-            if total == 0:
+            if total_found == 0:
                 yield f"data: {json.dumps({'status': 'error', 'error': 'No documents found'})}\n\n"
                 return
             
-            yield f"data: {json.dumps({'status': 'found', 'total': total, 'message': f'📊 Found {total} files - ULTRA FAST MODE: 60 parallel fetch + 15 parallel embedding!'})}\n\n"
+            # Step 1.5: Check for existing documents (DUPLICATE DETECTION)
+            yield f"data: {json.dumps({'status': 'checking', 'message': f'🔍 Checking for duplicates in {total_found} files...'})}\n\n"
             
-            # Step 2: Process in PARALLEL BATCHES
+            # Extract document IDs
+            doc_ids = [doc['id'] for doc in all_documents]
+            
+            # Get existing document IDs from ChromaDB
+            existing_doc_ids = dora_pipeline.get_existing_document_ids(user_id, doc_ids)
+            
+            # Filter out documents that already exist
+            new_documents = [doc for doc in all_documents if doc['id'] not in existing_doc_ids]
+            skipped_documents = [doc for doc in all_documents if doc['id'] in existing_doc_ids]
+            
+            total = len(new_documents)
+            skipped_count = len(skipped_documents)
+            
+            # Notify user about duplicates (only log if there are duplicates)
+            if skipped_count > 0:
+                logger.warning(f"⏭️ Skipped {skipped_count}/{total_found} duplicate files")
+                yield f"data: {json.dumps({'status': 'duplicates_found', 'skipped': skipped_count, 'message': f'⏭️ Skipped {skipped_count} duplicate files (already in knowledge base)'})}\n\n"
+            
+            if total == 0:
+                yield f"data: {json.dumps({'status': 'complete', 'processed': 0, 'total': total_found, 'skipped': skipped_count, 'failed': 0, 'message': f'All {total_found} files already exist in knowledge base. No new files to upload.'})}\n\n"
+                return
+            
+            yield f"data: {json.dumps({'status': 'found', 'total': total, 'skipped': skipped_count, 'message': f'📊 Found {total} NEW files to upload (skipped {skipped_count} duplicates) - ULTRA FAST MODE: 60 parallel fetch + 15 parallel embedding!'})}\n\n"
+            
+            # Step 2: Process in PARALLEL BATCHES (only NEW documents)
             FETCH_BATCH_SIZE = settings.bulk_upload_batch_size  # 60 for fetch (Network Bound)
             EMBED_BATCH_SIZE = settings.embedding_batch_size  # 15 for Extraction & Embedding (CPU Bound)
             processed = 0
             failed = []
+            
             
             async def fetch_raw_only(doc):
                 """Fetch RAW content (bytes) without parsing. Fast!"""
@@ -484,11 +480,12 @@ async def bulk_upload_parallel_stream(
                     return
 
                 batch_end = min(batch_start + FETCH_BATCH_SIZE, total)
-                batch = all_documents[batch_start:batch_end]
+                batch = new_documents[batch_start:batch_end]  # Use new_documents instead of all_documents
                 batch_num = batch_start // FETCH_BATCH_SIZE + 1
                 total_batches = (total + FETCH_BATCH_SIZE - 1) // FETCH_BATCH_SIZE
                 
                 yield f"data: {json.dumps({'status': 'batch_start', 'batch': batch_num, 'total_batches': total_batches, 'message': f'⚡ Batch {batch_num}/{total_batches}: Downloading {len(batch)} files (RAW)...'})}\n\n"
+
                 
                 # STEP 1: Fetch ALL RAW DATA in parallel (60 at once) - Network Bound (Fast)
                 fetch_tasks = [fetch_raw_only(doc) for doc in batch]
@@ -562,13 +559,6 @@ async def bulk_upload_parallel_stream(
                             timeout=1800.0
                         )
                         
-                        # Call the new BULK method
-                        # 5 minute timeout per bulk batch
-                        bulk_results = await asyncio.wait_for(
-                            dora_pipeline.add_documents_bulk(user_id, bulk_docs_input),
-                            timeout=300.0
-                        )
-                        
                         logger.info(f"  ✅ Bulk process finished: {len(bulk_results)} docs saved")
                         
                         # Stream results for each document in the batch
@@ -605,8 +595,15 @@ async def bulk_upload_parallel_stream(
                 
                 yield f"data: {json.dumps({'status': 'batch_complete', 'batch': batch_num, 'processed': processed, 'total': total, 'message': f'✅ Batch {batch_num}/{total_batches} complete: {processed}/{total} files'})}\n\n"
             
-            # Send completion
-            yield f"data: {json.dumps({'status': 'complete', 'processed': processed, 'total': total, 'failed': len(failed), 'message': f'{processed}/{total} files uploaded'})}\n\n"
+            # Send completion with detailed summary
+            summary_message = f'✅ Upload complete: {processed}/{total} new files uploaded'
+            if skipped_count > 0:
+                summary_message += f', {skipped_count} duplicates skipped'
+            if len(failed) > 0:
+                summary_message += f', {len(failed)} failed'
+            
+            yield f"data: {json.dumps({'status': 'complete', 'processed': processed, 'total': total, 'skipped': skipped_count, 'failed': len(failed), 'total_found': total_found, 'message': summary_message})}\n\n"
+
             
         except Exception as e:
             logger.error(f"Streaming upload error: {e}")
@@ -641,13 +638,32 @@ async def add_documents_to_knowledge_base(
         failed_documents = []
         
         user_id = current_user.get('sub', current_user.get('id', 'default_user'))
-        logger.info(f"📁 BULK UPLOAD: Processing {len(request.document_ids)} documents for user {user_id}")
+        logger.info(f"📁 Processing {len(request.document_ids)} documents for user {user_id}")
         
-        # Check if this is a bulk upload (multiple documents)
-        is_bulk_upload = len(request.document_ids) > 1
+        # 🆕 DUPLICATE DETECTION: Check which documents already exist
+        existing_doc_ids = dora_pipeline.get_existing_document_ids(user_id, request.document_ids)
+        new_doc_ids = [doc_id for doc_id in request.document_ids if doc_id not in existing_doc_ids]
+        skipped_doc_ids = [doc_id for doc_id in request.document_ids if doc_id in existing_doc_ids]
+        
+        # Log duplicate detection results
+        if len(skipped_doc_ids) > 0:
+            logger.warning(f"⏭️ Skipped {len(skipped_doc_ids)}/{len(request.document_ids)} duplicate files")
+        
+        # If all documents already exist, return early
+        if len(new_doc_ids) == 0:
+            return {
+                "message": f"All {len(request.document_ids)} documents already exist in knowledge base",
+                "processed_count": 0,
+                "total_requested": len(request.document_ids),
+                "skipped_count": len(skipped_doc_ids),
+                "failed_documents": []
+            }
+        
+        # Check if this is a bulk upload (multiple NEW documents)
+        is_bulk_upload = len(new_doc_ids) > 1
         
         if is_bulk_upload:
-            logger.info(f"📁 BULK UPLOAD DETECTED: Processing {len(request.document_ids)} documents without re-fetching metadata")
+            logger.info(f"📁 BULK UPLOAD: Processing {len(new_doc_ids)} NEW documents (skipped {len(skipped_doc_ids)} duplicates)")
             # For bulk upload, we don't need to fetch all documents metadata
             # We'll get metadata for each document individually to avoid unnecessary API calls
             documents_lookup = {}
@@ -661,7 +677,8 @@ async def add_documents_to_knowledge_base(
             documents_lookup = {doc['id']: doc for doc in all_documents}
             logger.info("📊 Created documents lookup dictionary")
         
-        for i, doc_id in enumerate(request.document_ids, 1):
+        for i, doc_id in enumerate(new_doc_ids, 1):  # Only process NEW documents
+
             try:
                 if is_bulk_upload:
                     logger.info(f"📄 [{i}/{len(request.document_ids)}] Processing document {doc_id}")
@@ -673,14 +690,14 @@ async def add_documents_to_knowledge_base(
                     # For bulk upload, get metadata for each document individually
                     doc_metadata = await google_docs_service.get_document_metadata(access_token, doc_id)
                     if not doc_metadata:
-                        logger.warning(f"⚠️ Document {doc_id} not found in user's documents")
+                        logger.info(f"📄 Document {doc_id} not found in user's documents (may be from folder or permission issue)")
                         failed_documents.append({"id": doc_id, "error": "Not found in user's documents"})
                         continue
                 else:
                     # Use cached metadata for single document
                     doc_metadata = documents_lookup.get(doc_id)
                     if not doc_metadata:
-                        logger.warning(f"⚠️ Document {doc_id} not found in user's documents")
+                        logger.info(f"📄 Document {doc_id} not found in user's documents (may be from folder or permission issue)")
                         failed_documents.append({"id": doc_id, "error": "Not found in user's documents"})
                         continue
                 
@@ -708,7 +725,7 @@ async def add_documents_to_knowledge_base(
                 
                 if chunks_added > 0:
                     if is_bulk_upload:
-                        logger.info(f"✅ [{i}/{len(request.document_ids)}] Successfully added document {doc_id} to knowledge base ({chunks_added} chunks)")
+                        logger.info(f"✅ [{i}/{len(new_doc_ids)}] Successfully added document {doc_id} to knowledge base ({chunks_added} chunks)")
                     else:
                         logger.info(f"✅ Successfully added document {doc_id} to knowledge base ({chunks_added} chunks)")
                     processed_count += 1
@@ -720,14 +737,20 @@ async def add_documents_to_knowledge_base(
                 logger.error(f"❌ Failed to process document {doc_id}: {e}", exc_info=True)
                 failed_documents.append({"id": doc_id, "error": str(e)})
         
-        logger.info(f"📊 BULK UPLOAD RESULT: {processed_count} successful, {len(failed_documents)} failed")
+        logger.info(f"📊 UPLOAD RESULT: {processed_count} successful, {len(skipped_doc_ids)} skipped, {len(failed_documents)} failed")
         if failed_documents:
-            logger.error(f"❌ Failed documents: {failed_documents}")
+            logger.info(f"📄 Failed documents: {failed_documents}")
+        
+        # Build response message
+        message = f"Successfully added {processed_count} documents to knowledge base"
+        if len(skipped_doc_ids) > 0:
+            message += f" ({len(skipped_doc_ids)} duplicates skipped)"
         
         return {
-            "message": f"Successfully added {processed_count} documents to knowledge base",
+            "message": message,
             "processed_count": processed_count,
             "total_requested": len(request.document_ids),
+            "skipped_count": len(skipped_doc_ids),
             "failed_documents": failed_documents
         }
     
@@ -877,200 +900,6 @@ async def get_database_stats(current_user = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-@app.get("/auth-status")
-async def check_auth_status():
-    """Check authentication configuration"""
-    return {
-        "google_client_id_configured": bool(os.getenv("GOOGLE_CLIENT_ID")),
-        "google_client_secret_configured": bool(os.getenv("GOOGLE_CLIENT_SECRET")),
-        "gemini_api_configured": bool(os.getenv("GEMINI_API_KEY")),
-        "oauth_redirect_uri": "http://localhost:3000/auth/callback",
-        "instructions": [
-            "1. Go to http://localhost:3000",
-            "2. Click 'Sign in with Google'", 
-            "3. Complete OAuth authorization",
-            "4. Go to Documents tab to see your Google Docs"
-        ]
-    }
-
-@app.get("/test-token")
-async def test_google_token(
-    x_google_token: Optional[str] = Header(None),
-    current_user = Depends(get_current_user)
-):
-    """Test endpoint to verify Google token"""
-    try:
-        if not x_google_token:
-            return {"error": "No Google token provided", "received_token": None}
-        
-        # Test the token with a simple Google API call
-        url = "https://www.googleapis.com/oauth2/v1/tokeninfo"
-        params = {"access_token": x_google_token}
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params)
-        
-        if response.status_code == 200:
-            token_info = response.json()
-            return {
-                "status": "valid",
-                "token_length": len(x_google_token),
-                "token_info": {
-                    "scope": token_info.get("scope"),
-                    "expires_in": token_info.get("expires_in"),
-                    "email": token_info.get("email")
-                }
-            }
-        else:
-            return {
-                "status": "invalid", 
-                "error": response.text,
-                "token_length": len(x_google_token)
-            }
-            
-    except Exception as e:
-        return {"error": str(e), "token_received": x_google_token is not None}
-
-@app.post("/test-folder-access")
-async def test_folder_access(
-    request: FolderRequest,
-    x_google_token: Optional[str] = Header(None),
-    current_user = Depends(get_current_user)
-):
-    """Test access to a specific Google Drive folder"""
-    try:
-        if not x_google_token:
-            return {"error": "No Google token provided"}
-        
-        logger.info(f"Testing folder access: {request.folder_url}")
-        
-        # Test the folder access
-        documents = await google_docs_service.list_documents_from_folder(
-            request.folder_url, 
-            x_google_token
-        )
-        
-        return {
-            "status": "success",
-            "folder_url": request.folder_url,
-            "documents_found": len(documents),
-            "sample_documents": documents[:3] if documents else [],
-            "token_info": {
-                "length": len(x_google_token),
-                "prefix": x_google_token[:30]
-            }
-        }
-            
-    except Exception as e:
-        logger.error(f"Folder access test error: {e}")
-        return {"error": str(e), "folder_url": request.folder_url}
-
-@app.get("/test-google-docs-service")
-async def test_google_docs_service(
-    x_google_token: Optional[str] = Header(None),
-    current_user = Depends(get_current_user)
-):
-    """Test the Google Docs service directly"""
-    try:
-        if not x_google_token:
-            return {"error": "No Google token provided"}
-        
-        logger.info(f"Testing Google Docs service with token: {x_google_token[:20]}...")
-        
-        # Test the Google Docs service
-        documents = await google_docs_service.list_documents(x_google_token)
-        
-        return {
-            "status": "success",
-            "documents_found": len(documents),
-            "sample_documents": documents[:3] if documents else [],
-            "token_info": {
-                "length": len(x_google_token),
-                "prefix": x_google_token[:30]
-            }
-        }
-            
-    except Exception as e:
-        logger.error(f"Google Docs service test error: {e}")
-        return {"error": str(e), "token_received": x_google_token is not None}
-
-@app.get("/test-drive-direct")
-async def test_drive_api_direct(
-    x_google_token: Optional[str] = Header(None),
-    current_user = Depends(get_current_user)
-):
-    """Test Google Drive API directly without validation"""
-    try:
-        if not x_google_token:
-            return {"error": "No Google token provided"}
-        
-        logger.info(f"Testing Drive API with token: {x_google_token[:20]}...")
-        
-        # Test Google Drive API directly with the fixed query
-        url = "https://www.googleapis.com/drive/v3/files"
-        params = {
-            'q': ("(mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
-                  "mimeType='application/pdf' or "
-                  "mimeType='text/plain' or "
-                  "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or "
-                  "mimeType='application/vnd.google-apps.document' or "
-                  "mimeType='application/vnd.google-apps.presentation') and "
-                  "trashed=false"),
-            'pageSize': 10,
-            'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType)'
-        }
-        
-        headers = {
-            'Authorization': f'Bearer {x_google_token}',
-            'Content-Type': 'application/json'
-        }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params, headers=headers)
-        
-        result = {
-            "status_code": response.status_code,
-            "response": response.json() if response.status_code == 200 else response.text,
-            "token_format": {
-                "length": len(x_google_token),
-                "starts_with_ya29": x_google_token.startswith('ya29.'),
-                "starts_with_1": x_google_token.startswith('1//'),
-                "prefix": x_google_token[:30]
-            }
-        }
-        
-        # If no files found, try a broader search
-        if response.status_code == 200:
-            data = response.json()
-            files = data.get('files', [])
-            if len(files) == 0:
-                logger.info("No files found with specific query, trying broader search...")
-                broader_params = {
-                    'q': 'trashed=false',
-                    'pageSize': 10,
-                    'fields': 'files(id,name,createdTime,modifiedTime,webViewLink,size,mimeType)'
-                }
-                
-                async with httpx.AsyncClient() as client:
-                    broader_response = await client.get(url, params=broader_params, headers=headers)
-                
-                if broader_response.status_code == 200:
-                    broader_data = broader_response.json()
-                    result["broader_search"] = {
-                        "status_code": broader_response.status_code,
-                        "files_found": len(broader_data.get('files', [])),
-                        "sample_files": broader_data.get('files', [])[:3]  # First 3 files
-                    }
-        
-        logger.info(f"Drive API test result: {result}")
-        return result
-            
-    except Exception as e:
-        logger.error(f"Drive API test error: {e}")
-        return {"error": str(e)}
-
-
 @app.get("/knowledge-base")
 async def get_knowledge_base_documents(current_user = Depends(get_current_user)):
     """Get actual documents in the knowledge base with metadata"""
@@ -1128,4 +957,5 @@ async def get_knowledge_base_documents(current_user = Depends(get_current_user))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Disable access logs to reduce log spam
+    uvicorn.run(app, host="0.0.0.0", port=8000, access_log=False)

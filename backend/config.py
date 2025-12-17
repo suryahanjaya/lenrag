@@ -72,19 +72,30 @@ class Settings(BaseSettings):
     max_bulk_upload_documents: int = Field(default=100, env="MAX_BULK_UPLOAD_DOCUMENTS")
     concurrent_processing_limit: int = Field(default=5, env="CONCURRENT_PROCESSING_LIMIT")
     
-    # Bulk Upload Optimization - SPEED OPTIMIZED
-    bulk_upload_batch_size: int = Field(
-        default=60,  # 🔥 FAST! 60 parallel = ~4-6 mins for 150 files with MiniLM
-        env="BULK_UPLOAD_BATCH_SIZE",
-        description="Number of documents to process in parallel per batch. 60 = FAST (needs 8GB+ RAM). Use 30 for limited RAM, 100 for 16GB+ RAM."
-    )
+    # Railway/Vercel Detection - Auto-optimize for limited memory
+    is_railway: bool = Field(default=False, env="RAILWAY_ENVIRONMENT")
+    is_vercel: bool = Field(default=False, env="VERCEL")
     
-    # Embedding Batch Optimization - CPU/GPU BOUND OPERATIONS
-    embedding_batch_size: int = Field(
-        default=15,  # 🔥 OPTIMAL! 15 parallel embedding/chunking (CPU/GPU intensive)
-        env="EMBEDDING_BATCH_SIZE",
-        description="Number of documents to embed in parallel. 15 = OPTIMAL for CPU/GPU bound operations. Lower if limited CPU/RAM."
-    )
+    @property
+    def is_memory_constrained(self) -> bool:
+        """Detect if running on memory-constrained environment (Railway/Vercel free tier)"""
+        return self.is_railway or self.is_vercel or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("VERCEL")
+    
+    # Bulk Upload Optimization - ADAPTIVE BASED ON ENVIRONMENT
+    @property
+    def bulk_upload_batch_size(self) -> int:
+        """Adaptive batch size based on environment"""
+        if self.is_memory_constrained:
+            return int(os.getenv("BULK_UPLOAD_BATCH_SIZE", "3"))  # 🔥 RAILWAY: 3 files at a time to prevent OOM
+        return int(os.getenv("BULK_UPLOAD_BATCH_SIZE", "60"))  # 🔥 DOCKER/LOCAL: 60 parallel
+    
+    # Embedding Batch Optimization - ADAPTIVE BASED ON ENVIRONMENT
+    @property
+    def embedding_batch_size(self) -> int:
+        """Adaptive embedding batch size based on environment"""
+        if self.is_memory_constrained:
+            return int(os.getenv("EMBEDDING_BATCH_SIZE", "1"))  # 🔥 RAILWAY: 1 file at a time
+        return int(os.getenv("EMBEDDING_BATCH_SIZE", "15"))  # 🔥 DOCKER/LOCAL: 15 parallel
     
     # Cache Configuration
     cache_ttl_seconds: int = Field(default=300, env="CACHE_TTL_SECONDS")
@@ -144,7 +155,13 @@ class RAGConfig:
 
 # Logging configuration
 def get_log_config():
-    """Get logging configuration dictionary."""
+    """Get logging configuration dictionary - MEMORY OPTIMIZED for Railway."""
+    # Detect if running on Railway/Vercel (memory-constrained)
+    is_memory_constrained = os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("VERCEL")
+    
+    # Use WARNING level on Railway to reduce log spam and memory usage
+    log_level = "WARNING" if is_memory_constrained else settings.log_level
+    
     return {
         "version": 1,
         "disable_existing_loggers": False,
@@ -153,29 +170,20 @@ def get_log_config():
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
-            "detailed": {
-                "format": "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S",
+            "minimal": {
+                "format": "%(levelname)s - %(message)s",  # Minimal for Railway
             },
         },
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
-                "level": settings.log_level,
-                "formatter": "default",
+                "level": log_level,
+                "formatter": "minimal" if is_memory_constrained else "default",
                 "stream": "ext://sys.stdout",
-            },
-            "file": {
-                "class": "logging.handlers.RotatingFileHandler",
-                "level": settings.log_level,
-                "formatter": "detailed",
-                "filename": "logs/dora.log",
-                "maxBytes": 10485760,  # 10MB
-                "backupCount": 5,
             },
         },
         "root": {
-            "level": settings.log_level,
-            "handlers": ["console", "file"] if settings.environment == "production" else ["console"],
+            "level": log_level,
+            "handlers": ["console"],  # Only console for Railway (no file logging)
         },
     }

@@ -95,13 +95,16 @@ class GoogleAuthService:
                 response = await client.get(user_info_url)
                 
                 if response.status_code != 200:
-                    logger.warning(f"v3 endpoint failed, trying v2: {response.text}")
+                    # Use DEBUG instead of WARNING - this is normal fallback behavior
+                    logger.debug(f"v3 endpoint failed, trying v2: {response.text}")
                     # Fallback to v2 endpoint (still within same client context)
                     user_info_url = f"https://www.googleapis.com/oauth2/v2/userinfo?access_token={access_token}"
                     response = await client.get(user_info_url)
                     
                     if response.status_code != 200:
-                        logger.error(f"Failed to get user info from both endpoints: {response.text}")
+                        # Don't log if it's just invalid/expired token
+                        if "UNAUTHENTICATED" not in response.text and "Invalid Credentials" not in response.text:
+                            logger.error(f"Failed to get user info from both endpoints: {response.text}")
                         raise Exception(f"Failed to get user info: {response.text}")
                 
                 user_info = response.json()
@@ -133,7 +136,11 @@ class GoogleAuthService:
             return user_info
             
         except Exception as e:
-            logger.error(f"Error getting user info: {e}")
+            # Don't log common auth failures (expired/invalid tokens) - too verbose
+            error_msg = str(e)
+            if "UNAUTHENTICATED" not in error_msg and "Invalid Credentials" not in error_msg:
+                # Only log unexpected errors
+                logger.error(f"Error getting user info: {e}")
             raise
     
     async def refresh_access_token(self, refresh_token: str) -> dict:

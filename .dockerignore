@@ -83,8 +83,15 @@ backend/cache/
 Thumbs.db
 .DS_Store
 
+# Deployment & Scripts
+deploy-*.sh
+deploy-*.ps1
+*.backup
+backups/
+
 # Misc
 .github/
 LICENSE
 *.tsbuildinfo
 .eslintcache
+

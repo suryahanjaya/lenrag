@@ -83,6 +83,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   // Upload cancellation
   const uploadAbortController = useRef<AbortController | null>(null);
 
+  // Throttle knowledge base refresh during bulk upload
+  const lastKBRefreshTime = useRef<number>(0);
+  const KB_REFRESH_THROTTLE_MS = 3000; // Refresh max once every 3 seconds
+
   // Confirm dialog state
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmDialogData, setConfirmDialogData] = useState<{
@@ -96,6 +100,9 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Mobile sidebar state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Initialize theme from localStorage
   useEffect(() => {
@@ -246,6 +253,18 @@ function Dashboard({ user, onLogout }: DashboardProps) {
     } catch (error) {
       setKnowledgeBase([]);
     }
+  };
+
+  // Throttled version for bulk upload - only refresh every 3 seconds
+  const fetchKnowledgeBaseThrottled = async () => {
+    const now = Date.now();
+    if (now - lastKBRefreshTime.current < KB_REFRESH_THROTTLE_MS) {
+      // Skip this refresh, too soon since last one
+      return;
+    }
+
+    lastKBRefreshTime.current = now;
+    await fetchKnowledgeBase();
   };
 
   // Fetch all documents from folder (including subfolders)
@@ -517,7 +536,16 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         }
 
         const result = await response.json();
-        setMessage(`Berhasil menambahkan dokumen ke knowledge base!`);
+
+        // Check if document was skipped (already exists)
+        if (result.skipped_count && result.skipped_count > 0 && result.processed_count === 0) {
+          setMessage(`ℹ️ Dokumen sudah ada di knowledge base (duplikat di-skip)`);
+        } else if (result.skipped_count && result.skipped_count > 0) {
+          setMessage(`✅ Berhasil menambahkan ${result.processed_count} dokumen (${result.skipped_count} duplikat di-skip)`);
+        } else {
+          setMessage(`✅ Berhasil menambahkan dokumen ke knowledge base!`);
+        }
+
         setSelectedDocs(new Set());
 
         setTimeout(() => {
@@ -556,7 +584,18 @@ function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
       const result = await response.json();
-      setMessage(`✅ Berhasil menambahkan ${result.processed_count || docCount} dokumen ke knowledge base! (Paralel batch 60)`);
+
+      // Build message based on results
+      let message = '';
+      if (result.processed_count === 0 && result.skipped_count > 0) {
+        message = `ℹ️ Semua ${result.skipped_count} dokumen sudah ada di knowledge base (duplikat di-skip)`;
+      } else if (result.skipped_count && result.skipped_count > 0) {
+        message = `✅ Berhasil menambahkan ${result.processed_count} dokumen (${result.skipped_count} duplikat di-skip)`;
+      } else {
+        message = `✅ Berhasil menambahkan ${result.processed_count || docCount} dokumen ke knowledge base!`;
+      }
+
+      setMessage(message);
       setSelectedDocs(new Set());
 
       setTimeout(() => {
@@ -786,8 +825,8 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 });
                 setBulkUploadStatus(`✅ ${data.doc_name}`);
 
-                // 🚀 PROGRESSIVE: Refresh knowledge base to show new file immediately!
-                fetchKnowledgeBase();
+                // 🚀 PROGRESSIVE: Refresh knowledge base (throttled to prevent spam)
+                fetchKnowledgeBaseThrottled();
               } else if (data.status === 'failed') {
                 setBulkUploadStatus(`⚠️ ${data.doc_name} (${data.reason || 'error'})`);
               } else if (data.status === 'batch_complete') {
@@ -801,7 +840,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 setMessage(data.message);
                 setBulkUploadStatus('✅ Upload complete!');
 
-                // Final refresh
+                // Final refresh (not throttled)
                 await fetchKnowledgeBase();
 
                 // Keep success message visible
@@ -1299,6 +1338,20 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Delete a chat session
   const handleDeleteChat = (sessionId: string) => {
+    // Show custom confirm dialog
+    setConfirmDialogData({
+      title: 'Delete Chat?',
+      message: 'This chat will be permanently deleted. This action cannot be undone.',
+      onConfirm: () => {
+        setShowConfirmDialog(false);
+        performDeleteChat(sessionId);
+      }
+    });
+    setShowConfirmDialog(true);
+  };
+
+  // Actual delete operation
+  const performDeleteChat = (sessionId: string) => {
     setChatSessions(prev => {
       const updated = prev.filter(s => s.id !== sessionId);
       localStorage.setItem('chatSessions', JSON.stringify(updated));
@@ -1337,54 +1390,173 @@ function Dashboard({ user, onLogout }: DashboardProps) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <Sidebar
-        chatHistory={chatHistory}
-        onNewChat={handleNewChat}
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        chatSessions={chatSessions}
-        activeChatId={activeChatId}
-        onSwitchChat={handleSwitchChat}
-        onDeleteChat={handleDeleteChat}
-      />
+    <div className="flex h-screen bg-transparent md:bg-gray-50 md:dark:bg-gray-900">
+      {/* Mobile Overlay */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Responsive */}
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        transform transition-transform duration-300 ease-in-out
+        ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <Sidebar
+          chatHistory={chatHistory}
+          onNewChat={handleNewChat}
+          currentView={currentView}
+          onViewChange={(view) => {
+            setCurrentView(view);
+            setIsMobileSidebarOpen(false); // Close sidebar on mobile after selection
+          }}
+          chatSessions={chatSessions}
+          activeChatId={activeChatId}
+          onSwitchChat={(sessionId) => {
+            handleSwitchChat(sessionId);
+            setIsMobileSidebarOpen(false); // Close sidebar on mobile after selection
+          }}
+          onDeleteChat={handleDeleteChat}
+        />
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navigation Bar - Broken White Gradient */}
-        <nav className="bg-gradient-to-r from-gray-50 via-slate-50 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-4">
+        {/* Top Navigation Bar - Mobile (Adaptive) */}
+        <nav className="lg:hidden bg-gradient-to-r from-red-600 to-red-700 dark:from-gray-900 dark:to-gray-800 border-b border-white/20 px-4 py-3 sticky top-0 z-40">
           <div className="flex items-center justify-between">
-            {/* Left: Logo + Greeting - Only show when chat started */}
-            {chatHistory.length > 0 && (
-              <div className="flex items-center gap-4">
-                <img src="/1T.png" alt="DORA" className="h-10 w-10" />
-                {user && (
-                  <div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {(() => {
-                        const hour = currentTime.getHours();
-                        if (hour >= 5 && hour < 12) return 'Good Morning';
-                        if (hour >= 12 && hour < 15) return 'Good Afternoon';
-                        if (hour >= 15 && hour < 18) return 'Good Evening';
-                        return 'Good Night';
-                      })()},
-                    </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      {user.name}
-                    </div>
-                  </div>
+            {/* Left: Hamburger + Document Count */}
+            <div className="flex items-center gap-2">
+              {/* Hamburger Menu */}
+              <button
+                onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+                className="p-2 hover:bg-white/20 dark:hover:bg-white/10 rounded-lg transition-colors"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+
+              {/* Document Count */}
+              {chatHistory.length === 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-white/90">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="font-semibold">{knowledgeBase.length}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Theme + Profile + Logout */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+              >
+                {isDarkMode ? (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
                 )}
-              </div>
-            )}
+              </button>
 
-            {/* Spacer when no chat */}
-            {chatHistory.length === 0 && <div></div>}
+              {user && (
+                <>
+                  {/* Profile Picture - Responsive size */}
+                  {user.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name || 'User'}
+                      className="w-8 h-8 rounded-full border-2 border-white/30"
+                      onError={(e) => {
+                        // Fallback to initials avatar if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  {/* Fallback Avatar with Initials - Responsive size */}
+                  <div
+                    className="w-8 h-8 rounded-full border-2 border-white/30 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xs"
+                    style={{ display: user.picture ? 'none' : 'flex' }}
+                  >
+                    {user.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
+                  </div>
+                  <button
+                    onClick={onLogout}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </nav>
 
-            {/* Right: Time | Date | Theme Toggle | Profile | Logout */}
-            <div className="flex items-center gap-4">
-              {/* Time with Seconds | Date */}
-              <div className="flex items-center gap-3 text-sm">
+        {/* Top Navigation Bar - Desktop (Solid) */}
+        <nav className="hidden lg:block bg-gradient-to-r from-gray-50 via-slate-50 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40">
+          <div className="flex items-center justify-between">
+            {/* Left: Hamburger (Mobile) + Document Count (Mobile) + Logo + Greeting */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Single Hamburger Menu - Mobile Only */}
+              <button
+                onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+                className="lg:hidden p-2 hover:bg-white/20 dark:hover:bg-white/10 rounded-lg transition-colors"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-6 h-6 text-white dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+
+              {/* Document Count - Mobile Only, when no chat */}
+              {chatHistory.length === 0 && (
+                <div className="lg:hidden flex items-center gap-1.5 text-xs text-white/90 dark:text-gray-300">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="font-semibold">{knowledgeBase.length}</span>
+                </div>
+              )}
+
+              {/* Logo + Greeting - Desktop when chat started */}
+              {chatHistory.length > 0 && (
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <img src="/1T.png" alt="DORA" className="h-8 w-8 sm:h-10 sm:w-10" />
+                  {user && (
+                    <div className="hidden sm:block">
+                      <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {(() => {
+                          const hour = currentTime.getHours();
+                          if (hour >= 5 && hour < 12) return 'Good Morning';
+                          if (hour >= 12 && hour < 15) return 'Good Afternoon';
+                          if (hour >= 15 && hour < 18) return 'Good Evening';
+                          return 'Good Night';
+                        })()},
+                      </div>
+                      <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {user.name}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Time | Date | Theme Toggle | Profile | Logout - Responsive */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Time with Seconds | Date - Hidden on small mobile */}
+              <div className="hidden md:flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                 <span className="font-mono font-semibold text-gray-900 dark:text-gray-100">
                   {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
@@ -1394,10 +1566,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 </span>
               </div>
 
-              {/* Theme Toggle Button */}
+              {/* Theme Toggle Button - Touch friendly */}
               <button
                 onClick={toggleTheme}
-                className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all"
+                className="p-2 sm:p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all touch-manipulation"
                 title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
                 {isDarkMode ? (
@@ -1411,12 +1583,12 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 )}
               </button>
 
-              {/* Profile Picture */}
+              {/* Profile Picture - Responsive size */}
               {user.picture ? (
                 <img
                   src={user.picture}
                   alt={user.name || 'User'}
-                  className="w-9 h-9 rounded-full border-2 border-gray-200 dark:border-gray-600"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-gray-200 dark:border-gray-600"
                   onError={(e) => {
                     // Fallback to initials avatar if image fails to load
                     const target = e.target as HTMLImageElement;
@@ -1426,21 +1598,24 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                   }}
                 />
               ) : null}
-              {/* Fallback Avatar with Initials */}
+              {/* Fallback Avatar with Initials - Responsive size */}
               <div
-                className="w-9 h-9 rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-gray-200 dark:border-gray-600 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xs sm:text-sm"
                 style={{ display: user.picture ? 'none' : 'flex' }}
               >
                 {user.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
               </div>
 
-              {/* Logout Button */}
+              {/* Logout Button - Responsive */}
               {onLogout && (
                 <button
                   onClick={onLogout}
-                  className="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all border border-gray-200 dark:border-gray-600 hover:border-red-200 dark:hover:border-red-700"
+                  className="px-3 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg sm:rounded-xl transition-all border border-gray-200 dark:border-gray-600 hover:border-red-200 dark:hover:border-red-700 touch-manipulation"
                 >
-                  Logout
+                  <span className="hidden sm:inline">Logout</span>
+                  <svg className="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
                 </button>
               )}
             </div>
@@ -1513,7 +1688,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
           isOpen={showConfirmDialog}
           title={confirmDialogData.title}
           message={confirmDialogData.message}
-          confirmText="Yes, Reset"
+          confirmText="Yes, Delete"
           cancelText="Cancel"
           onConfirm={confirmDialogData.onConfirm}
           onCancel={() => setShowConfirmDialog(false)}
