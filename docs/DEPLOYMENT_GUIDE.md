@@ -1,96 +1,184 @@
-# Panduan Deployment: Vercel (Frontend) & Railway (Backend)
+# 🚀 Deployment Guide - Railway & Vercel
 
-Karena aplikasi Anda terdiri dari **Frontend (Next.js)** dan **Backend (Python FastAPI + ChromaDB)**, strategi deployment terbaik adalah memisahkannya:
+## ✅ Security Fixes Applied
 
-1.  **Backend** ➡️ **Railway** (Karena butuh persistent storage untuk Database & Docker)
-2.  **Frontend** ➡️ **Vercel** (Terbaik untuk Next.js)
+### Next.js Security Vulnerability Fixed
+- **Previous Version**: 14.2.33 (HIGH severity vulnerabilities)
+- **New Version**: 14.2.35
+- **CVEs Fixed**:
+  - CVE-2025-55184 (HIGH)
+  - CVE-2025-67779 (HIGH)
 
----
+## 📊 Environment-Specific Batch Sizes
 
-## 🚀 Bagian 1: Deploy Backend di Railway
+### Docker/Localhost (High Performance)
+- **Fetch Batch**: 60 documents in parallel
+- **Embedding Batch**: 15 documents in parallel
+- **Memory**: Unlimited (depends on your system)
+- **Best for**: Bulk uploads (100+ documents)
 
-Kita harus deploy Backend dulu untuk mendapatkan **URL Backend** yang akan dipakai oleh Frontend.
+### Railway (Memory Constrained - 512MB)
+- **Fetch Batch**: 3 documents in parallel
+- **Embedding Batch**: 1 document at a time
+- **Memory**: 512MB (free tier)
+- **Best for**: Small uploads (1-10 documents)
+- **Config File**: `backend/.env.railway`
 
-1.  **Push Kode ke GitHub**
-    *   Pastikan semua kode terbaru sudah ada di repository GitHub Anda.
+### Vercel (Memory Constrained - 512MB)
+- **Fetch Batch**: 1 document at a time
+- **Embedding Batch**: 1 document at a time
+- **Memory**: 512MB (free tier)
+- **Best for**: Frontend only (backend on Railway)
+- **Config File**: `backend/.env.vercel`
 
-2.  **Buka Railway (railway.app)**
-    *   Login dan klik **"New Project"** -> **"Deploy from GitHub repo"**.
-    *   Pilih repository `lenrag`.
+## 🔧 Deployment Instructions
 
-3.  **Konfigurasi Service**
-    *   Klik kartu service repository Anda di canvas Railway.
-    *   Pergi ke tab **Settings**.
-    *   Scroll ke **Service** -> **Builder**.
-    *   Pilih **Dockerconfig**.
-    *   **Dockerfile Path**: Masukkan `Dockerfile.backend` (PENTING!).
-    *   **Context**: Biarkan `.` atau `/`.
+### 1. Railway Backend Deployment
 
-4.  **Setup Environment Variables**
-    *   Pergi ke tab **Variables**.
-    *   Masukkan semua variable dari file `backend/.env` Anda, contoh:
-        *   `GOOGLE_CLIENT_ID`: ...
-        *   `GOOGLE_CLIENT_SECRET`: ...
-        *   `GROQ_API_KEY`: ...
-        *   `GEMINI_API_KEY`: ...
-        *   `ALLOWED_ORIGINS`: `https://your-vercel-app.vercel.app,http://localhost:3000` (Nanti update ini setelah deploy Vercel).
+#### Step 1: Update Environment Variables
+Copy values from `backend/.env.railway` to Railway dashboard:
 
-5.  **Setup Persistent Storage (Wajib untuk Knowledge Base)**
-    *   Pergi ke tab **Volumes**.
-    *   Klik **Add Volume**.
-    *   Mount Path: `/app/chroma_db`.
-    *   *Tanpa ini, data Knowledge Base akan hilang setiap kali restart.*
+```bash
+# Required API Keys
+GROQ_API_KEY=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
+GEMINI_API_KEY=AIzaSyAbKheqy2BnPMepiZeY8HshEVvUN7xj2Lg
 
-6.  **Jalankan (Deploy)**
-    *   Railway akan mulai build. Tunggu sampai sukses.
-    *   Pergi ke tab **Settings** -> **Networking**.
-    *   Klik **Generate Domain** (Nanti Anda akan dapat URL seperti `lenrag-backend-production.up.railway.app`).
-    *   **Copy URL ini**, kita butuh untuk Frontend.
+# Google OAuth
+GOOGLE_CLIENT_ID=1037561815320-nto28rqlmfj2os81om1mm6tgjpuk85gs.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
 
----
+# Memory Optimization (CRITICAL!)
+ENVIRONMENT=production
+LOG_LEVEL=WARNING
+RAILWAY_ENVIRONMENT=true
+BULK_UPLOAD_BATCH_SIZE=3
+EMBEDDING_BATCH_SIZE=1
 
-## 🎨 Bagian 2: Deploy Frontend di Vercel
+# Update these with your actual URLs
+GOOGLE_REDIRECT_URI=https://your-railway-backend.up.railway.app/auth/google
+ALLOWED_ORIGINS=https://your-vercel-frontend.vercel.app
+```
 
-1.  **Buka Vercel (vercel.com)**
-    *   Login -> **"Add New..."** -> **"Project"**.
-    *   Import repository `lenrag` dari GitHub.
+#### Step 2: Update Google OAuth Redirect URIs
+Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+1. Select your OAuth 2.0 Client ID
+2. Add Authorized redirect URIs:
+   - `https://your-railway-backend.up.railway.app/auth/google`
+   - `https://your-vercel-frontend.vercel.app/auth/callback`
 
-2.  **Konfigurasi Project**
-    *   **Framework Preset**: Next.js (Otomatis terdeteksi).
-    *   **Root Directory**: `.` (Default).
+#### Step 3: Deploy to Railway
+```bash
+# Railway will automatically detect and deploy
+# No additional commands needed
+```
 
-3.  **Environment Variables**
-    *   Buka bagian **Environment Variables**.
-    *   Tambahkan variable berikut:
-        *   `NEXT_PUBLIC_BACKEND_URL`: **Paste URL Railway tadi** (Contoh: `https://lenrag-backend-production.up.railway.app`). ⚠️ **Jangan pakai slash (/) di akhir**.
-        *   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: ID Google Client Anda.
-        *   `NEXT_PUBLIC_GOOGLE_CLIENT_SECRET`: Secret Google Client Anda.
+### 2. Vercel Frontend Deployment
 
-4.  **Deploy**
-    *   Klik **Deploy**.
-    *   Tunggu sampai selesai. Vercel akan memberikan URL Frontend (Contoh: `lenrag-frontend.vercel.app`).
+#### Step 1: Update Environment Variables
+Add these in Vercel dashboard:
 
----
+```bash
+# Backend URL (Update with your Railway backend URL)
+NEXT_PUBLIC_BACKEND_URL=https://your-railway-backend.up.railway.app
 
-## 🔗 Bagian 3: Finalisasi (Connecting the Dots)
+# Google OAuth (Same as Railway)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=1037561815320-nto28rqlmfj2os81om1mm6tgjpuk85gs.apps.googleusercontent.com
+```
 
-1.  **Update Google Cloud Console**
-    *   Pergi ke Google Cloud Console -> Credentials.
-    *   Edit OAuth Client ID Anda.
-    *   **Authorized JavaScript origins**: Tambahkan URL Vercel (`https://lenrag-frontend.vercel.app`).
-    *   **Authorized redirect URIs**: Tambahkan URL Vercel + `/auth/callback` (Contoh: `https://lenrag-frontend.vercel.app/auth/callback`).
+#### Step 2: Deploy to Vercel
+```bash
+# Vercel will automatically detect and deploy
+# Or manually trigger deployment
+vercel --prod
+```
 
-2.  **Update Railway Backend**
-    *   Kembali ke Railway -> Tab **Variables**.
-    *   Update `ALLOWED_ORIGINS` supaya menerima request dari Vercel.
-    *   Isi: `http://localhost:3000,https://lenrag-frontend.vercel.app` (Pisahkan dengan koma).
-    *   Railway akan redeploy otomatis.
+### 3. Docker Production Deployment
 
----
+#### Step 1: Use Production Environment
+```bash
+# Copy production environment file
+cp backend/.env.production backend/.env
 
-## ✅ Selesai!
+# Build and run with Docker Compose
+docker-compose -f docker-compose.yml up -d --build
+```
 
-Sekarang aplikasi Anda sudah live:
-*   Frontend: `https://lenrag-frontend.vercel.app`
-*   Backend: `https://lenrag-backend.railway.app`
-*   Database: Tersimpan aman di Railway Volume.
+#### Step 2: Access Application
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000
+
+## ⚠️ Important Notes
+
+### Memory Constraints
+1. **Railway/Vercel Free Tier**: 512MB RAM limit
+   - Can only process 1-3 documents at a time
+   - For bulk uploads (60+ files), use Docker/localhost
+   
+2. **Docker/Localhost**: No memory limit
+   - Can process 60 documents in parallel
+   - Recommended for bulk operations
+
+### Batch Size Recommendations
+
+| Environment | Documents | Fetch Batch | Embed Batch | Time Estimate |
+|-------------|-----------|-------------|-------------|---------------|
+| Docker      | 100 docs  | 60          | 15          | ~5-10 min     |
+| Railway     | 10 docs   | 3           | 1           | ~5-10 min     |
+| Vercel      | 1 doc     | 1           | 1           | ~30-60 sec    |
+
+### OOM Prevention
+If you still get OOM errors on Railway/Vercel:
+1. Reduce `BULK_UPLOAD_BATCH_SIZE` to 1
+2. Reduce `EMBEDDING_BATCH_SIZE` to 1
+3. Set `LOG_LEVEL=ERROR` (less logging = less memory)
+4. Consider upgrading to paid tier for more memory
+
+## 🔍 Troubleshooting
+
+### Railway OOM Errors
+```bash
+# Symptoms: "Out of Memory" error during bulk upload
+# Solution: Reduce batch sizes
+BULK_UPLOAD_BATCH_SIZE=1
+EMBEDDING_BATCH_SIZE=1
+```
+
+### Vercel Deployment Errors
+```bash
+# Symptoms: Build fails or runtime errors
+# Solution: Ensure environment variables are set
+NEXT_PUBLIC_BACKEND_URL=https://your-railway-backend.up.railway.app
+```
+
+### Google OAuth Errors
+```bash
+# Symptoms: redirect_uri_mismatch
+# Solution: Update Google Cloud Console with correct URIs
+# Railway: https://your-railway-backend.up.railway.app/auth/google
+# Vercel: https://your-vercel-frontend.vercel.app/auth/callback
+```
+
+## 📝 Post-Deployment Checklist
+
+- [ ] Next.js upgraded to 14.2.35 (security fix)
+- [ ] Railway environment variables configured
+- [ ] Vercel environment variables configured
+- [ ] Google OAuth redirect URIs updated
+- [ ] CORS origins configured correctly
+- [ ] Test login flow
+- [ ] Test document upload (1-3 documents on Railway)
+- [ ] Test chat functionality
+- [ ] Monitor Railway logs for OOM errors
+
+## 🎯 Recommended Workflow
+
+1. **Development**: Use Docker/localhost for development and bulk uploads
+2. **Production (Small Scale)**: Use Railway + Vercel for small-scale production
+3. **Production (Large Scale)**: Use Docker on VPS/cloud for bulk operations
+
+## 📚 Additional Resources
+
+- [Railway Documentation](https://docs.railway.app/)
+- [Vercel Documentation](https://vercel.com/docs)
+- [Docker Documentation](https://docs.docker.com/)
+- [Next.js Security Advisories](https://github.com/vercel/next.js/security/advisories)

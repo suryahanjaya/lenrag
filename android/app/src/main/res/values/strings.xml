@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DORA</string>
+    <string name="title_activity_main">DORA</string>
+    <string name="package_name">com.dora.app</string>
+    <string name="custom_url_scheme">com.dora.app</string>
+</resources>

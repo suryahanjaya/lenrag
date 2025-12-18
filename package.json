@@ -21,10 +21,15 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@types/node": "^20.19.14",
     "@types/react": "^18.3.25",
     "@types/react-dom": "^18.3.7",
     "autoprefixer": "^10.0.1",
+    "electron": "^39.2.7",
+    "electron-serve": "^3.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.0.0",
     "postcss": "^8",

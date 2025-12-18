@@ -1,98 +1,103 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { TokenManager } from '@/utils/tokenManager'
+import { useEffect } from 'react'
 
 export default function AuthCallback() {
-  const router = useRouter()
-  const isProcessing = useRef(false) // Prevent double request
-
   useEffect(() => {
-    // Prevent double execution
-    if (isProcessing.current) {
-      console.log('Already processing authentication, skipping...')
-      return
-    }
+    const handleAuth = async () => {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const code = params.get('code')
+        const error = params.get('error')
 
-    // Get the authorization code from URL parameters
-    const urlParams = new URLSearchParams(window.location.search)
-    const code = urlParams.get('code')
-    const error = urlParams.get('error')
+        if (error) {
+          console.error('OAuth error:', error)
+          window.location.href = '/?error=' + encodeURIComponent(error)
+          return
+        }
 
-    if (error) {
-      console.error('OAuth error:', error)
-      router.push('/?error=' + encodeURIComponent(error))
-      return
-    }
+        if (!code) {
+          console.error('No authorization code found')
+          window.location.href = '/?error=no_code'
+          return
+        }
 
-    if (code) {
-      // Mark as processing
-      isProcessing.current = true
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || window.location.origin
+        // CRITICAL: redirect_uri MUST match the frontend callback URL registered in Google Console
+        const frontendUrl = window.location.origin
 
-      // Send the code to backend for token exchange
-      handleAuthCallback(code)
-    } else {
-      console.error('No authorization code found')
-      router.push('/?error=no_code')
-    }
-  }, [router])
+        const response = await fetch(`${backendUrl}/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            redirect_uri: `${frontendUrl}/auth/callback`
+          }),
+        })
 
-  const handleAuthCallback = async (code: string) => {
-    try {
-      console.log('Exchanging authorization code for tokens...')
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.detail || 'Authentication failed')
+        }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code }),
-      })
+        const data = await response.json()
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Authentication failed:', errorData)
+        if (typeof window !== 'undefined') {
+          const { TokenManager } = await import('@/utils/tokenManager')
 
-        // Clear processing flag on error
-        isProcessing.current = false
+          // Save user data
+          localStorage.setItem('user', JSON.stringify(data.user))
 
-        throw new Error(errorData.detail || 'Authentication failed')
+          // Use TokenManager to save tokens with consistent keys and expiry
+          TokenManager.saveTokens(
+            data.access_token,
+            data.refresh_token || null,
+            data.expires_in || 3600 // Default to 1 hour if not provided
+          )
+        }
+
+
+
+        window.location.href = '/?auth=success'
+
+      } catch (error) {
+        console.error('Authentication error:', error)
+        window.location.href = '/?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Authentication failed')
       }
-
-      const data = await response.json()
-      console.log('Authentication successful!')
-
-      // Store user data
-      localStorage.setItem('user', JSON.stringify(data.user))
-
-      // Use TokenManager to save tokens with auto-refresh
-      TokenManager.saveTokens(
-        data.access_token,
-        data.refresh_token,
-        3600 // Google tokens expire in 1 hour
-      )
-
-      console.log('✅ Tokens saved with auto-refresh enabled')
-
-      // Use window.location.replace for immediate navigation without adding to history
-      window.location.replace('/?auth=success')
-    } catch (error) {
-      console.error('Authentication error:', error)
-
-      // Clear processing flag on error
-      isProcessing.current = false
-
-      window.location.replace('/?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Authentication failed'))
     }
-  }
+
+    handleAuth()
+  }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
-        <p className="mt-4 text-lg">Completing authentication...</p>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+      fontFamily: 'Inter, sans-serif',
+      color: 'white'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{
+          width: '60px',
+          height: '60px',
+          border: '4px solid rgba(0, 212, 255, 0.2)',
+          borderTop: '4px solid #00d4ff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          margin: '0 auto 20px'
+        }}></div>
+        <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Completing authentication...</h1>
+        <p style={{ opacity: 0.7 }}>Please wait</p>
       </div>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 }
