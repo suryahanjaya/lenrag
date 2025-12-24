@@ -1718,53 +1718,187 @@ curl -X POST http://localhost:8000/chat \
 
 ```
 lenrag/
-├── 📁 app/                          # Next.js app directory
+├── 📁 app/                          # Next.js 14 App Router
 │   ├── page.tsx                     # Main dashboard page
-│   ├── layout.tsx                   # Root layout
-│   └── auth/                        # Authentication pages
-│       └── callback/                # OAuth callback handler
-├── 📁 components/                   # React components
+│   ├── layout.tsx                   # Root layout with providers
+│   ├── globals.css                  # Global styles
+│   ├── icon.png                     # App icon
+│   ├── auth/                        # Authentication
+│   │   └── callback/                # OAuth callback handler
+│   ├── api/                         # API routes
+│   ├── mobile-auth/                 # Mobile authentication
+│   ├── privacy/                     # Privacy policy page
+│   └── terms/                       # Terms of service page
+│
+├── 📁 components/                   # React Components
+│   ├── ErrorBoundary.tsx            # Global error boundary
 │   ├── dashboard/                   # Dashboard components
-│   │   ├── document-list.tsx        # Document list view
-│   │   ├── chat-interface.tsx       # Chat UI
-│   │   └── upload-progress.tsx      # Upload progress indicator
-│   ├── auth/                        # Auth components
-│   │   └── google-auth-button.tsx   # Google sign-in button
-│   └── ui/                          # Reusable UI components
+│   │   ├── chat-interface.tsx       # AI chat interface
+│   │   ├── document-list.tsx        # Document management
+│   │   ├── upload-progress.tsx      # Upload progress UI
+│   │   └── sidebar.tsx              # Navigation sidebar
+│   ├── auth/                        # Authentication components
+│   │   └── google-auth-button.tsx   # Google OAuth button
+│   └── ui/                          # Reusable UI components (Radix UI)
 │       ├── button.tsx               # Button component
 │       ├── card.tsx                 # Card component
-│       └── ...                      # Other UI components
-├── 📁 backend/                      # FastAPI backend
-│   ├── main.py                      # Main application entry
-│   ├── config.py                    # Configuration management
-│   ├── services/                    # Business logic
-│   │   ├── google_auth.py           # Google OAuth service
-│   │   ├── google_docs.py           # Google Docs service
-│   │   └── rag_pipeline.py          # RAG pipeline engine
-│   ├── models/                      # Data models
-│   │   └── schemas.py               # Pydantic schemas
-│   ├── utils/                       # Utility functions
-│   │   ├── http_client.py           # HTTP client with pooling
+│       ├── dialog.tsx               # Dialog/Modal component
+│       ├── input.tsx                # Input component
+│       ├── progress.tsx             # Progress bar
+│       └── toast.tsx                # Toast notifications
+│
+├── 📁 backend/                      # FastAPI Backend
+│   ├── main.py                      # FastAPI app entry point (44KB)
+│   ├── config.py                    # Environment configuration
+│   ├── .env                         # Development environment variables
+│   ├── .env.production              # Production environment variables
+│   ├── .env.railway                 # Railway deployment config
+│   ├── .env.vercel                  # Vercel deployment config
+│   ├── requirements.txt             # Python dependencies
+│   ├── requirements.docker.txt      # Docker-specific dependencies
+│   ├── requirements-dev.txt         # Development dependencies
+│   ├── pytest.ini                   # Pytest configuration
+│   │
+│   ├── services/                    # Business Logic Layer
+│   │   ├── google_auth.py           # Google OAuth 2.0 service
+│   │   ├── google_docs.py           # Google Drive/Docs API (47KB)
+│   │   └── rag_pipeline.py          # RAG pipeline engine (57KB)
+│   │
+│   ├── models/                      # Data Models
+│   │   └── schemas.py               # Pydantic request/response schemas
+│   │
+│   ├── utils/                       # Utility Functions
+│   │   ├── http_client.py           # HTTP/2 client with connection pooling
 │   │   └── cache.py                 # Caching utilities
-│   └── tests/                       # Unit tests
-├── 📁 android/                      # Android app (Capacitor)
+│   │
+│   ├── tests/                       # Unit Tests
+│   │   ├── test_google_auth.py      # Auth service tests
+│   │   ├── test_google_docs.py      # Docs service tests
+│   │   ├── test_rag_pipeline.py     # RAG pipeline tests
+│   │   └── conftest.py              # Pytest fixtures
+│   │
+│   ├── chroma_db/                   # ChromaDB vector storage (auto-created)
+│   ├── cache/                       # Application cache (auto-created)
+│   └── venv/                        # Python virtual environment
+│
+├── 📁 android/                      # Android App (Capacitor)
 │   ├── app/                         # Android app source
-│   └── build.gradle                 # Android build config
-├── 📁 ios/                          # iOS app (Capacitor)
-│   └── App/                         # iOS app source
-├── 📁 docs/                         # Documentation
+│   │   ├── src/                     # Java/Kotlin source
+│   │   └── build.gradle             # Android build config
+│   └── gradle/                      # Gradle wrapper
+│
+├── 📁 ios/                          # iOS App (Capacitor)
+│   ├── App/                         # iOS app source
+│   │   ├── App/                     # Swift source
+│   │   └── Podfile                  # CocoaPods dependencies
+│   └── Pods/                        # iOS dependencies
+│
+├── 📁 docs/                         # Comprehensive Documentation (75+ files)
 │   ├── DEPLOYMENT_GUIDE.md          # Deployment instructions
 │   ├── BATCH_SIZE_REFERENCE.md      # Batch size configurations
-│   ├── PRE_DEPLOYMENT_CHECKLIST.md  # Deployment checklist
-│   └── AUDIT_SUMMARY.md             # Security audit report
-├── 🐳 docker-compose.yml            # Docker orchestration
-├── 🐳 Dockerfile.backend            # Backend container
-├── 🐳 Dockerfile.frontend           # Frontend container
-├── 📄 capacitor.config.ts           # Capacitor configuration
+│   ├── PRE_DEPLOYMENT_CHECKLIST.md  # Pre-deployment checklist
+│   ├── AUDIT_SUMMARY.md             # Security audit report
+│   ├── DOCKER_DEPLOY_GUIDE.md       # Docker deployment guide
+│   ├── RAILWAY_DEPLOY.md            # Railway deployment guide
+│   ├── TESTING_GUIDE.md             # Testing instructions
+│   ├── TROUBLESHOOTING_*.md         # Troubleshooting guides
+│   ├── PERFORMANCE_*.md             # Performance optimization docs
+│   ├── progress/                    # Development progress logs
+│   └── troubleshooting/             # Detailed troubleshooting
+│
+├── � config/                       # Configuration Files
+│   └── ...                          # App configurations
+│
+├── 📁 hooks/                        # React Custom Hooks
+│   └── ...                          # Custom React hooks
+│
+├── 📁 lib/                          # Shared Libraries
+│   └── ...                          # Utility libraries
+│
+├── 📁 utils/                        # Frontend Utilities
+│   └── tokenManager.ts              # JWT token management
+│
+├── 📁 public/                       # Static Assets
+│   └── ...                          # Images, icons, etc.
+│
+├── 📁 resources/                    # App Resources
+│   └── ...                          # Mobile app resources
+│
+├── 📁 ssl/                          # SSL Certificates
+│   └── ...                          # HTTPS certificates (optional)
+│
+├── 📁 .github/                      # GitHub Configuration
+│   └── workflows/                   # CI/CD workflows
+│
+├── �🐳 docker-compose.yml            # Docker Compose (development)
+├── 🐳 docker-compose.prod.yml       # Docker Compose (production)
+├── 🐳 Dockerfile.backend            # Backend Docker image
+├── 🐳 Dockerfile.frontend           # Frontend Docker image (dev)
+├── 🐳 Dockerfile.frontend.prod      # Frontend Docker image (prod)
+├── 🐳 railway.dockerfile            # Railway-specific Dockerfile
+│
+├── 📄 capacitor.config.ts           # Capacitor mobile app config
+├── 📄 next.config.js                # Next.js configuration
+├── 📄 tailwind.config.js            # Tailwind CSS configuration
+├── 📄 postcss.config.js             # PostCSS configuration
+├── 📄 tsconfig.json                 # TypeScript configuration
 ├── 📄 package.json                  # Frontend dependencies
-├── 📄 requirements.txt              # Backend dependencies
-└── 📄 README.md                     # This file
+├── 📄 package-lock.json             # Locked frontend dependencies
+│
+├── 📄 .env.local                    # Frontend environment variables
+├── 📄 .env.railway                  # Railway frontend config
+├── 📄 .env.example                  # Example environment file
+├── 📄 .gitignore                    # Git ignore rules
+├── 📄 .eslintrc.json                # ESLint configuration
+├── 📄 .dockerignore                 # Docker ignore rules
+│
+├── 📄 vercel.json                   # Vercel deployment config
+├── 📄 railway.json                  # Railway deployment config
+├── 📄 nginx.conf                    # Nginx configuration (optional)
+│
+├── 🔧 sync-env.ps1                  # PowerShell script to sync .env files
+├── 📄 styles.css                    # Additional global styles
+│
+└── 📄 README.md                     # This file (87KB - comprehensive docs)
 ```
+
+### **📊 Project Statistics**
+
+| Category | Count | Size |
+|----------|-------|------|
+| **Total Files** | 200+ | ~150MB (excluding node_modules) |
+| **Documentation Files** | 75+ | ~500KB |
+| **Backend Code** | 15+ files | ~200KB |
+| **Frontend Components** | 20+ files | ~150KB |
+| **Test Files** | 10+ files | ~50KB |
+| **Configuration Files** | 15+ files | ~30KB |
+
+### **🔑 Key Files Explained**
+
+#### **Backend Core:**
+- `main.py` (44KB): FastAPI application with all endpoints
+- `rag_pipeline.py` (57KB): Complete RAG implementation with smart fallback
+- `google_docs.py` (47KB): Google Drive/Docs integration with parallel processing
+- `config.py`: Environment-aware configuration management
+
+#### **Frontend Core:**
+- `app/page.tsx` (22KB): Main dashboard with chat, upload, and document management
+- `components/dashboard/`: All dashboard UI components
+- `utils/tokenManager.ts`: JWT token management and auto-refresh
+
+#### **Deployment:**
+- `docker-compose.yml`: Development Docker setup (60 fetch / 15 embed)
+- `docker-compose.prod.yml`: Production Docker setup
+- `railway.dockerfile`: Railway-optimized build (3 fetch / 1 embed)
+- `vercel.json`: Vercel frontend deployment
+
+#### **Documentation:**
+- `README.md` (87KB): This comprehensive guide
+- `docs/`: 75+ detailed documentation files
+- `DEPLOYMENT_GUIDE.md`: Step-by-step deployment
+- `TROUBLESHOOTING_*.md`: Issue resolution guides
+
+---
 
 ---
 
@@ -2387,8 +2521,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-
-**Made with ❤️ and ☕ by Surya Hanjaya**
 
 ⭐ **Star this repo if you find it helpful!** ⭐
 
