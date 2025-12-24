@@ -48,14 +48,18 @@ ENV PYTHONUNBUFFERED=1 \
     EMBEDDING_BATCH_MEDIUM=64 \
     EMBEDDING_BATCH_LARGE=32
 
-# Create necessary directories
-RUN mkdir -p /app/chroma_db /app/cache
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/chroma_db /app/cache && \
+    chmod -R 777 /app/chroma_db /app/cache
 
 # Copy backend code
 COPY backend/ .
 
 # Pre-download embedding model to speed up first run
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Ensure permissions are set correctly after copy
+RUN chmod -R 777 /app/chroma_db /app/cache
 
 # Health check with longer intervals to avoid interference
 HEALTHCHECK --interval=60s --timeout=10s --start-period=120s --retries=3 \

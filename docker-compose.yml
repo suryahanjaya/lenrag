@@ -74,5 +74,7 @@ networks:
 volumes:
   chroma_db:
     name: dora-chroma-db
+    external: true # Prevent accidental deletion
   backend_cache:
     name: dora-backend-cache
+    external: true # Prevent accidental deletion
