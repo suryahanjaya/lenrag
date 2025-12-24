@@ -28,13 +28,15 @@
 - [🎯 What is DORA?](#-what-is-dora)
 - [✨ Key Features](#-key-features)
 - [🏗️ System Architecture](#️-system-architecture)
-- [🛠️ Complete Technology Stack](#️-complete-technology-stack)
+- [� How It Works - Complete System Flow](#-how-it-works---complete-system-flow)
+- [�🛠️ Complete Technology Stack](#️-complete-technology-stack)
 - [🚀 Advanced Features Deep Dive](#-advanced-features-deep-dive)
 - [📊 Performance Metrics](#-performance-metrics)
 - [🌐 Deployment Options](#-deployment-options)
 - [📋 Quick Start Guide](#-quick-start-guide)
 - [📚 API Documentation](#-api-documentation)
 - [🎨 Project Structure](#-project-structure)
+- [🚦 Troubleshooting & FAQ](#-troubleshooting--faq)
 - [🤝 Contributing](#-contributing)
 
 ---
@@ -1830,7 +1832,7 @@ lenrag/
 ├── 📁 .github/                      # GitHub Configuration
 │   └── workflows/                   # CI/CD workflows
 │
-├── �🐳 docker-compose.yml            # Docker Compose (development)
+├── �� docker-compose.yml            # Docker Compose (development)
 ├── 🐳 docker-compose.prod.yml       # Docker Compose (production)
 ├── 🐳 Dockerfile.backend            # Backend Docker image
 ├── 🐳 Dockerfile.frontend           # Frontend Docker image (dev)
@@ -1856,7 +1858,6 @@ lenrag/
 ├── 📄 railway.json                  # Railway deployment config
 ├── 📄 nginx.conf                    # Nginx configuration (optional)
 │
-├── 🔧 sync-env.ps1                  # PowerShell script to sync .env files
 ├── 📄 styles.css                    # Additional global styles
 │
 └── 📄 README.md                     # This file (87KB - comprehensive docs)
