@@ -1768,6 +1768,563 @@ lenrag/
 
 ---
 
+## 🚦 **Troubleshooting & FAQ**
+
+### **Common Issues & Solutions**
+
+---
+
+#### **1. ❌ "Invalid API Key" Error**
+
+**Problem:**
+```
+ERROR: Error code: 401 - {'error': {'message': 'Invalid API Key'}}
+```
+
+**Causes:**
+- API key tidak valid atau expired
+- API key tidak di-set di environment variables
+- Typo dalam API key
+
+**Solutions:**
+
+**For Groq API:**
+1. Get a new API key from [Groq Console](https://console.groq.com/keys)
+2. Update `backend/.env`:
+   ```bash
+   GROQ_API_KEY=gsk_your_actual_groq_api_key_here
+   ```
+3. Restart backend:
+   ```bash
+   # Stop current process (Ctrl+C)
+   python main.py
+   ```
+
+**For Gemini API:**
+1. Get API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Update `backend/.env`:
+   ```bash
+   GEMINI_API_KEY=your_actual_gemini_api_key_here
+   ```
+
+**For Docker:**
+1. Update `backend/.env.production` with the same keys
+2. Rebuild containers:
+   ```bash
+   docker-compose down
+   docker-compose up --build
+   ```
+
+---
+
+#### **2. 🔐 "Redirect URI Mismatch" Error**
+
+**Problem:**
+```
+ERROR: redirect_uri_mismatch
+The redirect URI in the request does not match the ones authorized for the OAuth client.
+```
+
+**Causes:**
+- Redirect URI tidak match dengan Google Cloud Console
+- HTTP vs HTTPS mismatch
+- Port number berbeda
+
+**Solutions:**
+
+**Step 1: Check Current Redirect URI**
+Look at your error logs to see what redirect URI is being used:
+```
+Request redirect_uri: http://localhost:3000/auth/callback
+```
+
+**Step 2: Update Google Cloud Console**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Click on your OAuth 2.0 Client ID
+3. Under "Authorized redirect URIs", add **EXACTLY**:
+   - For localhost: `http://localhost:3000/auth/callback`
+   - For Docker: `http://localhost:3000/auth/callback`
+   - For Railway: `https://your-vercel-app.vercel.app/auth/callback`
+   - For ngrok: `http://localhost:3000/auth/callback` (frontend stays localhost)
+
+**Step 3: Also Add Backend OAuth URI**
+Add these for backend OAuth flow:
+- For localhost: `http://localhost:8000/auth/google`
+- For Railway: `https://your-railway-backend.up.railway.app/auth/google`
+- For ngrok: `https://your-ngrok-url.ngrok.io/auth/google`
+
+**Step 4: Clear Browser Cache**
+- Clear cookies and cache
+- Try authentication again in incognito mode
+
+---
+
+#### **3. 💾 "Out of Memory" Error on Railway**
+
+**Problem:**
+```
+ERROR: Application crashed - Out of Memory
+Process killed (OOM)
+```
+
+**Causes:**
+- Railway free tier has 512MB memory limit
+- Batch sizes too large (60 fetch / 15 embed)
+- Too many documents uploaded at once
+
+**Solutions:**
+
+**Solution 1: Use Correct Environment Variables**
+Railway should auto-detect and use smaller batch sizes. Verify in Railway dashboard:
+```bash
+RAILWAY_ENVIRONMENT=true
+BULK_UPLOAD_BATCH_SIZE=3
+EMBEDDING_BATCH_SIZE=1
+LOG_LEVEL=ERROR
+```
+
+**Solution 2: Reduce Batch Sizes Further**
+If still getting OOM, reduce even more:
+```bash
+BULK_UPLOAD_BATCH_SIZE=1
+EMBEDDING_BATCH_SIZE=1
+```
+
+**Solution 3: Upload Fewer Documents**
+- Railway free tier: Max 10-20 documents per upload
+- For bulk uploads (100+ docs), use Docker instead
+
+**Solution 4: Reduce Logging**
+Set `LOG_LEVEL=ERROR` to reduce memory usage from logs
+
+**Solution 5: Upgrade Railway Plan**
+- Pro plan: 8GB memory ($5/month)
+- Can handle 100+ documents easily
+
+**Best Practice:**
+Use Railway for production API, but use Docker for bulk document uploads.
+
+---
+
+#### **4. 🐌 Slow Upload Performance**
+
+**Problem:**
+- Upload takes 30+ minutes for 50 documents
+- Progress bar stuck
+- Timeout errors
+
+**Possible Causes & Solutions:**
+
+**Cause 1: Wrong Environment (Railway instead of Docker)**
+- **Check**: Are you on Railway/Vercel?
+- **Solution**: Use Docker for bulk uploads
+  ```bash
+  docker-compose up --build
+  ```
+
+**Cause 2: Batch Sizes Too Small**
+- **Check**: `backend/.env` batch sizes
+- **Solution**: For Docker, use:
+  ```bash
+  BULK_UPLOAD_BATCH_SIZE=60
+  EMBEDDING_BATCH_SIZE=15
+  ```
+
+**Cause 3: Network Issues**
+- **Check**: Internet connection speed
+- **Solution**: 
+  - Use wired connection instead of WiFi
+  - Close other bandwidth-heavy applications
+  - Try again during off-peak hours
+
+**Cause 4: Large Documents**
+- **Check**: Document sizes (PDFs with images, large presentations)
+- **Solution**: 
+  - Split large documents into smaller files
+  - Compress PDFs before uploading
+  - Remove unnecessary images
+
+**Cause 5: API Rate Limits**
+- **Check**: Groq API quota (14,400 requests/day for free tier)
+- **Solution**:
+  - Wait 24 hours for quota reset
+  - Upgrade to paid plan
+  - Use Gemini as primary LLM instead
+
+**Performance Benchmarks:**
+| Environment | 50 Docs | Expected Time |
+|-------------|---------|---------------|
+| Docker (60/15) | 50 docs | 3-5 minutes |
+| Railway (3/1) | 50 docs | 40-60 minutes |
+| Localhost (60/15) | 50 docs | 3-5 minutes |
+
+---
+
+#### **5. 🔌 ChromaDB Connection Issues**
+
+**Problem:**
+```
+ERROR: Could not connect to ChromaDB
+Connection refused on port 8000
+```
+
+**Causes:**
+- ChromaDB not initialized
+- Port conflict
+- Corrupted database files
+
+**Solutions:**
+
+**Solution 1: Check ChromaDB Directory**
+```bash
+# Backend directory should have chroma_db folder
+ls backend/chroma_db/
+```
+
+**Solution 2: Delete and Reinitialize ChromaDB**
+```bash
+# ⚠️ WARNING: This will delete all uploaded documents!
+cd backend
+rm -rf chroma_db/
+# Restart backend - ChromaDB will auto-initialize
+python main.py
+```
+
+**Solution 3: Check Port Conflicts**
+```bash
+# Windows
+netstat -ano | findstr :8000
+
+# Linux/Mac
+lsof -i :8000
+```
+
+**Solution 4: For Docker**
+```bash
+# Remove volumes and restart
+docker-compose down -v
+docker-compose up --build
+```
+
+**Solution 5: Verify ChromaDB Installation**
+```bash
+cd backend
+pip install chromadb==0.4.22 --force-reinstall
+```
+
+---
+
+#### **6. 🔄 "Token Expired" Error**
+
+**Problem:**
+```
+ERROR: Token has expired
+401 Unauthorized
+```
+
+**Causes:**
+- JWT token expired (30-minute lifetime)
+- Google access token expired
+- Refresh token invalid
+
+**Solutions:**
+
+**Solution 1: Refresh Page**
+- Simply refresh the page
+- Frontend will automatically refresh tokens
+
+**Solution 2: Re-authenticate**
+- Click "Sign Out"
+- Click "Sign in with Google" again
+
+**Solution 3: Clear Browser Storage**
+```javascript
+// Open browser console (F12) and run:
+localStorage.clear();
+sessionStorage.clear();
+// Then refresh page
+```
+
+**Solution 4: Check Backend Logs**
+Look for token refresh errors in backend logs
+
+---
+
+#### **7. 📱 Mobile App Issues**
+
+**Problem:**
+- App won't connect to backend
+- "Network Error" on mobile
+- OAuth not working on mobile
+
+**Solutions:**
+
+**For Android:**
+
+**Issue: App can't reach localhost**
+- **Cause**: Android emulator can't access `localhost:8000`
+- **Solution**: Use `10.0.2.2:8000` for emulator or ngrok for real device
+  ```typescript
+  // capacitor.config.ts
+  server: {
+    url: 'https://your-ngrok-url.ngrok.io'
+  }
+  ```
+
+**Issue: OAuth redirect not working**
+- **Cause**: Custom URL scheme not configured
+- **Solution**: Add to `capacitor.config.ts`:
+  ```typescript
+  server: {
+    androidScheme: 'https'
+  }
+  ```
+
+**For iOS:**
+
+**Issue: CORS errors**
+- **Solution**: Add backend URL to allowed origins in `backend/main.py`
+
+**Issue: App crashes on launch**
+- **Solution**: Rebuild app:
+  ```bash
+  npm run build
+  npx cap sync ios
+  npx cap open ios
+  ```
+
+---
+
+### **❓ Frequently Asked Questions (FAQ)**
+
+---
+
+#### **Q1: How many documents can I upload?**
+
+**Answer:**
+- **Docker/Localhost**: 1000+ documents (limited by disk space)
+- **Railway Free Tier**: 10-20 documents per upload (memory limited)
+- **Railway Pro**: 100+ documents (8GB memory)
+
+**Recommendation**: Use Docker for bulk uploads, Railway for production API.
+
+---
+
+#### **Q2: Which LLM provider should I use?**
+
+**Answer:**
+
+| Provider | Best For | Free Tier | Speed | Accuracy |
+|----------|----------|-----------|-------|----------|
+| **Groq** | Production | 14.4K req/day | ⚡ Ultra-fast | ⭐⭐⭐⭐ |
+| **Gemini** | Fallback | 60 req/min | 🔋 Fast | ⭐⭐⭐⭐⭐ |
+
+**Recommendation**: Use Groq as primary, Gemini as fallback (already configured).
+
+---
+
+#### **Q3: How do I delete all documents?**
+
+**Answer:**
+
+**Option 1: Through UI**
+- Go to Documents page
+- Select all documents
+- Click "Delete Selected"
+
+**Option 2: Delete ChromaDB (Backend)**
+```bash
+cd backend
+rm -rf chroma_db/
+# Restart backend
+python main.py
+```
+
+**Option 3: Docker**
+```bash
+docker-compose down -v
+docker-compose up --build
+```
+
+---
+
+#### **Q4: Can I use my own LLM?**
+
+**Answer:**
+Yes! DORA supports any OpenAI-compatible API.
+
+**Steps:**
+1. Edit `backend/services/rag_pipeline.py`
+2. Add your LLM client:
+   ```python
+   from your_llm_library import YourLLMClient
+   
+   self.your_llm = YourLLMClient(api_key=os.getenv("YOUR_LLM_API_KEY"))
+   ```
+3. Update `_generate_content_with_retry()` method
+4. Add to `.env`:
+   ```bash
+   YOUR_LLM_API_KEY=your_api_key
+   LLM_PROVIDER=your_llm
+   ```
+
+---
+
+#### **Q5: How do I backup my documents?**
+
+**Answer:**
+
+**Backup ChromaDB:**
+```bash
+# Create backup
+cd backend
+tar -czf chroma_backup_$(date +%Y%m%d).tar.gz chroma_db/
+
+# Restore backup
+tar -xzf chroma_backup_20241224.tar.gz
+```
+
+**Backup to Cloud:**
+- Copy `backend/chroma_db/` to Google Drive, Dropbox, etc.
+- For Docker, backup volume:
+  ```bash
+  docker run --rm -v dora-chroma-db:/data -v $(pwd):/backup ubuntu tar czf /backup/chroma_backup.tar.gz /data
+  ```
+
+---
+
+#### **Q6: Why is my query not finding relevant documents?**
+
+**Possible Reasons:**
+
+1. **Similarity threshold too high**
+   - Default: 0.7
+   - Lower it in `backend/services/rag_pipeline.py`:
+     ```python
+     SIMILARITY_THRESHOLD = 0.5  # Lower = more results
+     ```
+
+2. **Documents not uploaded correctly**
+   - Check Documents page to verify upload
+   - Re-upload if needed
+
+3. **Query too vague**
+   - Be more specific in your question
+   - Use keywords from your documents
+
+4. **Wrong language**
+   - Ensure query language matches document language
+
+---
+
+#### **Q7: How do I deploy to production?**
+
+**Answer:**
+
+**Recommended Setup:**
+- **Frontend**: Vercel (free, global CDN)
+- **Backend**: Railway (free tier or $5/month Pro)
+- **Bulk Uploads**: Docker (local machine)
+
+**Quick Deploy:**
+1. Push code to GitHub
+2. Connect Railway to GitHub repo (backend)
+3. Connect Vercel to GitHub repo (frontend)
+4. Set environment variables (see Deployment section)
+5. Deploy! 🚀
+
+**Detailed Guide**: See [Deployment Options](#-deployment-options) section above.
+
+---
+
+#### **Q8: Can I use DORA offline?**
+
+**Answer:**
+
+**Partially Yes:**
+- ✅ **Chat with uploaded documents**: Works offline (if backend running locally)
+- ❌ **Upload new documents**: Requires internet (Google Drive API)
+- ❌ **LLM responses**: Requires internet (Groq/Gemini API)
+
+**For Offline Use:**
+- Use Docker deployment
+- Upload documents while online
+- Chat works offline (uses local ChromaDB)
+- Consider using local LLM (Ollama, LM Studio)
+
+---
+
+#### **Q9: How much does it cost to run DORA?**
+
+**Answer:**
+
+**Free Tier (Recommended for Testing):**
+- Frontend: Vercel (Free)
+- Backend: Railway (Free - 512MB, $5 credit/month)
+- LLM: Groq (Free - 14.4K req/day)
+- Storage: ChromaDB (Free - local storage)
+- **Total: $0/month** ✅
+
+**Production (Recommended):**
+- Frontend: Vercel (Free)
+- Backend: Railway Pro ($5/month - 8GB memory)
+- LLM: Groq Pro ($0.10/1M tokens) or Gemini ($0)
+- **Total: ~$5-10/month**
+
+**Enterprise:**
+- Custom deployment
+- Dedicated servers
+- Contact for pricing
+
+---
+
+#### **Q10: Is my data secure?**
+
+**Answer:**
+
+**Yes! DORA implements multiple security layers:**
+
+1. ✅ **OAuth 2.0**: Industry-standard authentication
+2. ✅ **JWT Tokens**: Secure session management
+3. ✅ **HTTPS**: All traffic encrypted (production)
+4. ✅ **Rate Limiting**: DDoS protection
+5. ✅ **Input Validation**: SQL injection prevention
+6. ✅ **CORS**: Cross-origin protection
+7. ✅ **Local Storage**: Documents stored locally (ChromaDB)
+8. ✅ **No Data Sharing**: Your documents never leave your infrastructure
+
+**Privacy:**
+- Documents are NOT sent to third parties
+- Only embeddings and queries sent to LLM providers
+- You control all data (self-hosted)
+
+---
+
+### **🆘 Still Having Issues?**
+
+If your issue isn't listed here:
+
+1. **Check Logs**:
+   ```bash
+   # Backend logs
+   cd backend
+   python main.py
+   
+   # Docker logs
+   docker-compose logs -f
+   ```
+
+2. **Search Existing Issues**: [GitHub Issues](https://github.com/suryahanjaya/lenrag/issues)
+
+3. **Open New Issue**: [Create Issue](https://github.com/suryahanjaya/lenrag/issues/new)
+   - Include error logs
+   - Describe steps to reproduce
+   - Mention your environment (Docker/Railway/Localhost)
+
+4. **Contact Developer**: See [Support & Contact](#-support--contact) section
+
+---
+
 ## 🤝 **Contributing**
 
 We welcome contributions! Please follow these steps:
